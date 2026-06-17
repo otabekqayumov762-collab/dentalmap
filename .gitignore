@@ -6,6 +6,7 @@ build
 .env
 .env.local
 .env.*.local
+.netlify
 screenshots
 .DS_Store
 npm-debug.log*
