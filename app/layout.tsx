@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Dental Map",
-  description: "Dental Map webapp frontend for doctors, clinics, appointments, and records."
+  description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi."
 };
 
 export const viewport: Viewport = {

@@ -86,12 +86,12 @@ const districts = [
 const doctors: Doctor[] = [
   {
     id: "anna",
-    name: "Dr. Anna Petrova",
+    name: "Dr. Dilnoza Karimova",
     specialty: "Ortodont",
     rating: 4.9,
     reviews: 112,
     experience: "12 yil",
-    clinic: "Arbat Smile",
+    clinic: "Smile Dent",
     district: "Yakkasaroy",
     address: "Bobur kochasi 18",
     phone: "+998 90 112 45 67",
@@ -102,7 +102,7 @@ const doctors: Doctor[] = [
   },
   {
     id: "ivan",
-    name: "Dr. Ivan Sidorov",
+    name: "Dr. Jamshid Rasulov",
     specialty: "Jarroh stomatolog",
     rating: 4.8,
     reviews: 96,
@@ -118,7 +118,7 @@ const doctors: Doctor[] = [
   },
   {
     id: "maria",
-    name: "Dr. Maria Volkova",
+    name: "Dr. Malika Sodiqova",
     specialty: "Terapevt",
     rating: 5.0,
     reviews: 128,
@@ -134,7 +134,7 @@ const doctors: Doctor[] = [
   },
   {
     id: "dmitry",
-    name: "Dr. Dmitry Popov",
+    name: "Dr. Sardor Aliyev",
     specialty: "Ortoped",
     rating: 4.7,
     reviews: 87,
@@ -152,7 +152,7 @@ const doctors: Doctor[] = [
 
 const clinics: Clinic[] = [
   {
-    name: "Arbat Smile",
+    name: "Smile Dent",
     district: "Yakkasaroy",
     address: "Bobur kochasi 18",
     workTime: "08:00 - 21:00",
@@ -181,19 +181,19 @@ const clinics: Clinic[] = [
 ];
 
 const shortcuts: Shortcut[] = [
-  { id: "services", label: "Services", Icon: SlidersHorizontal },
-  { id: "clinics", label: "Clinics", Icon: Building2 },
-  { id: "appointment", label: "Appointment", Icon: CalendarDays },
-  { id: "map", label: "Map", Icon: MapPin },
-  { id: "records", label: "My Records", Icon: FileText }
+  { id: "services", label: "Xizmatlar", Icon: SlidersHorizontal },
+  { id: "clinics", label: "Klinikalar", Icon: Building2 },
+  { id: "appointment", label: "Qabul", Icon: CalendarDays },
+  { id: "map", label: "Xarita", Icon: MapPin },
+  { id: "records", label: "Yozuvlar", Icon: FileText }
 ];
 
 const tabs: Shortcut[] = [
-  { id: "home", label: "Home", Icon: Home },
-  { id: "map", label: "Map", Icon: Map },
-  { id: "doctors", label: "Doctors", Icon: Stethoscope },
-  { id: "profile", label: "Profile", Icon: User },
-  { id: "more", label: "More", Icon: MoreHorizontal }
+  { id: "home", label: "Bosh", Icon: Home },
+  { id: "map", label: "Xarita", Icon: Map },
+  { id: "doctors", label: "Shifokor", Icon: Stethoscope },
+  { id: "profile", label: "Profil", Icon: User },
+  { id: "more", label: "Yana", Icon: MoreHorizontal }
 ];
 
 const serviceItems = [
@@ -209,6 +209,18 @@ const serviceItems = [
 
 const slots = ["09:30", "10:45", "12:15", "14:30", "16:00", "18:20"];
 
+const mapTiles = [
+  [5670, 3061],
+  [5671, 3061],
+  [5672, 3061],
+  [5670, 3062],
+  [5671, 3062],
+  [5672, 3062],
+  [5670, 3063],
+  [5671, 3063],
+  [5672, 3063]
+];
+
 export default function DentalMapApp() {
   const [activeView, setActiveView] = useState<ViewId>("home");
   const [query, setQuery] = useState("");
@@ -216,6 +228,7 @@ export default function DentalMapApp() {
   const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const filteredDoctors = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -251,11 +264,11 @@ export default function DentalMapApp() {
 
   return (
     <main className="mini-shell">
-      <section className="mini-app" aria-label="Dental Map mini app">
+      <section className="mini-app" aria-label="Dental Map mini ilova">
         <header className="status-bar">
-          <span>10:09 AM</span>
-          <strong>Mini App</strong>
-          <button>Close</button>
+          <span>10:09</span>
+          <strong>Mini ilova</strong>
+          <button>Yopish</button>
         </header>
 
         <div className="app-scroll">
@@ -269,17 +282,31 @@ export default function DentalMapApp() {
                   DENTAL <span>MAP</span>
                 </strong>
               </button>
-              <button className="round-icon" aria-label="Notifications">
+              <button
+                className={notificationsOpen ? "round-icon active" : "round-icon"}
+                aria-label="Bildirishnomalar"
+                onClick={() => setNotificationsOpen((open) => !open)}
+              >
                 <Bell size={18} />
               </button>
             </div>
+
+            {notificationsOpen && (
+              <NotificationPanel
+                sent={consultationSent}
+                onOpenAppointment={() => {
+                  setNotificationsOpen(false);
+                  setActiveView("appointment");
+                }}
+              />
+            )}
 
             <label className="search-field">
               <Search size={17} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search doctors, clinics..."
+                placeholder="Shifokor yoki klinika qidirish..."
               />
             </label>
 
@@ -288,7 +315,7 @@ export default function DentalMapApp() {
               <select
                 value={district}
                 onChange={(event) => setDistrict(event.target.value)}
-                aria-label="District"
+                aria-label="Tuman"
               >
                 {districts.map((item) => (
                   <option key={item}>{item}</option>
@@ -296,7 +323,7 @@ export default function DentalMapApp() {
               </select>
             </label>
 
-            <div className="shortcut-row" aria-label="Mini app shortcuts">
+            <div className="shortcut-row" aria-label="Mini ilova bo'limlari">
               {shortcuts.map(({ id, label, Icon }) => (
                 <button key={id} className="shortcut" onClick={() => setActiveView(id)}>
                   <Icon size={18} />
@@ -355,7 +382,7 @@ export default function DentalMapApp() {
           )}
         </div>
 
-        <nav className="bottom-tabs" aria-label="Bottom navigation">
+        <nav className="bottom-tabs" aria-label="Pastki navigatsiya">
           {tabs.map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -369,6 +396,47 @@ export default function DentalMapApp() {
         </nav>
       </section>
     </main>
+  );
+}
+
+function NotificationPanel({
+  sent,
+  onOpenAppointment
+}: {
+  sent: boolean;
+  onOpenAppointment: () => void;
+}) {
+  return (
+    <section className="notification-panel">
+      <div>
+        <strong>Bildirishnomalar</strong>
+        <button type="button" onClick={onOpenAppointment}>
+          Qabulni ochish
+        </button>
+      </div>
+      <button className="notification-row" type="button" onClick={onOpenAppointment}>
+        <span className="soft-icon">
+          <CheckCircle2 size={17} />
+        </span>
+        <span>
+          <strong>{sent ? "Admin tasdiqi kutilmoqda" : "Qabul formasi tayyor"}</strong>
+          <small>
+            {sent
+              ? "Administrator sorovingizni ko'rib chiqmoqda."
+              : "F.I.O, telefon, kun va vaqtni kiriting."}
+          </small>
+        </span>
+      </button>
+      <button className="notification-row" type="button" onClick={onOpenAppointment}>
+        <span className="soft-icon">
+          <Clock size={17} />
+        </span>
+        <span>
+          <strong>Bugungi bo&apos;sh vaqtlar</strong>
+          <small>14:30 va 16:00 slotlari mavjud.</small>
+        </span>
+      </button>
+    </section>
   );
 }
 
@@ -387,7 +455,11 @@ function HomeView({
 }) {
   return (
     <div className="view-stack">
-      <SectionTitle title="Recommended Doctors" action="All" onAction={() => onNavigate("doctors")} />
+      <SectionTitle
+        title="Tavsiya etilgan shifokorlar"
+        action="Barchasi"
+        onAction={() => onNavigate("doctors")}
+      />
       <div className="doctor-grid">
         {doctors.slice(0, 4).map((item) => (
           <DoctorCard key={item.id} doctor={item} onAppointment={() => onAppointment(item)} />
@@ -395,8 +467,8 @@ function HomeView({
       </div>
 
       <SectionTitle
-        title="My Upcoming Appointments"
-        action="Open"
+        title="Yaqin qabul"
+        action="Ochish"
         onAction={() => onNavigate("appointment")}
       />
       <button className="appointment-strip" onClick={() => onNavigate("appointment")}>
@@ -404,7 +476,7 @@ function HomeView({
         <span>
           <strong>{doctor.name}</strong>
           <small>
-            Oct 28, 11:30 AM - {doctor.clinic}
+            28-oktabr, 11:30 - {doctor.clinic}
           </small>
           <em>{consultationSent ? "Admin tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
         </span>
@@ -436,7 +508,10 @@ function DoctorsView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Doctors" text="Tuman, klinika va mutaxassislik boyicha shifokor tanlang." />
+      <PageHead
+        title="Shifokorlar"
+        text="Tuman, klinika va mutaxassislik bo'yicha shifokor tanlang."
+      />
       <div className="doctor-grid">
         {doctors.map((doctor) => (
           <DoctorCard key={doctor.id} doctor={doctor} onAppointment={() => onAppointment(doctor)} />
@@ -455,7 +530,7 @@ function ClinicsView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Clinics" text="Yaqin klinikalar, ish vaqti, reyting va manzil." />
+      <PageHead title="Klinikalar" text="Yaqin klinikalar, ish vaqti, reyting va manzil." />
       {clinics.map((clinic) => (
         <article className="clinic-card" key={clinic.name}>
           <img src={clinic.image} alt={clinic.name} />
@@ -468,7 +543,7 @@ function ClinicsView({
             <small>{clinic.workTime}</small>
           </div>
           <button className="mini-btn" onClick={() => onNavigate("appointment")}>
-            Appointment
+            Qabulga yozilish
           </button>
         </article>
       ))}
@@ -479,7 +554,7 @@ function ClinicsView({
 function ServicesView({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
   return (
     <div className="view-stack">
-      <PageHead title="Services" text="Dental xizmatlar va konsultatsiya turi." />
+      <PageHead title="Xizmatlar" text="Stomatologik xizmatlar va konsultatsiya turi." />
       <div className="service-grid">
         {serviceItems.map((service) => (
           <button key={service} className="service-card" onClick={() => onNavigate("appointment")}>
@@ -505,20 +580,42 @@ function MapView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Map" text="Lokatsiyaga yaqin klinika va shifokorlar." />
-      <section className="map-card">
-        <div className="map-grid-bg" />
-        {clinics.map((clinic, index) => (
-          <span key={clinic.name} className={`pin pin-${index + 1}`}>
-            <Building2 size={15} />
-            {clinic.name}
+      <PageHead title="Xarita" text="Toshkent bo'yicha klinikalar va yaqin shifokorlar." />
+      <section className="map-card" aria-label="Toshkent xaritasi">
+        <div className="tile-map" aria-hidden="true">
+          {mapTiles.map(([x, y]) => (
+            <img
+              key={`${x}-${y}`}
+              src={`https://tile.openstreetmap.org/13/${x}/${y}.png`}
+              alt=""
+              loading="lazy"
+            />
+          ))}
+        </div>
+        <span className="map-marker clinic-marker-one">Smile Dent</span>
+        <span className="map-marker clinic-marker-two">Denta Pro</span>
+        <span className="map-marker user-marker">Siz</span>
+        <div className="map-overlay">
+          <span>
+            <MapPin size={16} />
+            Toshkent
           </span>
-        ))}
-        <span className="my-location">
-          <MapPin size={19} />
-          Siz
-        </span>
+          <button type="button">Lokatsiyani yuborish</button>
+        </div>
       </section>
+      <div className="clinic-map-list">
+        {clinics.slice(0, 3).map((clinic) => (
+          <article key={clinic.name}>
+            <Building2 size={16} />
+            <span>
+              <strong>{clinic.name}</strong>
+              <small>
+                {clinic.district}, {clinic.address}
+              </small>
+            </span>
+          </article>
+        ))}
+      </div>
       <SectionTitle title="Yaqin shifokorlar" />
       {doctors.slice(0, 3).map((doctor) => (
         <button className="nearby-row" key={doctor.id} onClick={() => onAppointment(doctor)}>
@@ -551,7 +648,7 @@ function AppointmentView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Appointment" text="Qabul sanasi va konsultatsiya malumotlari." />
+      <PageHead title="Qabul" text="Qabul sanasi va konsultatsiya ma'lumotlari." />
 
       <article className="selected-doctor">
         <img src={doctor.image} alt={doctor.name} />
@@ -620,7 +717,7 @@ function AppointmentView({
           <strong>{sent ? "Sorov yuborildi" : "Admin tasdiqi"}</strong>
           <small>
             {sent
-              ? "Administrator qabul vaqtini tekshiradi va statusni yangilaydi."
+              ? "Administrator qabul vaqtini tekshiradi va holatni yangilaydi."
               : "Forma yuborilgandan keyin admin tasdiq jarayoni boshlanadi."}
           </small>
         </span>
@@ -631,14 +728,14 @@ function AppointmentView({
 
 function RecordsView() {
   const records = [
-    ["Ortodont konsultatsiyasi", "Dr. Anna Petrova", "12-iyun 2026", "180 000 som"],
-    ["Panoramik rentgen", "Denta Pro", "03-iyun 2026", "90 000 som"],
-    ["Gigiyena", "Neo Dental", "24-may 2026", "260 000 som"]
+    ["Ortodont konsultatsiyasi", "Dr. Dilnoza Karimova", "12-iyun 2026", "180 000 so'm"],
+    ["Panoramik rentgen", "Denta Pro", "03-iyun 2026", "90 000 so'm"],
+    ["Gigiyena", "Neo Dental", "24-may 2026", "260 000 so'm"]
   ];
 
   return (
     <div className="view-stack">
-      <PageHead title="My Records" text="Qabul tarixi, xulosa, retsept va tolovlar." />
+      <PageHead title="Yozuvlarim" text="Qabul tarixi, xulosa, retsept va to'lovlar." />
       {records.map(([title, place, date, amount]) => (
         <article className="record-card" key={title}>
           <span className="soft-icon">
@@ -659,7 +756,7 @@ function RecordsView() {
 function ProfileView() {
   return (
     <div className="view-stack">
-      <PageHead title="Profile" text="Login, telefon, lokatsiya va xavfsizlik." />
+      <PageHead title="Profil" text="Kirish, telefon, lokatsiya va xavfsizlik." />
       <section className="profile-card">
         <div className="profile-avatar">
           <User size={34} />
@@ -675,8 +772,8 @@ function ProfileView() {
       <button className="settings-row">
         <LockKeyhole size={18} />
         <span>
-          <strong>Login / Sign up</strong>
-          <small>Mini app profiliga kirish</small>
+          <strong>Kirish / Ro&apos;yxatdan o&apos;tish</strong>
+          <small>Mini ilova profiliga kirish</small>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -708,21 +805,21 @@ function MoreView({
   sent: boolean;
 }) {
   const rows: Shortcut[] = [
-    { id: "services", label: "Services", Icon: SlidersHorizontal },
-    { id: "clinics", label: "Clinics", Icon: Building2 },
-    { id: "appointment", label: "Appointment", Icon: CalendarCheck },
-    { id: "records", label: "My Records", Icon: ClipboardList },
-    { id: "profile", label: "Profile", Icon: User }
+    { id: "services", label: "Xizmatlar", Icon: SlidersHorizontal },
+    { id: "clinics", label: "Klinikalar", Icon: Building2 },
+    { id: "appointment", label: "Qabul", Icon: CalendarCheck },
+    { id: "records", label: "Yozuvlarim", Icon: ClipboardList },
+    { id: "profile", label: "Profil", Icon: User }
   ];
 
   return (
     <div className="view-stack">
-      <PageHead title="More" text="Barcha bo'limlar va qabul statusi." />
+      <PageHead title="Yana" text="Barcha bo'limlar va qabul holati." />
       <div className={sent ? "admin-status sent" : "admin-status"}>
         <CheckCircle2 size={18} />
         <span>
-          <strong>{sent ? "Admin tasdiq jarayonida" : "Aktiv sorov yoq"}</strong>
-          <small>{sent ? "Sorovingiz administratorga yuborildi." : "Qabul formasini toldiring."}</small>
+          <strong>{sent ? "Admin tasdiq jarayonida" : "Faol so'rov yo'q"}</strong>
+          <small>{sent ? "So'rovingiz administratorga yuborildi." : "Qabul formasini to'ldiring."}</small>
         </span>
       </div>
       {rows.map(({ id, label, Icon }) => (
@@ -730,7 +827,7 @@ function MoreView({
           <Icon size={18} />
           <span>
             <strong>{label}</strong>
-            <small>Open {label}</small>
+            <small>{label} bo&apos;limini ochish</small>
           </span>
           <ChevronRight size={18} />
         </button>
@@ -750,7 +847,7 @@ function DoctorCard({
     <article className="doctor-card" style={{ "--accent": doctor.accent } as CSSProperties}>
       <div className="photo-box">
         <img src={doctor.image} alt={doctor.name} />
-        <button className="heart-btn" aria-label={`Save ${doctor.name}`}>
+        <button className="heart-btn" aria-label={`${doctor.name}ni saqlash`}>
           <Heart size={16} />
         </button>
         <span className="doctor-badge">
@@ -763,7 +860,7 @@ function DoctorCard({
         <span className="rating-line">
           <Star size={14} />
           {doctor.rating}
-          <em>{doctor.reviews} reviews</em>
+          <em>{doctor.reviews} sharh</em>
         </span>
         <span className="address-line">
           <MapPin size={14} />
@@ -771,7 +868,7 @@ function DoctorCard({
         </span>
       </div>
       <button className="appointment-btn" onClick={onAppointment}>
-        Appointment
+        Qabul
       </button>
     </article>
   );

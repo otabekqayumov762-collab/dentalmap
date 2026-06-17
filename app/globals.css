@@ -113,7 +113,7 @@ p {
 .app-scroll {
   height: calc(100% - 42px);
   overflow-y: auto;
-  padding: 0 14px 92px;
+  padding: 0 14px 112px;
   scrollbar-width: none;
 }
 
@@ -174,8 +174,8 @@ p {
 
 .round-icon {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--line);
@@ -184,13 +184,81 @@ p {
   color: #42526b;
 }
 
+.round-icon.active {
+  border-color: #9bddec;
+  background: #e5f7fb;
+  color: var(--blue-dark);
+}
+
+.notification-panel {
+  display: grid;
+  gap: 9px;
+  border: 1px solid #cfe8ef;
+  border-radius: 13px;
+  background: #ffffff;
+  padding: 11px;
+  box-shadow: 0 12px 24px rgba(32, 55, 76, 0.12);
+}
+
+.notification-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-panel > div strong {
+  font-size: 14px;
+}
+
+.notification-panel > div button {
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.notification-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f8fbfc;
+  padding: 9px;
+  text-align: left;
+}
+
+.notification-row span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.notification-row strong,
+.notification-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-row strong {
+  font-size: 13px;
+}
+
+.notification-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .search-field,
 .district-select {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #eef3f7;
@@ -210,7 +278,7 @@ p {
   outline: 0;
   background: transparent;
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .search-field input::placeholder {
@@ -220,13 +288,13 @@ p {
 .shortcut-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 7px;
+  gap: 8px;
 }
 
 .shortcut {
   display: grid;
   min-width: 0;
-  min-height: 62px;
+  min-height: 72px;
   place-items: center;
   border: 1px solid #dce9ee;
   border-radius: 9px;
@@ -242,8 +310,8 @@ p {
   max-width: 100%;
   overflow: hidden;
   color: #1d2939;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -263,14 +331,14 @@ p {
 }
 
 .page-head h1 {
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: 0;
   line-height: 1.15;
 }
 
 .page-head p {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
@@ -283,7 +351,7 @@ p {
 }
 
 .section-title h2 {
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 0;
   line-height: 1.2;
 }
@@ -293,7 +361,7 @@ p {
   align-items: center;
   gap: 2px;
   color: var(--blue-dark);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -373,13 +441,13 @@ p {
 }
 
 .doctor-body strong {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.18;
 }
 
 .doctor-body small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .rating-line,
@@ -388,7 +456,7 @@ p {
   align-items: center;
   gap: 4px;
   color: #475467;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .rating-line svg {
@@ -415,7 +483,7 @@ p {
   border-radius: 9px;
   background: linear-gradient(135deg, #11a6c8, #1686ef);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   box-shadow: 0 8px 18px rgba(15, 143, 232, 0.2);
 }
@@ -468,19 +536,19 @@ p {
 .appointment-strip strong,
 .nearby-row strong,
 .settings-row strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .appointment-strip small,
 .nearby-row small,
 .settings-row small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .appointment-strip em {
   color: var(--teal);
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 800;
 }
@@ -600,69 +668,144 @@ p {
 
 .map-card {
   position: relative;
-  height: 260px;
+  height: 330px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background:
-    linear-gradient(90deg, rgba(22, 168, 181, 0.09) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(22, 168, 181, 0.09) 1px, transparent 1px),
-    linear-gradient(135deg, #effafe, #fff8ed);
-  background-size:
-    46px 46px,
-    46px 46px,
-    auto;
+  background: #e5edf0;
 }
 
-.pin,
-.my-location {
+.tile-map {
   position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  transform: scale(1.16);
+}
+
+.tile-map img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.map-marker {
+  position: absolute;
+  z-index: 2;
+  max-width: 120px;
+  overflow: hidden;
   border: 2px solid #fff;
   border-radius: 999px;
+  background: var(--blue);
+  padding: 7px 10px;
   color: #fff;
   font-size: 11px;
   font-weight: 900;
-  box-shadow: 0 10px 20px rgba(32, 55, 76, 0.16);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 10px 20px rgba(32, 55, 76, 0.2);
 }
 
-.pin {
-  max-width: 142px;
-  overflow: hidden;
+.clinic-marker-one {
+  left: 22px;
+  top: 48px;
+}
+
+.clinic-marker-two {
+  right: 18px;
+  top: 116px;
+  background: var(--teal);
+}
+
+.user-marker {
+  left: 50%;
+  top: 50%;
+  background: #142033;
+  transform: translate(-50%, -50%);
+}
+
+.map-overlay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 8px;
+  box-shadow: 0 10px 22px rgba(32, 55, 76, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.map-overlay span,
+.map-overlay button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  border-radius: 9px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-overlay span {
+  background: #e5f7fb;
+  color: var(--blue-dark);
+}
+
+.map-overlay button {
   background: var(--blue);
-  padding: 8px 10px;
+  color: #fff;
+}
+
+.clinic-map-list {
+  display: grid;
+  gap: 8px;
+}
+
+.clinic-map-list article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  padding: 9px;
+}
+
+.clinic-map-list svg {
+  color: var(--blue-dark);
+}
+
+.clinic-map-list span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.clinic-map-list strong,
+.clinic-map-list small {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pin-1 {
-  left: 24px;
-  top: 46px;
+.clinic-map-list strong {
+  font-size: 13px;
 }
 
-.pin-2 {
-  right: 22px;
-  top: 82px;
-  background: var(--teal);
-}
-
-.pin-3 {
-  left: 96px;
-  bottom: 42px;
-  background: #ef476f;
-}
-
-.my-location {
-  left: 50%;
-  top: 50%;
-  display: grid;
-  width: 62px;
-  height: 62px;
-  place-items: center;
-  background: #132238;
-  transform: translate(-50%, -50%);
+.clinic-map-list small {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .selected-doctor {
@@ -715,12 +858,12 @@ p {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 39px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
   color: #475467;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -743,7 +886,7 @@ p {
   display: grid;
   gap: 6px;
   color: #475467;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -761,7 +904,7 @@ p {
 
 .consult-form input,
 .consult-form select {
-  min-height: 39px;
+  min-height: 44px;
   padding: 0 10px;
 }
 
@@ -821,11 +964,11 @@ p {
 
 .admin-status strong {
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .admin-status small {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .record-card {
@@ -906,29 +1049,30 @@ p {
 
 .bottom-tabs {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 30;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  gap: 5px;
   border: 1px solid rgba(217, 229, 235, 0.94);
-  border-radius: 14px;
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
   background: rgba(255, 255, 255, 0.96);
-  padding: 7px;
-  box-shadow: 0 10px 28px rgba(32, 55, 76, 0.16);
+  padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 28px rgba(32, 55, 76, 0.14);
   backdrop-filter: blur(16px);
 }
 
 .tab {
   display: grid;
   min-width: 0;
-  min-height: 50px;
+  min-height: 58px;
   place-items: center;
   border-radius: 11px;
   color: #667085;
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 900;
 }
 
@@ -964,11 +1108,15 @@ p {
 
 @media (max-width: 370px) {
   .shortcut {
-    min-height: 58px;
+    min-height: 68px;
   }
 
   .shortcut span {
-    font-size: 8px;
+    font-size: 10px;
+  }
+
+  .tab {
+    font-size: 10.5px;
   }
 
   .doctor-grid,
