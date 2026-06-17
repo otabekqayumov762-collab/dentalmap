@@ -1,0 +1,809 @@
+"use client";
+
+/* eslint-disable @next/next/no-img-element */
+
+import {
+  Bell,
+  Building2,
+  CalendarCheck,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  FileText,
+  Heart,
+  Home,
+  LockKeyhole,
+  Map,
+  MapPin,
+  MessageCircle,
+  MoreHorizontal,
+  Phone,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Star,
+  Stethoscope,
+  User,
+  type LucideIcon
+} from "lucide-react";
+import { FormEvent, useMemo, useState, type CSSProperties } from "react";
+
+type ViewId =
+  | "home"
+  | "services"
+  | "clinics"
+  | "appointment"
+  | "map"
+  | "records"
+  | "doctors"
+  | "profile"
+  | "more";
+
+type Doctor = {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews: number;
+  experience: string;
+  clinic: string;
+  district: string;
+  address: string;
+  phone: string;
+  nextSlot: string;
+  image: string;
+  accent: string;
+};
+
+type Clinic = {
+  name: string;
+  district: string;
+  address: string;
+  workTime: string;
+  rating: number;
+  image: string;
+};
+
+type Shortcut = {
+  id: ViewId;
+  label: string;
+  Icon: LucideIcon;
+};
+
+const districts = [
+  "Barchasi",
+  "Yunusobod",
+  "Yakkasaroy",
+  "Mirobod",
+  "Chilonzor",
+  "Shayxontohur",
+  "Mirzo Ulugbek"
+];
+
+const doctors: Doctor[] = [
+  {
+    id: "anna",
+    name: "Dr. Anna Petrova",
+    specialty: "Ortodont",
+    rating: 4.9,
+    reviews: 112,
+    experience: "12 yil",
+    clinic: "Arbat Smile",
+    district: "Yakkasaroy",
+    address: "Bobur kochasi 18",
+    phone: "+998 90 112 45 67",
+    nextSlot: "Bugun, 14:30",
+    image:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=420&q=85",
+    accent: "#22b8ad"
+  },
+  {
+    id: "ivan",
+    name: "Dr. Ivan Sidorov",
+    specialty: "Jarroh stomatolog",
+    rating: 4.8,
+    reviews: 96,
+    experience: "8 yil",
+    clinic: "Denta Pro",
+    district: "Mirobod",
+    address: "Nukus kochasi 44",
+    phone: "+998 93 771 20 30",
+    nextSlot: "Ertaga, 11:00",
+    image:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=420&q=85",
+    accent: "#1d7eea"
+  },
+  {
+    id: "maria",
+    name: "Dr. Maria Volkova",
+    specialty: "Terapevt",
+    rating: 5.0,
+    reviews: 128,
+    experience: "10 yil",
+    clinic: "Neo Dental",
+    district: "Yunusobod",
+    address: "Amir Temur 77",
+    phone: "+998 95 440 19 19",
+    nextSlot: "20-iyun, 09:30",
+    image:
+      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=420&q=85",
+    accent: "#ef476f"
+  },
+  {
+    id: "dmitry",
+    name: "Dr. Dmitry Popov",
+    specialty: "Ortoped",
+    rating: 4.7,
+    reviews: 87,
+    experience: "11 yil",
+    clinic: "Dental House",
+    district: "Chilonzor",
+    address: "Bunyodkor 9",
+    phone: "+998 91 230 78 00",
+    nextSlot: "21-iyun, 16:00",
+    image:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=420&q=85",
+    accent: "#7c3aed"
+  }
+];
+
+const clinics: Clinic[] = [
+  {
+    name: "Arbat Smile",
+    district: "Yakkasaroy",
+    address: "Bobur kochasi 18",
+    workTime: "08:00 - 21:00",
+    rating: 4.9,
+    image:
+      "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=640&q=85"
+  },
+  {
+    name: "Denta Pro",
+    district: "Mirobod",
+    address: "Nukus kochasi 44",
+    workTime: "24/7 navbatchi",
+    rating: 4.8,
+    image:
+      "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=640&q=85"
+  },
+  {
+    name: "Neo Dental",
+    district: "Yunusobod",
+    address: "Amir Temur 77",
+    workTime: "08:30 - 18:00",
+    rating: 5.0,
+    image:
+      "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=640&q=85"
+  }
+];
+
+const shortcuts: Shortcut[] = [
+  { id: "services", label: "Services", Icon: SlidersHorizontal },
+  { id: "clinics", label: "Clinics", Icon: Building2 },
+  { id: "appointment", label: "Appointment", Icon: CalendarDays },
+  { id: "map", label: "Map", Icon: MapPin },
+  { id: "records", label: "My Records", Icon: FileText }
+];
+
+const tabs: Shortcut[] = [
+  { id: "home", label: "Home", Icon: Home },
+  { id: "map", label: "Map", Icon: Map },
+  { id: "doctors", label: "Doctors", Icon: Stethoscope },
+  { id: "profile", label: "Profile", Icon: User },
+  { id: "more", label: "More", Icon: MoreHorizontal }
+];
+
+const serviceItems = [
+  "Konsultatsiya",
+  "Tish davolash",
+  "Tish olish",
+  "Implant",
+  "Breket",
+  "Rentgen",
+  "Oqartirish",
+  "Bolalar stomatologiyasi"
+];
+
+const slots = ["09:30", "10:45", "12:15", "14:30", "16:00", "18:20"];
+
+export default function DentalMapApp() {
+  const [activeView, setActiveView] = useState<ViewId>("home");
+  const [query, setQuery] = useState("");
+  const [district, setDistrict] = useState("Barchasi");
+  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
+  const [selectedSlot, setSelectedSlot] = useState("14:30");
+  const [consultationSent, setConsultationSent] = useState(false);
+
+  const filteredDoctors = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
+    return doctors.filter((doctor) => {
+      const districtOk = district === "Barchasi" || doctor.district === district;
+      const text = `${doctor.name} ${doctor.specialty} ${doctor.clinic} ${doctor.district}`.toLowerCase();
+
+      return districtOk && text.includes(search);
+    });
+  }, [district, query]);
+
+  const filteredClinics = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
+    return clinics.filter((clinic) => {
+      const districtOk = district === "Barchasi" || clinic.district === district;
+      const text = `${clinic.name} ${clinic.district} ${clinic.address}`.toLowerCase();
+
+      return districtOk && text.includes(search);
+    });
+  }, [district, query]);
+
+  function openAppointment(doctor: Doctor) {
+    setSelectedDoctor(doctor);
+    setActiveView("appointment");
+  }
+
+  function sendConsultation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setConsultationSent(true);
+  }
+
+  return (
+    <main className="mini-shell">
+      <section className="mini-app" aria-label="Dental Map mini app">
+        <header className="status-bar">
+          <span>10:09 AM</span>
+          <strong>Mini App</strong>
+          <button>Close</button>
+        </header>
+
+        <div className="app-scroll">
+          <section className="brand-card">
+            <div className="brand-row">
+              <button className="brand-title" onClick={() => setActiveView("home")}>
+                <span className="tooth-logo">
+                  <ShieldCheck size={18} />
+                </span>
+                <strong>
+                  DENTAL <span>MAP</span>
+                </strong>
+              </button>
+              <button className="round-icon" aria-label="Notifications">
+                <Bell size={18} />
+              </button>
+            </div>
+
+            <label className="search-field">
+              <Search size={17} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search doctors, clinics..."
+              />
+            </label>
+
+            <label className="district-select">
+              <MapPin size={16} />
+              <select
+                value={district}
+                onChange={(event) => setDistrict(event.target.value)}
+                aria-label="District"
+              >
+                {districts.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="shortcut-row" aria-label="Mini app shortcuts">
+              {shortcuts.map(({ id, label, Icon }) => (
+                <button key={id} className="shortcut" onClick={() => setActiveView(id)}>
+                  <Icon size={18} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {activeView === "home" && (
+            <HomeView
+              doctors={filteredDoctors}
+              doctor={selectedDoctor}
+              consultationSent={consultationSent}
+              onAppointment={openAppointment}
+              onNavigate={setActiveView}
+            />
+          )}
+
+          {activeView === "doctors" && (
+            <DoctorsView doctors={filteredDoctors} onAppointment={openAppointment} />
+          )}
+
+          {activeView === "clinics" && (
+            <ClinicsView clinics={filteredClinics} onNavigate={setActiveView} />
+          )}
+
+          {activeView === "services" && (
+            <ServicesView onNavigate={setActiveView} />
+          )}
+
+          {activeView === "map" && (
+            <MapView
+              doctors={filteredDoctors}
+              clinics={filteredClinics}
+              onAppointment={openAppointment}
+            />
+          )}
+
+          {activeView === "appointment" && (
+            <AppointmentView
+              doctor={selectedDoctor}
+              selectedSlot={selectedSlot}
+              onSelectSlot={setSelectedSlot}
+              onSubmit={sendConsultation}
+              sent={consultationSent}
+            />
+          )}
+
+          {activeView === "records" && <RecordsView />}
+
+          {activeView === "profile" && <ProfileView />}
+
+          {activeView === "more" && (
+            <MoreView onNavigate={setActiveView} sent={consultationSent} />
+          )}
+        </div>
+
+        <nav className="bottom-tabs" aria-label="Bottom navigation">
+          {tabs.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={activeView === id ? "tab active" : "tab"}
+              onClick={() => setActiveView(id)}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </section>
+    </main>
+  );
+}
+
+function HomeView({
+  doctors,
+  doctor,
+  consultationSent,
+  onAppointment,
+  onNavigate
+}: {
+  doctors: Doctor[];
+  doctor: Doctor;
+  consultationSent: boolean;
+  onAppointment: (doctor: Doctor) => void;
+  onNavigate: (view: ViewId) => void;
+}) {
+  return (
+    <div className="view-stack">
+      <SectionTitle title="Recommended Doctors" action="All" onAction={() => onNavigate("doctors")} />
+      <div className="doctor-grid">
+        {doctors.slice(0, 4).map((item) => (
+          <DoctorCard key={item.id} doctor={item} onAppointment={() => onAppointment(item)} />
+        ))}
+      </div>
+
+      <SectionTitle
+        title="My Upcoming Appointments"
+        action="Open"
+        onAction={() => onNavigate("appointment")}
+      />
+      <button className="appointment-strip" onClick={() => onNavigate("appointment")}>
+        <img src={doctor.image} alt={doctor.name} />
+        <span>
+          <strong>{doctor.name}</strong>
+          <small>
+            Oct 28, 11:30 AM - {doctor.clinic}
+          </small>
+          <em>{consultationSent ? "Admin tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
+        </span>
+        <ChevronRight size={18} />
+      </button>
+
+      <section className="info-card">
+        <div>
+          <span className="soft-icon">
+            <MessageCircle size={18} />
+          </span>
+          <strong>Tez konsultatsiya</strong>
+          <p>Jinsi, yoshi, F.I.O, telefon, kun va vaqtni kiritib sorov yuboring.</p>
+        </div>
+        <button className="primary-btn" onClick={() => onNavigate("appointment")}>
+          Boshlash
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function DoctorsView({
+  doctors,
+  onAppointment
+}: {
+  doctors: Doctor[];
+  onAppointment: (doctor: Doctor) => void;
+}) {
+  return (
+    <div className="view-stack">
+      <PageHead title="Doctors" text="Tuman, klinika va mutaxassislik boyicha shifokor tanlang." />
+      <div className="doctor-grid">
+        {doctors.map((doctor) => (
+          <DoctorCard key={doctor.id} doctor={doctor} onAppointment={() => onAppointment(doctor)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClinicsView({
+  clinics,
+  onNavigate
+}: {
+  clinics: Clinic[];
+  onNavigate: (view: ViewId) => void;
+}) {
+  return (
+    <div className="view-stack">
+      <PageHead title="Clinics" text="Yaqin klinikalar, ish vaqti, reyting va manzil." />
+      {clinics.map((clinic) => (
+        <article className="clinic-card" key={clinic.name}>
+          <img src={clinic.image} alt={clinic.name} />
+          <div>
+            <strong>{clinic.name}</strong>
+            <span>
+              <Star size={14} /> {clinic.rating} - {clinic.district}
+            </span>
+            <p>{clinic.address}</p>
+            <small>{clinic.workTime}</small>
+          </div>
+          <button className="mini-btn" onClick={() => onNavigate("appointment")}>
+            Appointment
+          </button>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ServicesView({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
+  return (
+    <div className="view-stack">
+      <PageHead title="Services" text="Dental xizmatlar va konsultatsiya turi." />
+      <div className="service-grid">
+        {serviceItems.map((service) => (
+          <button key={service} className="service-card" onClick={() => onNavigate("appointment")}>
+            <span className="soft-icon">
+              <ShieldCheck size={18} />
+            </span>
+            <strong>{service}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MapView({
+  doctors,
+  clinics,
+  onAppointment
+}: {
+  doctors: Doctor[];
+  clinics: Clinic[];
+  onAppointment: (doctor: Doctor) => void;
+}) {
+  return (
+    <div className="view-stack">
+      <PageHead title="Map" text="Lokatsiyaga yaqin klinika va shifokorlar." />
+      <section className="map-card">
+        <div className="map-grid-bg" />
+        {clinics.map((clinic, index) => (
+          <span key={clinic.name} className={`pin pin-${index + 1}`}>
+            <Building2 size={15} />
+            {clinic.name}
+          </span>
+        ))}
+        <span className="my-location">
+          <MapPin size={19} />
+          Siz
+        </span>
+      </section>
+      <SectionTitle title="Yaqin shifokorlar" />
+      {doctors.slice(0, 3).map((doctor) => (
+        <button className="nearby-row" key={doctor.id} onClick={() => onAppointment(doctor)}>
+          <img src={doctor.image} alt={doctor.name} />
+          <span>
+            <strong>{doctor.name}</strong>
+            <small>
+              {doctor.clinic} - {doctor.district}
+            </small>
+          </span>
+          <ChevronRight size={18} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AppointmentView({
+  doctor,
+  selectedSlot,
+  onSelectSlot,
+  onSubmit,
+  sent
+}: {
+  doctor: Doctor;
+  selectedSlot: string;
+  onSelectSlot: (slot: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  sent: boolean;
+}) {
+  return (
+    <div className="view-stack">
+      <PageHead title="Appointment" text="Qabul sanasi va konsultatsiya malumotlari." />
+
+      <article className="selected-doctor">
+        <img src={doctor.image} alt={doctor.name} />
+        <div>
+          <strong>{doctor.name}</strong>
+          <span>{doctor.specialty}</span>
+          <small>
+            {doctor.clinic}, {doctor.district}
+          </small>
+        </div>
+      </article>
+
+      <SectionTitle title="Vaqt belgilash" />
+      <div className="slot-grid">
+        {slots.map((slot) => (
+          <button
+            key={slot}
+            className={selectedSlot === slot ? "slot active" : "slot"}
+            onClick={() => onSelectSlot(slot)}
+          >
+            <Clock size={15} />
+            {slot}
+          </button>
+        ))}
+      </div>
+
+      <form className="consult-form" onSubmit={onSubmit}>
+        <label>
+          <span>F.I.O.</span>
+          <input defaultValue="Aziz Karimov" />
+        </label>
+        <label>
+          <span>Telefon raqam</span>
+          <input defaultValue="+998 90 555 22 11" />
+        </label>
+        <div className="two-fields">
+          <label>
+            <span>Jinsi</span>
+            <select defaultValue="Erkak">
+              <option>Erkak</option>
+              <option>Ayol</option>
+            </select>
+          </label>
+          <label>
+            <span>Yoshi</span>
+            <input type="number" defaultValue="28" min="1" max="100" />
+          </label>
+        </div>
+        <label>
+          <span>Kun belgilash</span>
+          <input type="date" defaultValue="2026-06-20" />
+        </label>
+        <label>
+          <span>Izoh</span>
+          <textarea defaultValue="Tish og'rig'i bor, konsultatsiya kerak." />
+        </label>
+        <button className="primary-btn submit" type="submit">
+          <CheckCircle2 size={18} />
+          Admin tasdiqiga yuborish
+        </button>
+      </form>
+
+      <div className={sent ? "admin-status sent" : "admin-status"}>
+        <CheckCircle2 size={18} />
+        <span>
+          <strong>{sent ? "Sorov yuborildi" : "Admin tasdiqi"}</strong>
+          <small>
+            {sent
+              ? "Administrator qabul vaqtini tekshiradi va statusni yangilaydi."
+              : "Forma yuborilgandan keyin admin tasdiq jarayoni boshlanadi."}
+          </small>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function RecordsView() {
+  const records = [
+    ["Ortodont konsultatsiyasi", "Dr. Anna Petrova", "12-iyun 2026", "180 000 som"],
+    ["Panoramik rentgen", "Denta Pro", "03-iyun 2026", "90 000 som"],
+    ["Gigiyena", "Neo Dental", "24-may 2026", "260 000 som"]
+  ];
+
+  return (
+    <div className="view-stack">
+      <PageHead title="My Records" text="Qabul tarixi, xulosa, retsept va tolovlar." />
+      {records.map(([title, place, date, amount]) => (
+        <article className="record-card" key={title}>
+          <span className="soft-icon">
+            <ClipboardList size={18} />
+          </span>
+          <div>
+            <strong>{title}</strong>
+            <small>{place}</small>
+            <em>{date}</em>
+          </div>
+          <b>{amount}</b>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ProfileView() {
+  return (
+    <div className="view-stack">
+      <PageHead title="Profile" text="Login, telefon, lokatsiya va xavfsizlik." />
+      <section className="profile-card">
+        <div className="profile-avatar">
+          <User size={34} />
+        </div>
+        <strong>Aziz Karimov</strong>
+        <span>+998 90 555 22 11</span>
+        <button className="primary-btn">
+          <Phone size={17} />
+          Telefonni tasdiqlash
+        </button>
+      </section>
+
+      <button className="settings-row">
+        <LockKeyhole size={18} />
+        <span>
+          <strong>Login / Sign up</strong>
+          <small>Mini app profiliga kirish</small>
+        </span>
+        <ChevronRight size={18} />
+      </button>
+      <button className="settings-row">
+        <CreditCard size={18} />
+        <span>
+          <strong>Tolovlar</strong>
+          <small>Qabul va xizmatlar tolovi</small>
+        </span>
+        <ChevronRight size={18} />
+      </button>
+      <button className="settings-row">
+        <Bell size={18} />
+        <span>
+          <strong>Bildirishnomalar</strong>
+          <small>Admin tasdiqi va eslatmalar</small>
+        </span>
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  );
+}
+
+function MoreView({
+  onNavigate,
+  sent
+}: {
+  onNavigate: (view: ViewId) => void;
+  sent: boolean;
+}) {
+  const rows: Shortcut[] = [
+    { id: "services", label: "Services", Icon: SlidersHorizontal },
+    { id: "clinics", label: "Clinics", Icon: Building2 },
+    { id: "appointment", label: "Appointment", Icon: CalendarCheck },
+    { id: "records", label: "My Records", Icon: ClipboardList },
+    { id: "profile", label: "Profile", Icon: User }
+  ];
+
+  return (
+    <div className="view-stack">
+      <PageHead title="More" text="Barcha bo'limlar va qabul statusi." />
+      <div className={sent ? "admin-status sent" : "admin-status"}>
+        <CheckCircle2 size={18} />
+        <span>
+          <strong>{sent ? "Admin tasdiq jarayonida" : "Aktiv sorov yoq"}</strong>
+          <small>{sent ? "Sorovingiz administratorga yuborildi." : "Qabul formasini toldiring."}</small>
+        </span>
+      </div>
+      {rows.map(({ id, label, Icon }) => (
+        <button key={id} className="settings-row" onClick={() => onNavigate(id)}>
+          <Icon size={18} />
+          <span>
+            <strong>{label}</strong>
+            <small>Open {label}</small>
+          </span>
+          <ChevronRight size={18} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DoctorCard({
+  doctor,
+  onAppointment
+}: {
+  doctor: Doctor;
+  onAppointment: () => void;
+}) {
+  return (
+    <article className="doctor-card" style={{ "--accent": doctor.accent } as CSSProperties}>
+      <div className="photo-box">
+        <img src={doctor.image} alt={doctor.name} />
+        <button className="heart-btn" aria-label={`Save ${doctor.name}`}>
+          <Heart size={16} />
+        </button>
+        <span className="doctor-badge">
+          <ShieldCheck size={13} />
+        </span>
+      </div>
+      <div className="doctor-body">
+        <strong>{doctor.name}</strong>
+        <small>{doctor.specialty}</small>
+        <span className="rating-line">
+          <Star size={14} />
+          {doctor.rating}
+          <em>{doctor.reviews} reviews</em>
+        </span>
+        <span className="address-line">
+          <MapPin size={14} />
+          {doctor.district}
+        </span>
+      </div>
+      <button className="appointment-btn" onClick={onAppointment}>
+        Appointment
+      </button>
+    </article>
+  );
+}
+
+function SectionTitle({
+  title,
+  action,
+  onAction
+}: {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="section-title">
+      <h2>{title}</h2>
+      {action && (
+        <button onClick={onAction}>
+          {action}
+          <ChevronRight size={15} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PageHead({ title, text }: { title: string; text: string }) {
+  return (
+    <section className="page-head">
+      <h1>{title}</h1>
+      <p>{text}</p>
+    </section>
+  );
+}
