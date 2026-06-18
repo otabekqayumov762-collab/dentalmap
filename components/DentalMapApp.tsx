@@ -37,6 +37,7 @@ type ViewId =
   | "clinics"
   | "appointment"
   | "map"
+  | "payments"
   | "records"
   | "doctors"
   | "profile"
@@ -185,7 +186,7 @@ const shortcuts: Shortcut[] = [
   { id: "clinics", label: "Klinikalar", Icon: Building2 },
   { id: "appointment", label: "Qabul", Icon: CalendarDays },
   { id: "map", label: "Xarita", Icon: MapPin },
-  { id: "records", label: "Yozuvlar", Icon: FileText }
+  { id: "payments", label: "To'lov", Icon: CreditCard }
 ];
 
 const tabs: Shortcut[] = [
@@ -209,6 +210,12 @@ const serviceItems = [
 
 const slots = ["09:30", "10:45", "12:15", "14:30", "16:00", "18:20"];
 
+const paymentMethods = [
+  ["click", "Click", "Telefon raqam orqali"],
+  ["payme", "Payme", "Karta yoki balans orqali"],
+  ["card", "Karta", "Uzcard yoki Humo"]
+] as const;
+
 const mapTiles = [
   [5670, 3061],
   [5671, 3061],
@@ -228,6 +235,7 @@ export default function DentalMapApp() {
   const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
+  const [paymentSent, setPaymentSent] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const filteredDoctors = useMemo(() => {
@@ -294,9 +302,14 @@ export default function DentalMapApp() {
             {notificationsOpen && (
               <NotificationPanel
                 sent={consultationSent}
+                paymentSent={paymentSent}
                 onOpenAppointment={() => {
                   setNotificationsOpen(false);
                   setActiveView("appointment");
+                }}
+                onOpenPayments={() => {
+                  setNotificationsOpen(false);
+                  setActiveView("payments");
                 }}
               />
             )}
@@ -338,6 +351,7 @@ export default function DentalMapApp() {
               doctors={filteredDoctors}
               doctor={selectedDoctor}
               consultationSent={consultationSent}
+              paymentSent={paymentSent}
               onAppointment={openAppointment}
               onNavigate={setActiveView}
             />
@@ -370,15 +384,28 @@ export default function DentalMapApp() {
               onSelectSlot={setSelectedSlot}
               onSubmit={sendConsultation}
               sent={consultationSent}
+              paymentSent={paymentSent}
+              onOpenPayments={() => setActiveView("payments")}
+            />
+          )}
+
+          {activeView === "payments" && (
+            <PaymentsView
+              doctor={selectedDoctor}
+              selectedSlot={selectedSlot}
+              sent={consultationSent}
+              paymentSent={paymentSent}
+              onPay={() => setPaymentSent(true)}
+              onNavigate={setActiveView}
             />
           )}
 
           {activeView === "records" && <RecordsView />}
 
-          {activeView === "profile" && <ProfileView />}
+          {activeView === "profile" && <ProfileView onNavigate={setActiveView} />}
 
           {activeView === "more" && (
-            <MoreView onNavigate={setActiveView} sent={consultationSent} />
+            <MoreView onNavigate={setActiveView} sent={consultationSent} paymentSent={paymentSent} />
           )}
         </div>
 
@@ -401,10 +428,14 @@ export default function DentalMapApp() {
 
 function NotificationPanel({
   sent,
-  onOpenAppointment
+  paymentSent,
+  onOpenAppointment,
+  onOpenPayments
 }: {
   sent: boolean;
+  paymentSent: boolean;
   onOpenAppointment: () => void;
+  onOpenPayments: () => void;
 }) {
   return (
     <section className="notification-panel">
@@ -427,6 +458,19 @@ function NotificationPanel({
           </small>
         </span>
       </button>
+      <button className="notification-row" type="button" onClick={onOpenPayments}>
+        <span className="soft-icon">
+          <CreditCard size={17} />
+        </span>
+        <span>
+          <strong>{paymentSent ? "To'lov tasdiqlandi" : "To'lov kutilmoqda"}</strong>
+          <small>
+            {paymentSent
+              ? "Chek yozuvlar bo'limiga qo'shildi."
+              : "Qabul narxini tanlangan usulda to'lang."}
+          </small>
+        </span>
+      </button>
       <button className="notification-row" type="button" onClick={onOpenAppointment}>
         <span className="soft-icon">
           <Clock size={17} />
@@ -444,12 +488,14 @@ function HomeView({
   doctors,
   doctor,
   consultationSent,
+  paymentSent,
   onAppointment,
   onNavigate
 }: {
   doctors: Doctor[];
   doctor: Doctor;
   consultationSent: boolean;
+  paymentSent: boolean;
   onAppointment: (doctor: Doctor) => void;
   onNavigate: (view: ViewId) => void;
 }) {
@@ -481,6 +527,19 @@ function HomeView({
           <em>{consultationSent ? "Admin tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
         </span>
         <ChevronRight size={18} />
+      </button>
+
+      <SectionTitle title="To'lov holati" action="Ochish" onAction={() => onNavigate("payments")} />
+      <button className="payment-strip" onClick={() => onNavigate("payments")}>
+        <span className="soft-icon">
+          <CreditCard size={18} />
+        </span>
+        <span>
+          <strong>{paymentSent ? "To'lov tasdiqlandi" : "To'lov qilish kerak"}</strong>
+          <small>Ortodont konsultatsiyasi - {doctor.clinic}</small>
+          <em>{paymentSent ? "Admin tasdig'i jarayonida" : "Click, Payme yoki karta orqali"}</em>
+        </span>
+        <b>{paymentSent ? "To'landi" : "180 000 so'm"}</b>
       </button>
 
       <section className="info-card">
@@ -638,13 +697,17 @@ function AppointmentView({
   selectedSlot,
   onSelectSlot,
   onSubmit,
-  sent
+  sent,
+  paymentSent,
+  onOpenPayments
 }: {
   doctor: Doctor;
   selectedSlot: string;
   onSelectSlot: (slot: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   sent: boolean;
+  paymentSent: boolean;
+  onOpenPayments: () => void;
 }) {
   return (
     <div className="view-stack">
@@ -722,6 +785,147 @@ function AppointmentView({
           </small>
         </span>
       </div>
+
+      <section className="payment-step">
+        <div className="payment-step-head">
+          <span className="soft-icon">
+            <CreditCard size={18} />
+          </span>
+          <span>
+            <strong>To&apos;lov bosqichi</strong>
+            <small>
+              {paymentSent
+                ? "To'lov cheki admin tasdig'iga yuborilgan."
+                : "Qabul narxini to'lab, chekni admin tasdig'iga yuboring."}
+            </small>
+          </span>
+        </div>
+        <div className="payment-line">
+          <span>Ortodont konsultatsiyasi</span>
+          <b>180 000 so&apos;m</b>
+        </div>
+        <button className="primary-btn" type="button" onClick={onOpenPayments}>
+          <CreditCard size={18} />
+          To&apos;lov tizimiga o&apos;tish
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function PaymentsView({
+  doctor,
+  selectedSlot,
+  sent,
+  paymentSent,
+  onPay,
+  onNavigate
+}: {
+  doctor: Doctor;
+  selectedSlot: string;
+  sent: boolean;
+  paymentSent: boolean;
+  onPay: () => void;
+  onNavigate: (view: ViewId) => void;
+}) {
+  const [method, setMethod] = useState<(typeof paymentMethods)[number][0]>("click");
+
+  return (
+    <div className="view-stack">
+      <PageHead
+        title="To'lov tizimi"
+        text="Xizmat narxi, to'lov usuli, chek va admin tasdiq holati."
+      />
+
+      <section className="bill-card">
+        <div className="bill-top">
+          <span className="soft-icon">
+            <FileText size={18} />
+          </span>
+          <span>
+            <strong>Qabul uchun hisob</strong>
+            <small>
+              {doctor.name} - {selectedSlot}
+            </small>
+          </span>
+        </div>
+        <div className="bill-row">
+          <span>Ortodont konsultatsiyasi</span>
+          <b>180 000 so&apos;m</b>
+        </div>
+        <div className="bill-row">
+          <span>Xizmat komissiyasi</span>
+          <b>0 so&apos;m</b>
+        </div>
+        <div className="bill-total">
+          <span>Jami</span>
+          <strong>180 000 so&apos;m</strong>
+        </div>
+      </section>
+
+      <SectionTitle title="To'lov usuli" />
+      <div className="payment-methods">
+        {paymentMethods.map(([id, name, text]) => (
+          <button
+            key={id}
+            className={method === id ? "payment-method active" : "payment-method"}
+            onClick={() => setMethod(id)}
+          >
+            <CreditCard size={18} />
+            <span>
+              <strong>{name}</strong>
+              <small>{text}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <section className="consult-form">
+        <label>
+          <span>Telefon raqam</span>
+          <input defaultValue="+998 90 555 22 11" />
+        </label>
+        <label>
+          <span>Chek raqami</span>
+          <input defaultValue={paymentSent ? "DM-180000-2026" : ""} placeholder="Masalan: DM-180000" />
+        </label>
+        <button className="primary-btn submit" type="button" onClick={onPay}>
+          <CheckCircle2 size={18} />
+          {paymentSent ? "Chek yuborilgan" : "To'lovni tasdiqlash"}
+        </button>
+      </section>
+
+      <section className="payment-timeline" aria-label="To'lov jarayoni">
+        <div className="timeline-row done">
+          <CheckCircle2 size={17} />
+          <span>
+            <strong>Xizmat tanlandi</strong>
+            <small>{doctor.clinic}, {doctor.district}</small>
+          </span>
+        </div>
+        <div className={paymentSent ? "timeline-row done" : "timeline-row active"}>
+          <CreditCard size={17} />
+          <span>
+            <strong>{paymentSent ? "To'lov qilindi" : "To'lov kutilmoqda"}</strong>
+            <small>{paymentSent ? "Chek tizimga kiritildi." : "Tanlangan usul orqali to'lov qiling."}</small>
+          </span>
+        </div>
+        <div className={sent && paymentSent ? "timeline-row active" : "timeline-row"}>
+          <Clock size={17} />
+          <span>
+            <strong>Admin tasdig&apos;i</strong>
+            <small>
+              {sent && paymentSent
+                ? "Administrator chek va qabul vaqtini tekshiradi."
+                : "Qabul so'rovi va to'lovdan keyin boshlanadi."}
+            </small>
+          </span>
+        </div>
+      </section>
+
+      <button className="secondary-btn" type="button" onClick={() => onNavigate("appointment")}>
+        Qabul oynasiga qaytish
+      </button>
     </div>
   );
 }
@@ -753,7 +957,7 @@ function RecordsView() {
   );
 }
 
-function ProfileView() {
+function ProfileView({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
   return (
     <div className="view-stack">
       <PageHead title="Profil" text="Kirish, telefon, lokatsiya va xavfsizlik." />
@@ -777,11 +981,11 @@ function ProfileView() {
         </span>
         <ChevronRight size={18} />
       </button>
-      <button className="settings-row">
+      <button className="settings-row" onClick={() => onNavigate("payments")}>
         <CreditCard size={18} />
         <span>
-          <strong>Tolovlar</strong>
-          <small>Qabul va xizmatlar tolovi</small>
+          <strong>To&apos;lovlar</strong>
+          <small>Qabul, xizmatlar va chek holati</small>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -799,15 +1003,18 @@ function ProfileView() {
 
 function MoreView({
   onNavigate,
-  sent
+  sent,
+  paymentSent
 }: {
   onNavigate: (view: ViewId) => void;
   sent: boolean;
+  paymentSent: boolean;
 }) {
   const rows: Shortcut[] = [
     { id: "services", label: "Xizmatlar", Icon: SlidersHorizontal },
     { id: "clinics", label: "Klinikalar", Icon: Building2 },
     { id: "appointment", label: "Qabul", Icon: CalendarCheck },
+    { id: "payments", label: "To'lov tizimi", Icon: CreditCard },
     { id: "records", label: "Yozuvlarim", Icon: ClipboardList },
     { id: "profile", label: "Profil", Icon: User }
   ];
@@ -819,7 +1026,13 @@ function MoreView({
         <CheckCircle2 size={18} />
         <span>
           <strong>{sent ? "Admin tasdiq jarayonida" : "Faol so'rov yo'q"}</strong>
-          <small>{sent ? "So'rovingiz administratorga yuborildi." : "Qabul formasini to'ldiring."}</small>
+          <small>
+            {paymentSent
+              ? "To'lov cheki yuborilgan, admin tasdiqi kutilmoqda."
+              : sent
+                ? "So'rovingiz administratorga yuborildi."
+                : "Qabul formasini to'ldiring."}
+          </small>
         </span>
       </div>
       {rows.map(({ id, label, Icon }) => (
