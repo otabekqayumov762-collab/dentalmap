@@ -944,6 +944,61 @@ p {
   gap: 9px;
 }
 
+.role-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.role-option {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  text-align: left;
+}
+
+.role-option svg {
+  color: var(--blue-dark);
+}
+
+.role-option span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.role-option strong,
+.role-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-option strong {
+  font-size: 13px;
+}
+
+.role-option small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.role-option.active {
+  border-color: #9bddec;
+  background: #e5f7fb;
+  box-shadow: inset 0 0 0 1px rgba(15, 143, 232, 0.12);
+}
+
+.doctor-register-form {
+  gap: 11px;
+}
+
 .primary-btn.submit {
   min-height: 42px;
 }
@@ -1007,7 +1062,7 @@ p {
 
 .record-card {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
@@ -1291,6 +1346,10 @@ p {
 }
 
 @media (max-width: 370px) {
+  .role-toggle {
+    grid-template-columns: 1fr;
+  }
+
   .shortcut {
     min-height: 68px;
   }
