@@ -249,11 +249,11 @@ const clinics: Clinic[] = [
 ];
 
 const shortcuts: Shortcut[] = [
-  { id: "services", label: "Xizmatlar", Icon: SlidersHorizontal },
-  { id: "clinics", label: "Klinikalar", Icon: Building2 },
+  { id: "services", label: "Xizmat", Icon: SlidersHorizontal },
+  { id: "clinics", label: "Klinika", Icon: Building2 },
   { id: "appointment", label: "Qabul", Icon: CalendarDays },
   { id: "map", label: "Xarita", Icon: MapPin },
-  { id: "records", label: "Yozuvlar", Icon: FileText }
+  { id: "records", label: "Yozuv", Icon: FileText }
 ];
 
 const tabs: Shortcut[] = [
@@ -295,7 +295,8 @@ const mapTiles = [
   [5672, 3063]
 ];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://127.0.0.1:8000");
 
 export default function DentalMapApp() {
   const [activeView, setActiveView] = useState<ViewId>("home");
@@ -337,6 +338,15 @@ export default function DentalMapApp() {
       return districtOk && text.includes(search);
     });
   }, [district, query]);
+
+  const activeTabId: ViewId | null =
+    activeView === "home" ||
+    activeView === "map" ||
+    activeView === "doctors" ||
+    activeView === "profile" ||
+    activeView === "more"
+      ? activeView
+      : null;
 
   function openAppointment(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
@@ -399,7 +409,7 @@ export default function DentalMapApp() {
     if (!tg) {
       document.documentElement.dataset.telegramTheme = "light";
       setAuthStatus("guest");
-      setAuthMessage("Telegramdan tashqarida preview rejimi.");
+      setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
       return;
     }
 
@@ -440,22 +450,31 @@ export default function DentalMapApp() {
     async function authenticate() {
       if (!telegramApp.initData && !user) {
         setAuthStatus("guest");
-        setAuthMessage("Telegram user ma'lumoti kelmadi. Bot ichidan oching.");
+        setAuthMessage("Telegram foydalanuvchisi aniqlanmadi. Bot ichidan oching.");
         return;
       }
 
       try {
         setAuthStatus("loading");
-        const response = await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
-          method: "POST",
-          cache: "no-store",
-          credentials: "omit",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            init_data: telegramApp.initData,
-            telegram_user: user
-          })
-        });
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 8000);
+        const response = await (async () => {
+          try {
+            return await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
+              method: "POST",
+              cache: "no-store",
+              credentials: "omit",
+              signal: controller.signal,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                init_data: telegramApp.initData,
+                telegram_user: user
+              })
+            });
+          } finally {
+            window.clearTimeout(timeout);
+          }
+        })();
 
         if (!response.ok) {
           throw new Error(`Telegram auth ${response.status}`);
@@ -535,13 +554,13 @@ export default function DentalMapApp() {
 
     const buttonText =
       activeView === "appointment"
-        ? "Admin tasdiqiga yuborish"
+        ? "Administrator tasdiqiga yuborish"
         : activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid
           ? "50 000 so'm to'lash"
           : activeView === "register" && registerRole === "doctor"
-            ? "Doktor anketasini yuborish"
+            ? "Shifokor anketasini yuborish"
             : activeView === "register"
-              ? "User profilini yaratish"
+              ? "Profil yaratish"
               : "Qabulga yozilish";
 
     if (activeView === "records" || activeView === "profile" || activeView === "more" || doctorSubscriptionPaid) {
@@ -573,7 +592,7 @@ export default function DentalMapApp() {
       <section className="mini-app" aria-label="Dental Map mini ilova">
         <header className="status-bar">
           <span>Dental Map</span>
-          <strong>{isTelegram ? "Telegram Mini App" : "Preview"}</strong>
+          <strong>Mini ilova</strong>
           <button type="button" onClick={closeApp}>
             Yopish
           </button>
@@ -582,7 +601,7 @@ export default function DentalMapApp() {
         <div className="app-scroll">
           <section className="brand-card">
             <div className="brand-row">
-              <button className="brand-title" onClick={() => navigate("home")}>
+              <button className="brand-title" type="button" onClick={() => navigate("home")}>
                 <span className="tooth-logo">
                   <ShieldCheck size={18} />
                 </span>
@@ -592,6 +611,7 @@ export default function DentalMapApp() {
               </button>
               <button
                 className={notificationsOpen ? "round-icon active" : "round-icon"}
+                type="button"
                 aria-label="Bildirishnomalar"
                 onClick={() => setNotificationsOpen((open) => !open)}
               >
@@ -644,7 +664,12 @@ export default function DentalMapApp() {
 
             <div className="shortcut-row" aria-label="Mini ilova bo'limlari">
               {shortcuts.map(({ id, label, Icon }) => (
-                <button key={id} className="shortcut" onClick={() => navigate(id)}>
+                <button
+                  key={id}
+                  className={activeView === id ? "shortcut active" : "shortcut"}
+                  type="button"
+                  onClick={() => navigate(id)}
+                >
                   <Icon size={18} />
                   <span>{label}</span>
                 </button>
@@ -726,7 +751,8 @@ export default function DentalMapApp() {
           {tabs.map(({ id, label, Icon }) => (
             <button
               key={id}
-              className={activeView === id ? "tab active" : "tab"}
+              className={activeTabId === id ? "tab active" : "tab"}
+              type="button"
               onClick={() => navigate(id)}
             >
               <Icon size={20} />
@@ -752,13 +778,13 @@ function TelegramStatus({
 }) {
   const name = user
     ? [user.first_name, user.last_name].filter(Boolean).join(" ") || `@${user.username}` || `ID ${user.id}`
-    : "Telegram user aniqlanmadi";
+    : "Telegram foydalanuvchisi aniqlanmadi";
 
   return (
     <section className={`telegram-status ${status}`} aria-live="polite">
       <span className="telegram-dot" />
       <div>
-        <strong>{isTelegram ? name : "Browser preview"}</strong>
+        <strong>{isTelegram ? name : "Brauzer ko'rinishi"}</strong>
         <small>{message}</small>
       </div>
     </section>
@@ -787,10 +813,10 @@ function NotificationPanel({
           <CheckCircle2 size={17} />
         </span>
         <span>
-          <strong>{sent ? "Admin tasdiqi kutilmoqda" : "Qabul formasi tayyor"}</strong>
+          <strong>{sent ? "Administrator tasdiqi kutilmoqda" : "Qabul formasi tayyor"}</strong>
           <small>
             {sent
-              ? "Administrator sorovingizni ko'rib chiqmoqda."
+              ? "Administrator so'rovingizni ko'rib chiqmoqda."
               : "F.I.O, telefon, kun va vaqtni kiriting."}
           </small>
         </span>
@@ -801,7 +827,7 @@ function NotificationPanel({
         </span>
         <span>
           <strong>Ro&apos;yxatdan o&apos;tish</strong>
-          <small>Oddiy user yoki doktor sifatida profil oching.</small>
+          <small>Rol tanlang va profilni to&apos;ldiring.</small>
         </span>
       </button>
       <button className="notification-row" type="button" onClick={onOpenAppointment}>
@@ -855,7 +881,7 @@ function HomeView({
           <small>
             28-oktabr, 11:30 - {doctor.clinic}
           </small>
-          <em>{consultationSent ? "Admin tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
+          <em>{consultationSent ? "Administrator tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -866,7 +892,7 @@ function HomeView({
             <MessageCircle size={18} />
           </span>
           <strong>Tez konsultatsiya</strong>
-          <p>Jinsi, yoshi, F.I.O, telefon, kun va vaqtni kiritib sorov yuboring.</p>
+          <p>Jinsi, yoshi, F.I.O, telefon, kun va vaqtni kiritib so&apos;rov yuboring.</p>
         </div>
         <button className="primary-btn" onClick={() => onNavigate("appointment")}>
           Boshlash
@@ -879,7 +905,7 @@ function HomeView({
             <LockKeyhole size={18} />
           </span>
           <strong>Ro&apos;yxatdan o&apos;tish</strong>
-          <p>Oddiy foydalanuvchi yoki doktor sifatida profil oching.</p>
+          <p>Foydalanuvchi yoki shifokor sifatida profil oching.</p>
         </div>
         <button className="secondary-btn" onClick={() => onNavigate("register")}>
           Rol tanlash
@@ -990,7 +1016,14 @@ function MapView({
             <MapPin size={16} />
             Toshkent
           </span>
-          <button type="button">Lokatsiyani yuborish</button>
+          <button
+            type="button"
+            onClick={() => {
+              window.open("https://www.google.com/maps/search/?api=1&query=stomatologiya+Toshkent", "_blank");
+            }}
+          >
+            Marshrut
+          </button>
         </div>
       </section>
       <div className="clinic-map-list">
@@ -1097,18 +1130,18 @@ function AppointmentView({
         </label>
         <button className="primary-btn submit" type="submit">
           <CheckCircle2 size={18} />
-          Admin tasdiqiga yuborish
+          Administrator tasdiqiga yuborish
         </button>
       </form>
 
       <div className={sent ? "admin-status sent" : "admin-status"}>
         <CheckCircle2 size={18} />
         <span>
-          <strong>{sent ? "Sorov yuborildi" : "Admin tasdiqi"}</strong>
+          <strong>{sent ? "So'rov yuborildi" : "Administrator tasdiqi"}</strong>
           <small>
             {sent
               ? "Administrator qabul vaqtini tekshiradi va holatni yangilaydi."
-              : "Forma yuborilgandan keyin admin tasdiq jarayoni boshlanadi."}
+              : "Forma yuborilgandan keyin administrator tasdiqlaydi."}
           </small>
         </span>
       </div>
@@ -1143,7 +1176,7 @@ function RegisterView({
     <div className="view-stack">
       <PageHead
         title="Ro'yxatdan o'tish"
-        text="Avval rolni tanlang: oddiy foydalanuvchi yoki doktor."
+        text="Avval rolni tanlang: foydalanuvchi yoki shifokor."
       />
 
       <div className="role-toggle" aria-label="Rol tanlash">
@@ -1154,7 +1187,7 @@ function RegisterView({
         >
           <User size={20} />
           <span>
-            <strong>Oddiy user</strong>
+            <strong>Foydalanuvchi</strong>
             <small>Qabulga yozilish va konsultatsiya olish</small>
           </span>
         </button>
@@ -1165,7 +1198,7 @@ function RegisterView({
         >
           <Stethoscope size={20} />
           <span>
-            <strong>Doktor</strong>
+            <strong>Shifokor</strong>
             <small>Anketa, klinika va obuna to&apos;lovi</small>
           </span>
         </button>
@@ -1213,7 +1246,7 @@ function RegisterView({
             </label>
             <button className="primary-btn submit" type="submit">
               <CheckCircle2 size={18} />
-              User profilini yaratish
+              Profil yaratish
             </button>
           </form>
 
@@ -1221,7 +1254,7 @@ function RegisterView({
             <div className="admin-status sent">
               <CheckCircle2 size={18} />
               <span>
-                <strong>User profili tayyor</strong>
+                <strong>Profil tayyor</strong>
                 <small>Endi qabulga yozilish va shifokor tanlash mumkin.</small>
               </span>
             </div>
@@ -1231,11 +1264,11 @@ function RegisterView({
         <>
           <form className="consult-form doctor-register-form" onSubmit={onDoctorSubmit}>
             <label>
-              <span>D.R F.I.O.</span>
-              <input defaultValue="Dr. Dilnoza Karimova" />
+              <span>Shifokor F.I.O.</span>
+              <input defaultValue="Dilnoza Karimova" />
             </label>
             <label>
-              <span>D.R mutaxassisligi haqida ma&apos;lumot</span>
+              <span>Mutaxassislik haqida ma&apos;lumot</span>
               <select defaultValue="Davolovchi stomatolog">
                 <option>Davolovchi stomatolog</option>
                 <option>Protezchi</option>
@@ -1257,7 +1290,7 @@ function RegisterView({
               <span>Rasmi</span>
               <input
                 defaultValue="https://images.unsplash.com/photo-1559839734-2b71ea197ec2"
-                placeholder="Rasm URL manzili"
+                placeholder="Rasm havolasi"
               />
             </label>
             <label>
@@ -1279,7 +1312,7 @@ function RegisterView({
               </label>
             </div>
             <label>
-              <span>D.R tel raqami</span>
+              <span>Shifokor telefon raqami</span>
               <input defaultValue="+998 90 112 45 67" />
             </label>
             <div className="two-fields">
@@ -1302,7 +1335,7 @@ function RegisterView({
             </label>
             <button className="primary-btn submit" type="submit">
               <CheckCircle2 size={18} />
-              Doktor anketasini yuborish
+              Shifokor anketasini yuborish
             </button>
           </form>
 
@@ -1311,7 +1344,7 @@ function RegisterView({
               <div className="admin-status sent">
                 <CheckCircle2 size={18} />
                 <span>
-                  <strong>Doktor ma&apos;lumotlari yuborildi</strong>
+                  <strong>Shifokor ma&apos;lumotlari yuborildi</strong>
                   <small>Endi 1 oylik obuna to&apos;lovini qiling.</small>
                 </span>
               </div>
@@ -1322,8 +1355,8 @@ function RegisterView({
                     <CreditCard size={18} />
                   </span>
                   <span>
-                    <strong>Doktor obunasi</strong>
-                    <small>Profil 1 oy davomida aktiv bo&apos;ladi.</small>
+                    <strong>Shifokor obunasi</strong>
+                    <small>Profil 1 oy davomida faol bo&apos;ladi.</small>
                   </span>
                 </div>
                 <div className="bill-row">
@@ -1331,8 +1364,8 @@ function RegisterView({
                   <b>50 000 so&apos;m</b>
                 </div>
                 <div className="bill-row">
-                  <span>Admin sozlamasi</span>
-                  <b>Narx admin paneldan o&apos;zgaradi</b>
+                  <span>Administrator sozlamasi</span>
+                  <b>Narx administrator panelidan o&apos;zgaradi</b>
                 </div>
                 <div className="bill-total">
                   <span>Jami</span>
@@ -1366,8 +1399,8 @@ function RegisterView({
                 <label>
                   <span>Chek raqami</span>
                   <input
-                    defaultValue={doctorSubscriptionPaid ? "DR-50000-2026" : ""}
-                    placeholder="Masalan: DR-50000"
+                    defaultValue={doctorSubscriptionPaid ? "DM-50000-2026" : ""}
+                    placeholder="Masalan: DM-50000"
                   />
                 </label>
                 <button className="primary-btn submit" type="button" onClick={onDoctorPay}>
@@ -1376,12 +1409,12 @@ function RegisterView({
                 </button>
               </section>
 
-              <section className="payment-timeline" aria-label="Doktor obuna jarayoni">
+              <section className="payment-timeline" aria-label="Shifokor obuna jarayoni">
                 <div className="timeline-row done">
                   <CheckCircle2 size={17} />
                   <span>
                     <strong>Anketa to&apos;ldirildi</strong>
-                    <small>Doktor ma&apos;lumotlari admin tekshiruviga tayyor.</small>
+                    <small>Shifokor ma&apos;lumotlari administrator tekshiruviga tayyor.</small>
                   </span>
                 </div>
                 <div className={doctorSubscriptionPaid ? "timeline-row done" : "timeline-row active"}>
@@ -1394,11 +1427,11 @@ function RegisterView({
                 <div className={doctorSubscriptionPaid ? "timeline-row active" : "timeline-row"}>
                   <Clock size={17} />
                   <span>
-                    <strong>Admin tasdig&apos;i</strong>
+                    <strong>Administrator tasdig&apos;i</strong>
                     <small>
                       {doctorSubscriptionPaid
-                        ? "Admin doktor profilini va to'lov chekini tasdiqlaydi."
-                        : "To'lov yuborilgandan keyin admin tasdiqi boshlanadi."}
+                        ? "Administrator shifokor profilini va to'lov chekini tasdiqlaydi."
+                        : "To'lov yuborilgandan keyin administrator tekshiruvi boshlanadi."}
                     </small>
                   </span>
                 </div>
@@ -1409,7 +1442,7 @@ function RegisterView({
               <Clock size={18} />
               <span>
                 <strong>To&apos;lov keyingi bosqichda</strong>
-                <small>Avval doktor ma&apos;lumotlarini to&apos;liq yuboring.</small>
+                <small>Avval shifokor ma&apos;lumotlarini to&apos;liq yuboring.</small>
               </span>
             </div>
           )}
@@ -1462,29 +1495,29 @@ function ProfileView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Profil" text="Kirish, telefon, lokatsiya va xavfsizlik." />
+      <PageHead title="Profil" text="Telefon, ro'yxatdan o'tish va xavfsizlik." />
       <section className="profile-card">
         <div className="profile-avatar">
           <User size={34} />
         </div>
         <strong>Aziz Karimov</strong>
         <span>+998 90 555 22 11</span>
-        <button className="primary-btn">
+        <button className="primary-btn" type="button" onClick={() => onNavigate("register")}>
           <Phone size={17} />
           Telefonni tasdiqlash
         </button>
       </section>
 
-      <button className="settings-row" onClick={() => onNavigate("register")}>
+      <button className="settings-row" type="button" onClick={() => onNavigate("register")}>
         <LockKeyhole size={18} />
         <span>
-          <strong>Kirish / Ro&apos;yxatdan o&apos;tish</strong>
+          <strong>Ro&apos;yxatdan o&apos;tish</strong>
           <small>
             {doctorRegistrationSent
-              ? "Doktor anketasi yuborilgan"
+              ? "Shifokor anketasi yuborilgan"
               : userRegistered
-                ? "User profili yaratilgan"
-                : "Oddiy user yoki doktor sifatida kirish"}
+                ? "Profil yaratilgan"
+                : "Rol tanlang va profilni to'ldiring"}
           </small>
         </span>
         <ChevronRight size={18} />
@@ -1493,20 +1526,20 @@ function ProfileView({
         <div className={doctorSubscriptionPaid ? "admin-status sent" : "admin-status"}>
           {doctorSubscriptionPaid ? <CheckCircle2 size={18} /> : <Clock size={18} />}
           <span>
-            <strong>{doctorSubscriptionPaid ? "Doktor obunasi yuborildi" : "Doktor obunasi kutilmoqda"}</strong>
+            <strong>{doctorSubscriptionPaid ? "Shifokor obunasi yuborildi" : "Shifokor obunasi kutilmoqda"}</strong>
             <small>
               {doctorSubscriptionPaid
-                ? "Admin to'lov chekini tasdiqlaydi."
+                ? "Administrator to'lov chekini tasdiqlaydi."
                 : "Ro'yxatdan o'tish oynasida 50 000 so'm to'lov qiling."}
             </small>
           </span>
         </div>
       )}
-      <button className="settings-row">
+      <button className="settings-row" type="button" onClick={() => onNavigate("records")}>
         <Bell size={18} />
         <span>
           <strong>Bildirishnomalar</strong>
-          <small>Admin tasdiqi va eslatmalar</small>
+          <small>Administrator tasdiqi va eslatmalar</small>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -1526,7 +1559,7 @@ function MoreView({
       id: "register",
       label: "Ro'yxatdan o'tish",
       Icon: LockKeyhole,
-      description: "User yoki doktor profilini oching",
+      description: "Rol tanlang va profilni to'ldiring",
       badge: "Kerakli"
     },
     {
@@ -1567,7 +1600,7 @@ function MoreView({
       <div className={sent ? "admin-status sent" : "admin-status"}>
         <CheckCircle2 size={18} />
         <span>
-          <strong>{sent ? "Admin tasdiq jarayonida" : "Faol so'rov yo'q"}</strong>
+          <strong>{sent ? "Administrator tekshiryapti" : "Faol so'rov yo'q"}</strong>
           <small>{sent ? "So'rovingiz administratorga yuborildi." : "Qabul formasini to'ldiring."}</small>
         </span>
       </div>
@@ -1583,7 +1616,7 @@ function MoreView({
               <Icon size={22} />
             </span>
             <span className="menu-copy">
-            <strong>{label}</strong>
+              <strong>{label}</strong>
               <small>{description}</small>
             </span>
             <span className="menu-action">{badge ?? <ChevronRight size={18} />}</span>
@@ -1625,7 +1658,7 @@ function DoctorCard({
           {doctor.district}
         </span>
       </div>
-      <button className="appointment-btn" onClick={onAppointment}>
+      <button className="appointment-btn" type="button" onClick={onAppointment}>
         Qabul
       </button>
     </article>
@@ -1645,7 +1678,7 @@ function SectionTitle({
     <div className="section-title">
       <h2>{title}</h2>
       {action && (
-        <button onClick={onAction}>
+        <button type="button" onClick={onAction}>
           {action}
           <ChevronRight size={15} />
         </button>

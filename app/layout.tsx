@@ -4,7 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Dental Map",
-  description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi."
+  description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg"
+  }
 };
 
 export const viewport: Viewport = {
@@ -22,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="uz">
       <body>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         {children}
       </body>
     </html>
