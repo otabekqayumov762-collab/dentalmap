@@ -295,7 +295,7 @@ const mapTiles = [
   [5672, 3063]
 ];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 export default function DentalMapApp() {
   const [activeView, setActiveView] = useState<ViewId>("home");
@@ -448,6 +448,8 @@ export default function DentalMapApp() {
         setAuthStatus("loading");
         const response = await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
           method: "POST",
+          cache: "no-store",
+          credentials: "omit",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             init_data: telegramApp.initData,
@@ -461,8 +463,8 @@ export default function DentalMapApp() {
 
         const payload = await response.json();
         if (payload?.tokens?.access) {
-          window.localStorage.setItem("dentalmap_access", payload.tokens.access);
-          window.localStorage.setItem("dentalmap_refresh", payload.tokens.refresh);
+          window.sessionStorage.setItem("dentalmap_access", payload.tokens.access);
+          window.sessionStorage.setItem("dentalmap_refresh", payload.tokens.refresh);
         }
         setAuthStatus("authenticated");
         setAuthMessage("Telegram akkaunt backend bilan ulandi.");
