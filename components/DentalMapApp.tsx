@@ -29,7 +29,7 @@ import {
   User,
   type LucideIcon
 } from "lucide-react";
-import { FormEvent, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 
 type ViewId =
   | "home"
@@ -44,6 +44,71 @@ type ViewId =
   | "more";
 
 type RegisterRole = "user" | "doctor";
+type TelegramAuthStatus = "loading" | "authenticated" | "guest" | "error";
+
+type TelegramUser = {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+};
+
+type TelegramThemeParams = {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+};
+
+type TelegramWebApp = {
+  initData: string;
+  initDataUnsafe?: { user?: TelegramUser };
+  colorScheme?: "light" | "dark";
+  themeParams?: TelegramThemeParams;
+  viewportHeight?: number;
+  stableViewportHeight?: number;
+  ready: () => void;
+  expand: () => void;
+  close: () => void;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  disableVerticalSwipes?: () => void;
+  onEvent?: (eventType: string, callback: () => void) => void;
+  offEvent?: (eventType: string, callback: () => void) => void;
+  BackButton?: {
+    show: () => void;
+    hide: () => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+  };
+  MainButton?: {
+    text: string;
+    setText: (text: string) => void;
+    show: () => void;
+    hide: () => void;
+    enable: () => void;
+    disable: () => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+  };
+  HapticFeedback?: {
+    impactOccurred: (style: "light" | "medium" | "heavy" | "rigid" | "soft") => void;
+    notificationOccurred: (type: "error" | "success" | "warning") => void;
+    selectionChanged: () => void;
+  };
+};
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+  }
+}
 
 type Doctor = {
   id: string;
@@ -230,6 +295,8 @@ const mapTiles = [
   [5672, 3063]
 ];
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
+
 export default function DentalMapApp() {
   const [activeView, setActiveView] = useState<ViewId>("home");
   const [query, setQuery] = useState("");
@@ -242,6 +309,12 @@ export default function DentalMapApp() {
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+  const [authStatus, setAuthStatus] = useState<TelegramAuthStatus>("loading");
+  const [authMessage, setAuthMessage] = useState("Telegram Mini App tayyorlanmoqda.");
+
+  const isTelegram = Boolean(webApp);
 
   const filteredDoctors = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -266,38 +339,248 @@ export default function DentalMapApp() {
   }, [district, query]);
 
   function openAppointment(doctor: Doctor) {
+    webApp?.HapticFeedback?.selectionChanged();
     setSelectedDoctor(doctor);
     setActiveView("appointment");
   }
 
   function sendConsultation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setConsultationSent(true);
+    submitConsultation();
   }
 
   function sendUserRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setUserRegistered(true);
+    submitUserRegistration();
   }
 
   function sendDoctorRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setDoctorRegistrationSent(true);
+    submitDoctorRegistration();
   }
 
+  const submitConsultation = useCallback(() => {
+    setConsultationSent(true);
+    webApp?.HapticFeedback?.notificationOccurred("success");
+  }, [webApp]);
+
+  const submitUserRegistration = useCallback(() => {
+    setUserRegistered(true);
+    webApp?.HapticFeedback?.notificationOccurred("success");
+  }, [webApp]);
+
+  const submitDoctorRegistration = useCallback(() => {
+    setDoctorRegistrationSent(true);
+    webApp?.HapticFeedback?.notificationOccurred("success");
+  }, [webApp]);
+
+  const submitDoctorPayment = useCallback(() => {
+    setDoctorSubscriptionPaid(true);
+    webApp?.HapticFeedback?.notificationOccurred("success");
+  }, [webApp]);
+
+  function navigate(view: ViewId) {
+    webApp?.HapticFeedback?.selectionChanged();
+    setActiveView(view);
+  }
+
+  function closeApp() {
+    if (webApp) {
+      webApp.close();
+      return;
+    }
+    setActiveView("home");
+  }
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp ?? null;
+    setWebApp(tg);
+
+    if (!tg) {
+      document.documentElement.dataset.telegramTheme = "light";
+      setAuthStatus("guest");
+      setAuthMessage("Telegramdan tashqarida preview rejimi.");
+      return;
+    }
+
+    const telegramApp = tg;
+    tg.ready();
+    tg.expand();
+    tg.disableVerticalSwipes?.();
+    tg.setHeaderColor?.(tg.themeParams?.secondary_bg_color ?? "#f8fbfc");
+    tg.setBackgroundColor?.(tg.themeParams?.bg_color ?? "#f8fbfc");
+
+    const applyTelegramTheme = () => {
+      const params = tg.themeParams ?? {};
+      const root = document.documentElement;
+      root.dataset.telegramTheme = tg.colorScheme === "dark" ? "dark" : "light";
+      root.style.setProperty("--tg-bg", params.bg_color ?? "#f8fbfc");
+      root.style.setProperty("--tg-text", params.text_color ?? "#142033");
+      root.style.setProperty("--tg-hint", params.hint_color ?? "#667085");
+      root.style.setProperty("--tg-button", params.button_color ?? "#0f8fe8");
+      root.style.setProperty("--tg-button-text", params.button_text_color ?? "#ffffff");
+      root.style.setProperty("--tg-secondary-bg", params.secondary_bg_color ?? "#ffffff");
+    };
+
+    const syncViewport = () => {
+      const height = tg.stableViewportHeight || tg.viewportHeight;
+      if (height) {
+        document.documentElement.style.setProperty("--tg-viewport-height", `${height}px`);
+      }
+    };
+
+    applyTelegramTheme();
+    syncViewport();
+    tg.onEvent?.("themeChanged", applyTelegramTheme);
+    tg.onEvent?.("viewportChanged", syncViewport);
+
+    const user = tg.initDataUnsafe?.user ?? null;
+    setTelegramUser(user);
+
+    async function authenticate() {
+      if (!telegramApp.initData && !user) {
+        setAuthStatus("guest");
+        setAuthMessage("Telegram user ma'lumoti kelmadi. Bot ichidan oching.");
+        return;
+      }
+
+      try {
+        setAuthStatus("loading");
+        const response = await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            init_data: telegramApp.initData,
+            telegram_user: user
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Telegram auth ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (payload?.tokens?.access) {
+          window.localStorage.setItem("dentalmap_access", payload.tokens.access);
+          window.localStorage.setItem("dentalmap_refresh", payload.tokens.refresh);
+        }
+        setAuthStatus("authenticated");
+        setAuthMessage("Telegram akkaunt backend bilan ulandi.");
+      } catch {
+        setAuthStatus("error");
+        setAuthMessage("Telegram auth ishlamadi. Backend URL yoki bot tokenni tekshiring.");
+        telegramApp.HapticFeedback?.notificationOccurred("error");
+      }
+    }
+
+    void authenticate();
+
+    return () => {
+      tg.offEvent?.("themeChanged", applyTelegramTheme);
+      tg.offEvent?.("viewportChanged", syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!webApp?.BackButton) {
+      return;
+    }
+
+    const handleBack = () => {
+      setNotificationsOpen(false);
+      setActiveView("home");
+    };
+
+    if (activeView === "home") {
+      webApp.BackButton.hide();
+    } else {
+      webApp.BackButton.show();
+      webApp.BackButton.onClick(handleBack);
+    }
+
+    return () => {
+      webApp.BackButton?.offClick(handleBack);
+    };
+  }, [activeView, webApp]);
+
+  useEffect(() => {
+    const mainButton = webApp?.MainButton;
+    if (!mainButton) {
+      return;
+    }
+
+    const handleMainButton = () => {
+      if (activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") {
+        setActiveView("appointment");
+        return;
+      }
+      if (activeView === "appointment") {
+        submitConsultation();
+        return;
+      }
+      if (activeView === "register" && registerRole === "user") {
+        submitUserRegistration();
+        return;
+      }
+      if (activeView === "register" && registerRole === "doctor" && !doctorRegistrationSent) {
+        submitDoctorRegistration();
+        return;
+      }
+      if (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid) {
+        submitDoctorPayment();
+      }
+    };
+
+    const buttonText =
+      activeView === "appointment"
+        ? "Admin tasdiqiga yuborish"
+        : activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid
+          ? "50 000 so'm to'lash"
+          : activeView === "register" && registerRole === "doctor"
+            ? "Doktor anketasini yuborish"
+            : activeView === "register"
+              ? "User profilini yaratish"
+              : "Qabulga yozilish";
+
+    if (activeView === "records" || activeView === "profile" || activeView === "more" || doctorSubscriptionPaid) {
+      mainButton.hide();
+    } else {
+      mainButton.setText(buttonText);
+      mainButton.enable();
+      mainButton.show();
+      mainButton.onClick(handleMainButton);
+    }
+
+    return () => {
+      mainButton.offClick(handleMainButton);
+    };
+  }, [
+    activeView,
+    doctorRegistrationSent,
+    doctorSubscriptionPaid,
+    registerRole,
+    submitConsultation,
+    submitDoctorPayment,
+    submitDoctorRegistration,
+    submitUserRegistration,
+    webApp
+  ]);
+
   return (
-    <main className="mini-shell">
+    <main className={isTelegram ? "mini-shell telegram-shell" : "mini-shell"}>
       <section className="mini-app" aria-label="Dental Map mini ilova">
         <header className="status-bar">
-          <span>10:09</span>
-          <strong>Mini ilova</strong>
-          <button>Yopish</button>
+          <span>Dental Map</span>
+          <strong>{isTelegram ? "Telegram Mini App" : "Preview"}</strong>
+          <button type="button" onClick={closeApp}>
+            Yopish
+          </button>
         </header>
 
         <div className="app-scroll">
           <section className="brand-card">
             <div className="brand-row">
-              <button className="brand-title" onClick={() => setActiveView("home")}>
+              <button className="brand-title" onClick={() => navigate("home")}>
                 <span className="tooth-logo">
                   <ShieldCheck size={18} />
                 </span>
@@ -314,16 +597,23 @@ export default function DentalMapApp() {
               </button>
             </div>
 
+            <TelegramStatus
+              status={authStatus}
+              message={authMessage}
+              user={telegramUser}
+              isTelegram={isTelegram}
+            />
+
             {notificationsOpen && (
               <NotificationPanel
                 sent={consultationSent}
                 onOpenAppointment={() => {
                   setNotificationsOpen(false);
-                  setActiveView("appointment");
+                  navigate("appointment");
                 }}
                 onOpenRegister={() => {
                   setNotificationsOpen(false);
-                  setActiveView("register");
+                  navigate("register");
                 }}
               />
             )}
@@ -352,7 +642,7 @@ export default function DentalMapApp() {
 
             <div className="shortcut-row" aria-label="Mini ilova bo'limlari">
               {shortcuts.map(({ id, label, Icon }) => (
-                <button key={id} className="shortcut" onClick={() => setActiveView(id)}>
+                <button key={id} className="shortcut" onClick={() => navigate(id)}>
                   <Icon size={18} />
                   <span>{label}</span>
                 </button>
@@ -366,7 +656,7 @@ export default function DentalMapApp() {
               doctor={selectedDoctor}
               consultationSent={consultationSent}
               onAppointment={openAppointment}
-              onNavigate={setActiveView}
+              onNavigate={navigate}
             />
           )}
 
@@ -375,11 +665,11 @@ export default function DentalMapApp() {
           )}
 
           {activeView === "clinics" && (
-            <ClinicsView clinics={filteredClinics} onNavigate={setActiveView} />
+            <ClinicsView clinics={filteredClinics} onNavigate={navigate} />
           )}
 
           {activeView === "services" && (
-            <ServicesView onNavigate={setActiveView} />
+            <ServicesView onNavigate={navigate} />
           )}
 
           {activeView === "map" && (
@@ -409,8 +699,8 @@ export default function DentalMapApp() {
               onRoleChange={setRegisterRole}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
-              onDoctorPay={() => setDoctorSubscriptionPaid(true)}
-              onNavigate={setActiveView}
+              onDoctorPay={submitDoctorPayment}
+              onNavigate={navigate}
             />
           )}
 
@@ -421,12 +711,12 @@ export default function DentalMapApp() {
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
-              onNavigate={setActiveView}
+              onNavigate={navigate}
             />
           )}
 
           {activeView === "more" && (
-            <MoreView onNavigate={setActiveView} sent={consultationSent} />
+            <MoreView onNavigate={navigate} sent={consultationSent} />
           )}
         </div>
 
@@ -435,7 +725,7 @@ export default function DentalMapApp() {
             <button
               key={id}
               className={activeView === id ? "tab active" : "tab"}
-              onClick={() => setActiveView(id)}
+              onClick={() => navigate(id)}
             >
               <Icon size={20} />
               <span>{label}</span>
@@ -444,6 +734,32 @@ export default function DentalMapApp() {
         </nav>
       </section>
     </main>
+  );
+}
+
+function TelegramStatus({
+  status,
+  message,
+  user,
+  isTelegram
+}: {
+  status: TelegramAuthStatus;
+  message: string;
+  user: TelegramUser | null;
+  isTelegram: boolean;
+}) {
+  const name = user
+    ? [user.first_name, user.last_name].filter(Boolean).join(" ") || `@${user.username}` || `ID ${user.id}`
+    : "Telegram user aniqlanmadi";
+
+  return (
+    <section className={`telegram-status ${status}`} aria-live="polite">
+      <span className="telegram-dot" />
+      <div>
+        <strong>{isTelegram ? name : "Browser preview"}</strong>
+        <small>{message}</small>
+      </div>
+    </section>
   );
 }
 
@@ -1203,13 +1519,44 @@ function MoreView({
   onNavigate: (view: ViewId) => void;
   sent: boolean;
 }) {
-  const rows: Shortcut[] = [
-    { id: "register", label: "Ro'yxatdan o'tish", Icon: LockKeyhole },
-    { id: "services", label: "Xizmatlar", Icon: SlidersHorizontal },
-    { id: "clinics", label: "Klinikalar", Icon: Building2 },
-    { id: "appointment", label: "Qabul", Icon: CalendarCheck },
-    { id: "records", label: "Yozuvlarim", Icon: ClipboardList },
-    { id: "profile", label: "Profil", Icon: User }
+  const rows: Array<Shortcut & { description: string; badge?: string }> = [
+    {
+      id: "register",
+      label: "Ro'yxatdan o'tish",
+      Icon: LockKeyhole,
+      description: "User yoki doktor profilini oching",
+      badge: "Kerakli"
+    },
+    {
+      id: "services",
+      label: "Xizmatlar",
+      Icon: SlidersHorizontal,
+      description: "Davolash va konsultatsiya turlari"
+    },
+    {
+      id: "clinics",
+      label: "Klinikalar",
+      Icon: Building2,
+      description: "Manzil, reyting va ish vaqti"
+    },
+    {
+      id: "appointment",
+      label: "Qabul",
+      Icon: CalendarCheck,
+      description: "Kun va vaqtni tanlash"
+    },
+    {
+      id: "records",
+      label: "Yozuvlarim",
+      Icon: ClipboardList,
+      description: "So'rovlaringiz holati"
+    },
+    {
+      id: "profile",
+      label: "Profil",
+      Icon: User,
+      description: "Telefon va xavfsizlik"
+    }
   ];
 
   return (
@@ -1222,16 +1569,25 @@ function MoreView({
           <small>{sent ? "So'rovingiz administratorga yuborildi." : "Qabul formasini to'ldiring."}</small>
         </span>
       </div>
-      {rows.map(({ id, label, Icon }) => (
-        <button key={id} className="settings-row" onClick={() => onNavigate(id)}>
-          <Icon size={18} />
-          <span>
+      <div className="menu-grid">
+        {rows.map(({ id, label, description, badge, Icon }, index) => (
+          <button
+            key={id}
+            className={index === 0 ? "menu-card featured" : "menu-card"}
+            onClick={() => onNavigate(id)}
+            type="button"
+          >
+            <span className="menu-icon">
+              <Icon size={22} />
+            </span>
+            <span className="menu-copy">
             <strong>{label}</strong>
-            <small>{label} bo&apos;limini ochish</small>
-          </span>
-          <ChevronRight size={18} />
-        </button>
-      ))}
+              <small>{description}</small>
+            </span>
+            <span className="menu-action">{badge ?? <ChevronRight size={18} />}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
