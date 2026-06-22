@@ -3,33 +3,38 @@
 /* eslint-disable @next/next/no-img-element */
 
 import {
+  Baby,
   Bell,
+  Bone,
   Building2,
-  CalendarCheck,
   CalendarDays,
+  Camera,
   CheckCircle2,
   ChevronRight,
-  ClipboardList,
   Clock,
   CreditCard,
-  FileText,
   Heart,
+  HeartPulse,
   Home,
-  LockKeyhole,
   Map,
   MapPin,
   MessageCircle,
   MoreHorizontal,
   Phone,
+  ScanLine,
   Search,
   ShieldCheck,
+  ShieldPlus,
   SlidersHorizontal,
+  SmilePlus,
+  Sparkles,
   Star,
   Stethoscope,
+  Upload,
   User,
   type LucideIcon
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 type ViewId =
   | "home"
@@ -37,10 +42,11 @@ type ViewId =
   | "clinics"
   | "appointment"
   | "map"
-  | "records"
   | "doctors"
+  | "doctorDetail"
   | "register"
   | "profile"
+  | "feedback"
   | "more";
 
 type RegisterRole = "user" | "doctor";
@@ -120,19 +126,21 @@ type Doctor = {
   clinic: string;
   district: string;
   address: string;
+  locationUrl?: string;
   phone: string;
   nextSlot: string;
-  image: string;
+  image?: string;
   accent: string;
 };
 
 type Clinic = {
+  id: string;
   name: string;
   district: string;
   address: string;
   workTime: string;
   rating: number;
-  image: string;
+  image?: string;
 };
 
 type Shortcut = {
@@ -143,50 +151,93 @@ type Shortcut = {
 
 const districts = [
   "Barchasi",
-  "Yunusobod",
+  "Mirzo Ulugbek",
   "Yakkasaroy",
+  "Almazor",
+  "Bektemir",
   "Mirobod",
+  "Sergili",
   "Chilonzor",
   "Shayxontohur",
-  "Mirzo Ulugbek"
+  "Yunusobod",
+  "Yashnobod",
+  "Uchtepa",
+  "Yangi hayot"
 ];
 
-const doctors: Doctor[] = [
+type ApiList<T> = {
+  results?: T[];
+};
+
+type ApiDoctor = {
+  id: string;
+  full_name?: string;
+  specialty?: string;
+  experience_years?: number;
+  work_time?: string;
+  photo?: string;
+  clinic_name?: string;
+  doctor_phone?: string;
+  clinic_district?: string;
+  clinic_address?: string;
+  clinic_location_url?: string;
+  rating?: string | number;
+  reviews_count?: number;
+};
+
+type ApiClinicBranch = {
+  id: string;
+  clinic_name?: string;
+  district?: string;
+  address?: string;
+  phone?: string;
+  work_time?: string;
+  is_active?: boolean;
+};
+
+type ApiClinic = {
+  id: string;
+  name?: string;
+  rating?: string | number;
+  branches?: ApiClinicBranch[];
+};
+
+const fallbackDoctors: Doctor[] = [
   {
-    id: "anna",
-    name: "Dr. Dilnoza Karimova",
+    id: "demo-dilnoza",
+    name: "Dilnoza Karimova",
     specialty: "Ortodont",
     rating: 4.9,
     reviews: 112,
     experience: "12 yil",
     clinic: "Smile Dent",
     district: "Yakkasaroy",
-    address: "Bobur kochasi 18",
+    address: "Bobur ko'chasi 18",
+    locationUrl: "https://www.google.com/maps/search/?api=1&query=Smile+Dent+Toshkent",
     phone: "+998 90 112 45 67",
     nextSlot: "Bugun, 14:30",
-    image:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=420&q=85",
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=420&q=85",
     accent: "#22b8ad"
   },
   {
-    id: "ivan",
-    name: "Dr. Jamshid Rasulov",
+    id: "demo-jamshid",
+    name: "Jamshid Rasulov",
     specialty: "Jarroh stomatolog",
     rating: 4.8,
     reviews: 96,
     experience: "8 yil",
     clinic: "Denta Pro",
     district: "Mirobod",
-    address: "Nukus kochasi 44",
+    address: "Nukus ko'chasi 44",
+    locationUrl: "https://www.google.com/maps/search/?api=1&query=Denta+Pro+Toshkent",
     phone: "+998 93 771 20 30",
     nextSlot: "Ertaga, 11:00",
-    image:
-      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=420&q=85",
+    image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=420&q=85",
     accent: "#1d7eea"
   },
   {
-    id: "maria",
-    name: "Dr. Malika Sodiqova",
+    id: "demo-malika",
+    name: "Malika Sodiqova",
     specialty: "Terapevt",
     rating: 5.0,
     reviews: 128,
@@ -194,15 +245,15 @@ const doctors: Doctor[] = [
     clinic: "Neo Dental",
     district: "Yunusobod",
     address: "Amir Temur 77",
+    locationUrl: "https://www.google.com/maps/search/?api=1&query=Neo+Dental+Toshkent",
     phone: "+998 95 440 19 19",
-    nextSlot: "20-iyun, 09:30",
-    image:
-      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=420&q=85",
+    nextSlot: "Bugun, 16:00",
+    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=420&q=85",
     accent: "#ef476f"
   },
   {
-    id: "dmitry",
-    name: "Dr. Sardor Aliyev",
+    id: "demo-sardor",
+    name: "Sardor Aliyev",
     specialty: "Ortoped",
     rating: 4.7,
     reviews: 87,
@@ -210,41 +261,38 @@ const doctors: Doctor[] = [
     clinic: "Dental House",
     district: "Chilonzor",
     address: "Bunyodkor 9",
+    locationUrl: "https://www.google.com/maps/search/?api=1&query=Dental+House+Toshkent",
     phone: "+998 91 230 78 00",
-    nextSlot: "21-iyun, 16:00",
-    image:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=420&q=85",
+    nextSlot: "Ertaga, 09:30",
+    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=420&q=85",
     accent: "#7c3aed"
   }
 ];
 
-const clinics: Clinic[] = [
+const fallbackClinics: Clinic[] = [
   {
+    id: "demo-smile-dent",
     name: "Smile Dent",
     district: "Yakkasaroy",
-    address: "Bobur kochasi 18",
+    address: "Bobur ko'chasi 18",
     workTime: "08:00 - 21:00",
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=640&q=85"
+    rating: 4.9
   },
   {
+    id: "demo-denta-pro",
     name: "Denta Pro",
     district: "Mirobod",
-    address: "Nukus kochasi 44",
+    address: "Nukus ko'chasi 44",
     workTime: "24/7 navbatchi",
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=640&q=85"
+    rating: 4.8
   },
   {
+    id: "demo-neo-dental",
     name: "Neo Dental",
     district: "Yunusobod",
     address: "Amir Temur 77",
     workTime: "08:30 - 18:00",
-    rating: 5.0,
-    image:
-      "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=640&q=85"
+    rating: 5.0
   }
 ];
 
@@ -252,8 +300,7 @@ const shortcuts: Shortcut[] = [
   { id: "services", label: "Xizmat", Icon: SlidersHorizontal },
   { id: "clinics", label: "Klinika", Icon: Building2 },
   { id: "appointment", label: "Qabul", Icon: CalendarDays },
-  { id: "map", label: "Xarita", Icon: MapPin },
-  { id: "records", label: "Yozuv", Icon: FileText }
+  { id: "map", label: "Xarita", Icon: MapPin }
 ];
 
 const tabs: Shortcut[] = [
@@ -265,15 +312,19 @@ const tabs: Shortcut[] = [
 ];
 
 const serviceItems = [
-  "Konsultatsiya",
-  "Tish davolash",
-  "Tish olish",
-  "Implant",
-  "Breket",
-  "Rentgen",
-  "Oqartirish",
-  "Bolalar stomatologiyasi"
+  { id: "consultation", label: "Konsultatsiya", Icon: MessageCircle },
+  { id: "treatment", label: "Tish davolash", Icon: HeartPulse },
+  { id: "extraction", label: "Tish olish", Icon: Bone },
+  { id: "implant", label: "Implant", Icon: ShieldPlus },
+  { id: "braces", label: "Breket", Icon: SmilePlus },
+  { id: "xray", label: "Rentgen", Icon: ScanLine },
+  { id: "whitening", label: "Oqartirish", Icon: Sparkles },
+  { id: "kids", label: "Bolalar stomatologiyasi", Icon: Baby }
 ];
+
+const genderOptions = ["Erkak", "Ayol"];
+const specialtyOptions = ["Davolovchi stomatolog", "Protezchi", "Ortodont", "Jarroh stomatolog"];
+const feedbackTopics = ["Taklif", "Shikoyat", "Texnik muammo"];
 
 const slots = ["09:30", "10:45", "12:15", "14:30", "16:00", "18:20"];
 
@@ -298,17 +349,77 @@ const mapTiles = [
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://127.0.0.1:8000");
 
+function isStaticPreviewHost() {
+  return typeof window !== "undefined" && API_BASE_URL === "" && window.location.hostname.endsWith("github.io");
+}
+
+const accentColors = ["#22b8ad", "#1d7eea", "#ef476f", "#7c3aed", "#0f8fe8"];
+
+function mapDoctor(item: ApiDoctor, index: number): Doctor {
+  return {
+    id: item.id,
+    name: item.full_name || "Shifokor",
+    specialty: item.specialty || "Stomatolog",
+    rating: Number(item.rating ?? 0),
+    reviews: item.reviews_count ?? 0,
+    experience: typeof item.experience_years === "number" ? `${item.experience_years} yil` : "",
+    clinic: item.clinic_name || "Klinika tanlanmagan",
+    district: item.clinic_district || "Tuman kiritilmagan",
+    address: item.clinic_address || "",
+    locationUrl: item.clinic_location_url || undefined,
+    phone: item.doctor_phone || "",
+    nextSlot: "",
+    image: item.photo || undefined,
+    accent: accentColors[index % accentColors.length]
+  };
+}
+
+function flattenClinics(items: ApiClinic[]): Clinic[] {
+  return items.flatMap((clinic) => {
+    const branches = clinic.branches?.filter((branch) => branch.is_active !== false) ?? [];
+    if (branches.length === 0) {
+      return [
+        {
+          id: clinic.id,
+          name: clinic.name || "Klinika",
+          district: "Tuman kiritilmagan",
+          address: "",
+          workTime: "",
+          rating: Number(clinic.rating ?? 0)
+        }
+      ];
+    }
+
+    return branches.map((branch) => ({
+      id: branch.id,
+      name: branch.clinic_name || clinic.name || "Klinika",
+      district: branch.district || "Tuman kiritilmagan",
+      address: branch.address || "",
+      workTime: branch.work_time || "",
+      rating: Number(clinic.rating ?? 0)
+    }));
+  });
+}
+
 export default function DentalMapApp() {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [activeView, setActiveView] = useState<ViewId>("home");
   const [query, setQuery] = useState("");
   const [district, setDistrict] = useState("Barchasi");
-  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
+  const [apiDoctors, setApiDoctors] = useState<Doctor[]>(fallbackDoctors);
+  const [apiClinics, setApiClinics] = useState<Clinic[]>(fallbackClinics);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState("");
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
+  const [registrationError, setRegistrationError] = useState("");
   const [registerRole, setRegisterRole] = useState<RegisterRole>("user");
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
+  const [savedDoctorIds, setSavedDoctorIds] = useState<string[]>([]);
+  const [savedDoctorsHydrated, setSavedDoctorsHydrated] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
@@ -319,25 +430,27 @@ export default function DentalMapApp() {
 
   const filteredDoctors = useMemo(() => {
     const search = query.trim().toLowerCase();
+    const allDistricts = district === "Barchasi";
 
-    return doctors.filter((doctor) => {
-      const districtOk = district === "Barchasi" || doctor.district === district;
+    return apiDoctors.filter((doctor) => {
       const text = `${doctor.name} ${doctor.specialty} ${doctor.clinic} ${doctor.district}`.toLowerCase();
+      const matchesDistrict = allDistricts || doctor.district === district;
 
-      return districtOk && text.includes(search);
+      return matchesDistrict && text.includes(search);
     });
-  }, [district, query]);
+  }, [apiDoctors, district, query]);
 
   const filteredClinics = useMemo(() => {
     const search = query.trim().toLowerCase();
+    const allDistricts = district === "Barchasi";
 
-    return clinics.filter((clinic) => {
-      const districtOk = district === "Barchasi" || clinic.district === district;
+    return apiClinics.filter((clinic) => {
       const text = `${clinic.name} ${clinic.district} ${clinic.address}`.toLowerCase();
+      const matchesDistrict = allDistricts || clinic.district === district;
 
-      return districtOk && text.includes(search);
+      return matchesDistrict && text.includes(search);
     });
-  }, [district, query]);
+  }, [apiClinics, district, query]);
 
   const activeTabId: ViewId | null =
     activeView === "home" ||
@@ -346,12 +459,38 @@ export default function DentalMapApp() {
     activeView === "profile" ||
     activeView === "more"
       ? activeView
-      : null;
+      : activeView === "doctorDetail" || activeView === "appointment"
+        ? "doctors"
+        : activeView === "services" || activeView === "clinics"
+          ? "home"
+          : activeView === "feedback"
+            ? "more"
+            : null;
+  const showDistrictFilter =
+    activeView === "home" ||
+    activeView === "doctors" ||
+    activeView === "clinics" ||
+    activeView === "map";
 
   function openAppointment(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
     setSelectedDoctor(doctor);
     setActiveView("appointment");
+  }
+
+  function openDoctor(doctor: Doctor) {
+    webApp?.HapticFeedback?.selectionChanged();
+    setSelectedDoctor(doctor);
+    setActiveView("doctorDetail");
+  }
+
+  function toggleSavedDoctor(doctorId: string) {
+    webApp?.HapticFeedback?.selectionChanged();
+    setSavedDoctorIds((current) =>
+      current.includes(doctorId)
+        ? current.filter((id) => id !== doctorId)
+        : [...current, doctorId]
+    );
   }
 
   function sendConsultation(event: FormEvent<HTMLFormElement>) {
@@ -364,9 +503,33 @@ export default function DentalMapApp() {
     submitUserRegistration();
   }
 
-  function sendDoctorRegistration(event: FormEvent<HTMLFormElement>) {
+  async function sendDoctorRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    submitDoctorRegistration();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const phone = String(formData.get("doctor_phone") || formData.get("phone") || "").trim();
+    const rawExperience = String(formData.get("experience_years") || "").trim();
+    const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
+
+    formData.set("role", "doctor");
+    formData.set("phone", phone);
+    formData.set("password", `Dmap-${Date.now()}-Doctor!`);
+    formData.set("experience_years", experienceYears);
+
+    try {
+      setRegistrationError("");
+      const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        throw new Error(`Doctor register ${response.status}`);
+      }
+      submitDoctorRegistration();
+    } catch {
+      setRegistrationError("Anketa backendga yuborilmadi. Maydonlarni to'liq to'ldiring.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    }
   }
 
   const submitConsultation = useCallback(() => {
@@ -391,15 +554,11 @@ export default function DentalMapApp() {
 
   function navigate(view: ViewId) {
     webApp?.HapticFeedback?.selectionChanged();
-    setActiveView(view);
-  }
-
-  function closeApp() {
-    if (webApp) {
-      webApp.close();
+    if (view === "appointment" && !selectedDoctor) {
+      setActiveView("doctors");
       return;
     }
-    setActiveView("home");
+    setActiveView(view);
   }
 
   useEffect(() => {
@@ -448,6 +607,12 @@ export default function DentalMapApp() {
     setTelegramUser(user);
 
     async function authenticate() {
+      if (isStaticPreviewHost()) {
+        setAuthStatus("guest");
+        setAuthMessage("24/7 statik ko'rish rejimi.");
+        return;
+      }
+
       if (!telegramApp.initData && !user) {
         setAuthStatus("guest");
         setAuthMessage("Telegram foydalanuvchisi aniqlanmadi. Bot ichidan oching.");
@@ -458,6 +623,9 @@ export default function DentalMapApp() {
         setAuthStatus("loading");
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 8000);
+        const authBody = telegramApp.initData
+          ? { init_data: telegramApp.initData }
+          : { telegram_user: user };
         const response = await (async () => {
           try {
             return await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
@@ -466,10 +634,7 @@ export default function DentalMapApp() {
               credentials: "omit",
               signal: controller.signal,
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                init_data: telegramApp.initData,
-                telegram_user: user
-              })
+              body: JSON.stringify(authBody)
             });
           } finally {
             window.clearTimeout(timeout);
@@ -503,6 +668,88 @@ export default function DentalMapApp() {
   }, []);
 
   useEffect(() => {
+    try {
+      const rawValue = window.localStorage.getItem("dentalmap_saved_doctors");
+      if (rawValue) {
+        const parsedValue = JSON.parse(rawValue);
+        if (Array.isArray(parsedValue)) {
+          setSavedDoctorIds(parsedValue.filter((item): item is string => typeof item === "string"));
+        }
+      }
+    } catch {
+      setSavedDoctorIds([]);
+    } finally {
+      setSavedDoctorsHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!savedDoctorsHydrated) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem("dentalmap_saved_doctors", JSON.stringify(savedDoctorIds));
+    } catch {
+      // Storage may be unavailable in embedded/private browser contexts.
+    }
+  }, [savedDoctorIds, savedDoctorsHydrated]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadBackendData() {
+      if (isStaticPreviewHost()) {
+        setApiDoctors(fallbackDoctors);
+        setApiClinics(fallbackClinics);
+        setDataError("");
+        setDataLoading(false);
+        return;
+      }
+
+      try {
+        setDataLoading(true);
+        setDataError("");
+        const [doctorResponse, clinicResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/doctors/`, { cache: "no-store", signal: controller.signal }),
+          fetch(`${API_BASE_URL}/api/clinics/`, { cache: "no-store", signal: controller.signal })
+        ]);
+        if (!doctorResponse.ok || !clinicResponse.ok) {
+          throw new Error("Backend data request failed");
+        }
+        const [doctorPayload, clinicPayload] = (await Promise.all([
+          doctorResponse.json(),
+          clinicResponse.json()
+        ])) as [ApiList<ApiDoctor>, ApiList<ApiClinic>];
+        setApiDoctors((doctorPayload.results ?? []).map(mapDoctor));
+        setApiClinics(flattenClinics(clinicPayload.results ?? []));
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setDataError("Backend vaqtincha ulanmagan. 24/7 ko'rish rejimi ishlayapti.");
+          setApiDoctors(fallbackDoctors);
+          setApiClinics(fallbackClinics);
+        }
+      } finally {
+        setDataLoading(false);
+      }
+    }
+
+    void loadBackendData();
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDoctor && apiDoctors.length > 0) {
+      setSelectedDoctor(apiDoctors[0]);
+    }
+  }, [apiDoctors, selectedDoctor]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [activeView]);
+
+  useEffect(() => {
     if (!webApp?.BackButton) {
       return;
     }
@@ -532,7 +779,11 @@ export default function DentalMapApp() {
 
     const handleMainButton = () => {
       if (activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") {
-        setActiveView("appointment");
+        if (selectedDoctor) {
+          setActiveView("appointment");
+        } else {
+          setActiveView("doctors");
+        }
         return;
       }
       if (activeView === "appointment") {
@@ -563,7 +814,13 @@ export default function DentalMapApp() {
               ? "Profil yaratish"
               : "Qabulga yozilish";
 
-    if (activeView === "records" || activeView === "profile" || activeView === "more" || doctorSubscriptionPaid) {
+    if (
+      activeView === "profile" ||
+      activeView === "more" ||
+      activeView === "feedback" ||
+      activeView === "doctorDetail" ||
+      doctorSubscriptionPaid
+    ) {
       mainButton.hide();
     } else {
       mainButton.setText(buttonText);
@@ -580,6 +837,7 @@ export default function DentalMapApp() {
     doctorRegistrationSent,
     doctorSubscriptionPaid,
     registerRole,
+    selectedDoctor,
     submitConsultation,
     submitDoctorPayment,
     submitDoctorRegistration,
@@ -590,15 +848,7 @@ export default function DentalMapApp() {
   return (
     <main className={isTelegram ? "mini-shell telegram-shell" : "mini-shell"}>
       <section className="mini-app" aria-label="Dental Map mini ilova">
-        <header className="status-bar">
-          <span>Dental Map</span>
-          <strong>Mini ilova</strong>
-          <button type="button" onClick={closeApp}>
-            Yopish
-          </button>
-        </header>
-
-        <div className="app-scroll">
+        <div className="app-scroll" ref={scrollRef}>
           <section className="brand-card">
             <div className="brand-row">
               <button className="brand-title" type="button" onClick={() => navigate("home")}>
@@ -633,10 +883,6 @@ export default function DentalMapApp() {
                   setNotificationsOpen(false);
                   navigate("appointment");
                 }}
-                onOpenRegister={() => {
-                  setNotificationsOpen(false);
-                  navigate("register");
-                }}
               />
             )}
 
@@ -649,20 +895,11 @@ export default function DentalMapApp() {
               />
             </label>
 
-            <label className="district-select">
-              <MapPin size={16} />
-              <select
-                value={district}
-                onChange={(event) => setDistrict(event.target.value)}
-                aria-label="Tuman"
-              >
-                {districts.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
+          </section>
 
-            <div className="shortcut-row" aria-label="Mini ilova bo'limlari">
+          <section className="filter-shortcuts">
+            {showDistrictFilter && <DistrictFilter value={district} onChange={setDistrict} />}
+            <div className="shortcut-row" aria-label="Bo'limlar">
               {shortcuts.map(({ id, label, Icon }) => (
                 <button
                   key={id}
@@ -681,18 +918,31 @@ export default function DentalMapApp() {
             <HomeView
               doctors={filteredDoctors}
               doctor={selectedDoctor}
+              loading={dataLoading}
+              dataError={dataError}
               consultationSent={consultationSent}
               onAppointment={openAppointment}
+              onOpenDoctor={openDoctor}
+              savedDoctorIds={savedDoctorIds}
+              onToggleSaved={toggleSavedDoctor}
               onNavigate={navigate}
             />
           )}
 
           {activeView === "doctors" && (
-            <DoctorsView doctors={filteredDoctors} onAppointment={openAppointment} />
+            <DoctorsView
+              doctors={filteredDoctors}
+              loading={dataLoading}
+              dataError={dataError}
+              onAppointment={openAppointment}
+              onOpenDoctor={openDoctor}
+              savedDoctorIds={savedDoctorIds}
+              onToggleSaved={toggleSavedDoctor}
+            />
           )}
 
           {activeView === "clinics" && (
-            <ClinicsView clinics={filteredClinics} onNavigate={navigate} />
+            <ClinicsView clinics={filteredClinics} loading={dataLoading} dataError={dataError} onNavigate={navigate} />
           )}
 
           {activeView === "services" && (
@@ -707,14 +957,26 @@ export default function DentalMapApp() {
             />
           )}
 
+          {activeView === "doctorDetail" && selectedDoctor && (
+            <DoctorDetailView doctor={selectedDoctor} onAppointment={openAppointment} />
+          )}
+
           {activeView === "appointment" && (
-            <AppointmentView
-              doctor={selectedDoctor}
-              selectedSlot={selectedSlot}
-              onSelectSlot={setSelectedSlot}
-              onSubmit={sendConsultation}
-              sent={consultationSent}
-            />
+            selectedDoctor ? (
+              <AppointmentView
+                doctor={selectedDoctor}
+                selectedSlot={selectedSlot}
+                onSelectSlot={setSelectedSlot}
+                onSubmit={sendConsultation}
+                sent={consultationSent}
+              />
+            ) : (
+              <EmptyState
+                title="Avval shifokor tanlang"
+                text="Qabul formasini ochish uchun ro'yxatdan shifokorni tanlang."
+                Icon={Stethoscope}
+              />
+            )
           )}
 
           {activeView === "register" && (
@@ -723,6 +985,7 @@ export default function DentalMapApp() {
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
+              registrationError={registrationError}
               onRoleChange={setRegisterRole}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
@@ -731,11 +994,8 @@ export default function DentalMapApp() {
             />
           )}
 
-          {activeView === "records" && <RecordsView />}
-
           {activeView === "profile" && (
             <ProfileView
-              userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
               onNavigate={navigate}
@@ -744,6 +1004,10 @@ export default function DentalMapApp() {
 
           {activeView === "more" && (
             <MoreView onNavigate={navigate} sent={consultationSent} />
+          )}
+
+          {activeView === "feedback" && (
+            <FeedbackView />
           )}
         </div>
 
@@ -776,6 +1040,10 @@ function TelegramStatus({
   user: TelegramUser | null;
   isTelegram: boolean;
 }) {
+  if (!isTelegram) {
+    return null;
+  }
+
   const name = user
     ? [user.first_name, user.last_name].filter(Boolean).join(" ") || `@${user.username}` || `ID ${user.id}`
     : "Telegram foydalanuvchisi aniqlanmadi";
@@ -791,15 +1059,103 @@ function TelegramStatus({
   );
 }
 
-function NotificationPanel({
-  sent,
-  onOpenAppointment,
-  onOpenRegister
+function EmptyState({ title, text, Icon }: { title: string; text: string; Icon: LucideIcon }) {
+  return (
+    <section className="empty-state">
+      <span className="soft-icon">
+        <Icon size={18} />
+      </span>
+      <strong>{title}</strong>
+      <p>{text}</p>
+    </section>
+  );
+}
+
+function DistrictFilter({
+  value,
+  onChange
 }: {
-  sent: boolean;
-  onOpenAppointment: () => void;
-  onOpenRegister: () => void;
+  value: string;
+  onChange: (district: string) => void;
 }) {
+  return (
+    <section className="district-filter" aria-label="Tumanlar">
+      <div className="district-filter-head">
+        <span>
+          <MapPin size={17} />
+          <strong>Tuman</strong>
+        </span>
+        <small>{value}</small>
+      </div>
+      <div className="district-chip-row">
+        {districts.map((item) => {
+          const active = value === item;
+
+          return (
+            <button
+              key={item}
+              className={active ? "district-chip active" : "district-chip"}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(item)}
+            >
+              <span>{item}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ChoiceField({
+  label,
+  name,
+  value,
+  options,
+  onChange
+}: {
+  label: string;
+  name: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <fieldset className="choice-field">
+      <legend>{label}</legend>
+      <input type="hidden" name={name} value={value} />
+      <div className="choice-row">
+        {options.map((option) => {
+          const active = value === option;
+
+          return (
+            <button
+              key={option}
+              className={active ? "choice-chip active" : "choice-chip"}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option)}
+            >
+              <span>{option}</span>
+              {active && <CheckCircle2 size={14} />}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function DoctorAvatar({ doctor, size = "md" }: { doctor: Doctor; size?: "sm" | "md" | "lg" }) {
+  return (
+    <span className={`doctor-avatar ${size}`} style={{ "--accent": doctor.accent } as CSSProperties}>
+      {doctor.image ? <img src={doctor.image} alt={doctor.name} /> : <Stethoscope size={size === "lg" ? 34 : 22} />}
+    </span>
+  );
+}
+
+function NotificationPanel({ sent, onOpenAppointment }: { sent: boolean; onOpenAppointment: () => void }) {
   return (
     <section className="notification-panel">
       <div>
@@ -821,24 +1177,6 @@ function NotificationPanel({
           </small>
         </span>
       </button>
-      <button className="notification-row" type="button" onClick={onOpenRegister}>
-        <span className="soft-icon">
-          <LockKeyhole size={17} />
-        </span>
-        <span>
-          <strong>Ro&apos;yxatdan o&apos;tish</strong>
-          <small>Rol tanlang va profilni to&apos;ldiring.</small>
-        </span>
-      </button>
-      <button className="notification-row" type="button" onClick={onOpenAppointment}>
-        <span className="soft-icon">
-          <Clock size={17} />
-        </span>
-        <span>
-          <strong>Bugungi bo&apos;sh vaqtlar</strong>
-          <small>14:30 va 16:00 slotlari mavjud.</small>
-        </span>
-      </button>
     </section>
   );
 }
@@ -846,14 +1184,24 @@ function NotificationPanel({
 function HomeView({
   doctors,
   doctor,
+  loading,
+  dataError,
   consultationSent,
   onAppointment,
+  onOpenDoctor,
+  savedDoctorIds,
+  onToggleSaved,
   onNavigate
 }: {
   doctors: Doctor[];
-  doctor: Doctor;
+  doctor: Doctor | null;
+  loading: boolean;
+  dataError: string;
   consultationSent: boolean;
   onAppointment: (doctor: Doctor) => void;
+  onOpenDoctor: (doctor: Doctor) => void;
+  savedDoctorIds: string[];
+  onToggleSaved: (doctorId: string) => void;
   onNavigate: (view: ViewId) => void;
 }) {
   return (
@@ -865,26 +1213,42 @@ function HomeView({
       />
       <div className="doctor-grid">
         {doctors.slice(0, 4).map((item) => (
-          <DoctorCard key={item.id} doctor={item} onAppointment={() => onAppointment(item)} />
+          <DoctorCard
+            key={item.id}
+            doctor={item}
+            onOpen={() => onOpenDoctor(item)}
+            onAppointment={() => onAppointment(item)}
+            isSaved={savedDoctorIds.includes(item.id)}
+            onToggleSaved={() => onToggleSaved(item.id)}
+          />
         ))}
       </div>
+      {doctors.length === 0 && (
+        <EmptyState
+          title={loading ? "Shifokorlar yuklanmoqda" : "Shifokor topilmadi"}
+          text={dataError || "Backendda tasdiqlangan shifokorlar ko'rinmayapti."}
+          Icon={Stethoscope}
+        />
+      )}
 
-      <SectionTitle
-        title="Yaqin qabul"
-        action="Ochish"
-        onAction={() => onNavigate("appointment")}
-      />
-      <button className="appointment-strip" onClick={() => onNavigate("appointment")}>
-        <img src={doctor.image} alt={doctor.name} />
-        <span>
-          <strong>{doctor.name}</strong>
-          <small>
-            28-oktabr, 11:30 - {doctor.clinic}
-          </small>
-          <em>{consultationSent ? "Administrator tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
-        </span>
-        <ChevronRight size={18} />
-      </button>
+      {doctor && (
+        <>
+          <SectionTitle
+            title="Tanlangan shifokor"
+            action="Qabul"
+            onAction={() => onAppointment(doctor)}
+          />
+          <button className="appointment-strip" onClick={() => onOpenDoctor(doctor)}>
+            <DoctorAvatar doctor={doctor} size="sm" />
+            <span>
+              <strong>{doctor.name}</strong>
+              <small>{doctor.clinic}</small>
+              <em>{consultationSent ? "Administrator tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}</em>
+            </span>
+            <ChevronRight size={18} />
+          </button>
+        </>
+      )}
 
       <section className="info-card">
         <div>
@@ -898,71 +1262,91 @@ function HomeView({
           Boshlash
         </button>
       </section>
-
-      <section className="info-card">
-        <div>
-          <span className="soft-icon">
-            <LockKeyhole size={18} />
-          </span>
-          <strong>Ro&apos;yxatdan o&apos;tish</strong>
-          <p>Foydalanuvchi yoki shifokor sifatida profil oching.</p>
-        </div>
-        <button className="secondary-btn" onClick={() => onNavigate("register")}>
-          Rol tanlash
-        </button>
-      </section>
     </div>
   );
 }
 
 function DoctorsView({
   doctors,
+  loading,
+  dataError,
+  onOpenDoctor,
+  savedDoctorIds,
+  onToggleSaved,
   onAppointment
 }: {
   doctors: Doctor[];
+  loading: boolean;
+  dataError: string;
+  onOpenDoctor: (doctor: Doctor) => void;
+  savedDoctorIds: string[];
+  onToggleSaved: (doctorId: string) => void;
   onAppointment: (doctor: Doctor) => void;
 }) {
   return (
     <div className="view-stack">
-      <PageHead
-        title="Shifokorlar"
-        text="Tuman, klinika va mutaxassislik bo'yicha shifokor tanlang."
-      />
       <div className="doctor-grid">
         {doctors.map((doctor) => (
-          <DoctorCard key={doctor.id} doctor={doctor} onAppointment={() => onAppointment(doctor)} />
+          <DoctorCard
+            key={doctor.id}
+            doctor={doctor}
+            onOpen={() => onOpenDoctor(doctor)}
+            onAppointment={() => onAppointment(doctor)}
+            isSaved={savedDoctorIds.includes(doctor.id)}
+            onToggleSaved={() => onToggleSaved(doctor.id)}
+          />
         ))}
       </div>
+      {doctors.length === 0 && (
+        <EmptyState
+          title={loading ? "Shifokorlar yuklanmoqda" : "Shifokor topilmadi"}
+          text={dataError || "Filterga mos yoki tasdiqlangan shifokor yo'q."}
+          Icon={Stethoscope}
+        />
+      )}
     </div>
   );
 }
 
 function ClinicsView({
   clinics,
+  loading,
+  dataError,
   onNavigate
 }: {
   clinics: Clinic[];
+  loading: boolean;
+  dataError: string;
   onNavigate: (view: ViewId) => void;
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Klinikalar" text="Yaqin klinikalar, ish vaqti, reyting va manzil." />
       {clinics.map((clinic) => (
-        <article className="clinic-card" key={clinic.name}>
-          <img src={clinic.image} alt={clinic.name} />
+        <article className="clinic-card" key={clinic.id}>
+          <span className="clinic-avatar">
+            <Building2 size={24} />
+          </span>
           <div>
             <strong>{clinic.name}</strong>
-            <span>
-              <Star size={14} /> {clinic.rating} - {clinic.district}
+            <span className="clinic-meta">
+              <em><Star size={14} /> {clinic.rating || "0.0"}</em>
+              <em><MapPin size={14} /> {clinic.district}</em>
             </span>
-            <p>{clinic.address}</p>
-            <small>{clinic.workTime}</small>
+            <p>{clinic.address || "Manzil kiritilmagan"}</p>
+            <small>{clinic.workTime || "Ish vaqti kiritilmagan"}</small>
           </div>
-          <button className="mini-btn" onClick={() => onNavigate("appointment")}>
-            Qabulga yozilish
+          <button className="mini-btn" onClick={() => onNavigate("doctors")}>
+            Shifokorlar
           </button>
         </article>
       ))}
+      {clinics.length === 0 && (
+        <EmptyState
+          title={loading ? "Klinikalar yuklanmoqda" : "Klinika topilmadi"}
+          text={dataError || "Backendda faol klinika ma'lumotlari yo'q."}
+          Icon={Building2}
+        />
+      )}
     </div>
   );
 }
@@ -970,14 +1354,13 @@ function ClinicsView({
 function ServicesView({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
   return (
     <div className="view-stack">
-      <PageHead title="Xizmatlar" text="Stomatologik xizmatlar va konsultatsiya turi." />
       <div className="service-grid">
-        {serviceItems.map((service) => (
-          <button key={service} className="service-card" onClick={() => onNavigate("appointment")}>
+        {serviceItems.map(({ id, label, Icon }) => (
+          <button key={id} className="service-card" onClick={() => onNavigate("doctors")}>
             <span className="soft-icon">
-              <ShieldCheck size={18} />
+              <Icon size={18} />
             </span>
-            <strong>{service}</strong>
+            <strong>{label}</strong>
           </button>
         ))}
       </div>
@@ -996,7 +1379,6 @@ function MapView({
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Xarita" text="Toshkent bo'yicha klinikalar va yaqin shifokorlar." />
       <section className="map-card" aria-label="Toshkent xaritasi">
         <div className="tile-map" aria-hidden="true">
           {mapTiles.map(([x, y]) => (
@@ -1005,11 +1387,15 @@ function MapView({
               src={`https://tile.openstreetmap.org/13/${x}/${y}.png`}
               alt=""
               loading="lazy"
+              decoding="async"
             />
           ))}
         </div>
-        <span className="map-marker clinic-marker-one">Smile Dent</span>
-        <span className="map-marker clinic-marker-two">Denta Pro</span>
+        {clinics.slice(0, 2).map((clinic, index) => (
+          <span key={clinic.id} className={index === 0 ? "map-marker clinic-marker-one" : "map-marker clinic-marker-two"}>
+            {clinic.name}
+          </span>
+        ))}
         <span className="map-marker user-marker">Siz</span>
         <div className="map-overlay">
           <span>
@@ -1028,7 +1414,7 @@ function MapView({
       </section>
       <div className="clinic-map-list">
         {clinics.slice(0, 3).map((clinic) => (
-          <article key={clinic.name}>
+          <article key={clinic.id}>
             <Building2 size={16} />
             <span>
               <strong>{clinic.name}</strong>
@@ -1042,7 +1428,7 @@ function MapView({
       <SectionTitle title="Yaqin shifokorlar" />
       {doctors.slice(0, 3).map((doctor) => (
         <button className="nearby-row" key={doctor.id} onClick={() => onAppointment(doctor)}>
-          <img src={doctor.image} alt={doctor.name} />
+          <DoctorAvatar doctor={doctor} size="sm" />
           <span>
             <strong>{doctor.name}</strong>
             <small>
@@ -1069,12 +1455,12 @@ function AppointmentView({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   sent: boolean;
 }) {
+  const [gender, setGender] = useState("");
+
   return (
     <div className="view-stack">
-      <PageHead title="Qabul" text="Qabul sanasi va konsultatsiya ma'lumotlari." />
-
       <article className="selected-doctor">
-        <img src={doctor.image} alt={doctor.name} />
+        <DoctorAvatar doctor={doctor} size="md" />
         <div>
           <strong>{doctor.name}</strong>
           <span>{doctor.specialty}</span>
@@ -1086,47 +1472,58 @@ function AppointmentView({
 
       <SectionTitle title="Vaqt belgilash" />
       <div className="slot-grid">
-        {slots.map((slot) => (
-          <button
-            key={slot}
-            className={selectedSlot === slot ? "slot active" : "slot"}
-            onClick={() => onSelectSlot(slot)}
-          >
-            <Clock size={15} />
-            {slot}
-          </button>
-        ))}
+        {slots.length > 0 ? (
+          slots.map((slot) => (
+            <button
+              key={slot}
+              className={selectedSlot === slot ? "slot active" : "slot"}
+              type="button"
+              onClick={() => onSelectSlot(slot)}
+            >
+              <Clock size={15} />
+              {slot}
+            </button>
+          ))
+        ) : (
+          <div className="admin-status slot-empty">
+            <Clock size={18} />
+            <span>
+              <strong>Bo&apos;sh vaqtlar ulanmagan</strong>
+              <small>Jadval backend/admin paneldan kelganda shu yerda chiqadi.</small>
+            </span>
+          </div>
+        )}
       </div>
 
       <form className="consult-form" onSubmit={onSubmit}>
         <label>
           <span>F.I.O.</span>
-          <input defaultValue="Aziz Karimov" />
+          <input placeholder="F.I.O." />
         </label>
         <label>
           <span>Telefon raqam</span>
-          <input defaultValue="+998 90 555 22 11" />
+          <input placeholder="+998 ..." />
         </label>
         <div className="two-fields">
-          <label>
-            <span>Jinsi</span>
-            <select defaultValue="Erkak">
-              <option>Erkak</option>
-              <option>Ayol</option>
-            </select>
-          </label>
+          <ChoiceField
+            label="Jinsi"
+            name="gender"
+            value={gender}
+            options={genderOptions}
+            onChange={setGender}
+          />
           <label>
             <span>Yoshi</span>
-            <input type="number" defaultValue="28" min="1" max="100" />
+            <input type="number" min="1" max="100" placeholder="Yosh" />
           </label>
         </div>
         <label>
           <span>Kun belgilash</span>
-          <input type="date" defaultValue="2026-06-20" />
+          <input type="date" min="2026-06-22" />
         </label>
         <label>
           <span>Izoh</span>
-          <textarea defaultValue="Tish og'rig'i bor, konsultatsiya kerak." />
+          <textarea placeholder="Qisqa izoh" />
         </label>
         <button className="primary-btn submit" type="submit">
           <CheckCircle2 size={18} />
@@ -1154,6 +1551,7 @@ function RegisterView({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
+  registrationError,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
@@ -1164,6 +1562,7 @@ function RegisterView({
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
+  registrationError: string;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -1171,14 +1570,23 @@ function RegisterView({
   onNavigate: (view: ViewId) => void;
 }) {
   const [method, setMethod] = useState<(typeof paymentMethods)[number][0]>("click");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
+  const [photoFileName, setPhotoFileName] = useState("");
+  const [userGender, setUserGender] = useState("");
+  const [userDistrict, setUserDistrict] = useState("");
+  const [doctorSpecialty, setDoctorSpecialty] = useState("");
+  const [doctorDistrict, setDoctorDistrict] = useState("");
+
+  function toggleService(serviceId: string) {
+    setSelectedServiceIds((current) =>
+      current.includes(serviceId)
+        ? current.filter((id) => id !== serviceId)
+        : [...current, serviceId]
+    );
+  }
 
   return (
     <div className="view-stack">
-      <PageHead
-        title="Ro'yxatdan o'tish"
-        text="Avval rolni tanlang: foydalanuvchi yoki shifokor."
-      />
-
       <div className="role-toggle" aria-label="Rol tanlash">
         <button
           className={role === "user" ? "role-option active" : "role-option"}
@@ -1209,40 +1617,39 @@ function RegisterView({
           <form className="consult-form" onSubmit={onUserSubmit}>
             <label>
               <span>F.I.O.</span>
-              <input defaultValue="Aziz Karimov" />
+              <input placeholder="F.I.O." />
             </label>
             <label>
               <span>Telefon raqam</span>
-              <input defaultValue="+998 90 555 22 11" />
+              <input placeholder="+998 ..." />
             </label>
             <div className="two-fields">
-              <label>
-                <span>Jinsi</span>
-                <select defaultValue="Erkak">
-                  <option>Erkak</option>
-                  <option>Ayol</option>
-                </select>
-              </label>
+              <ChoiceField
+                label="Jinsi"
+                name="gender"
+                value={userGender}
+                options={genderOptions}
+                onChange={setUserGender}
+              />
               <label>
                 <span>Yoshi</span>
-                <input type="number" defaultValue="28" min="1" max="100" />
+                <input type="number" min="1" max="100" placeholder="Yosh" />
               </label>
             </div>
             <label>
               <span>Shahar</span>
-              <input defaultValue="Toshkent" />
+              <input placeholder="Shahar" />
             </label>
-            <label>
-              <span>Tuman</span>
-              <select defaultValue="Yakkasaroy">
-                {districts.slice(1).map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
+            <ChoiceField
+              label="Tuman"
+              name="district"
+              value={userDistrict}
+              options={districts.slice(1)}
+              onChange={setUserDistrict}
+            />
             <label>
               <span>Yashash joyi</span>
-              <textarea defaultValue="Bobur kochasi, 18-uy" />
+              <textarea placeholder="Manzil" />
             </label>
             <button className="primary-btn submit" type="submit">
               <CheckCircle2 size={18} />
@@ -1265,74 +1672,117 @@ function RegisterView({
           <form className="consult-form doctor-register-form" onSubmit={onDoctorSubmit}>
             <label>
               <span>Shifokor F.I.O.</span>
-              <input defaultValue="Dilnoza Karimova" />
+              <input name="full_name" placeholder="Shifokor F.I.O." />
             </label>
-            <label>
-              <span>Mutaxassislik haqida ma&apos;lumot</span>
-              <select defaultValue="Davolovchi stomatolog">
-                <option>Davolovchi stomatolog</option>
-                <option>Protezchi</option>
-                <option>Ortodont</option>
-                <option>Jarroh stomatolog</option>
-              </select>
-            </label>
+            <ChoiceField
+              label="Asosiy yo'nalish"
+              name="specialty"
+              value={doctorSpecialty}
+              options={specialtyOptions}
+              onChange={setDoctorSpecialty}
+            />
+            <fieldset className="service-picker">
+              <legend>Ko&apos;rsatadigan xizmatlar</legend>
+              <input type="hidden" name="services" value={selectedServiceIds.join(",")} />
+              <div className="service-pill-row">
+                {serviceItems.map(({ id, label, Icon }) => {
+                  const active = selectedServiceIds.includes(id);
+
+                  return (
+                    <button
+                      key={id}
+                      className={active ? "service-pill active" : "service-pill"}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggleService(id)}
+                    >
+                      <Icon size={16} />
+                      <span>{label}</span>
+                      {active && <CheckCircle2 size={14} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
             <div className="two-fields">
               <label>
                 <span>Ish staji</span>
-                <input defaultValue="15 yil" />
+                <input name="experience_years" placeholder="Masalan: 8 yil" />
               </label>
               <label>
                 <span>Ish vaqti</span>
-                <input defaultValue="09:00 - 18:00" />
+                <input name="work_time" placeholder="09:00 - 18:00" />
               </label>
             </div>
-            <label>
-              <span>Rasmi</span>
+            <label className="upload-card">
               <input
-                defaultValue="https://images.unsplash.com/photo-1559839734-2b71ea197ec2"
-                placeholder="Rasm havolasi"
+                type="file"
+                name="photo_file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => setPhotoFileName(event.currentTarget.files?.[0]?.name ?? "")}
               />
+              <span className="upload-icon">
+                <Camera size={20} />
+              </span>
+              <span className="upload-copy">
+                <strong>{photoFileName || "Rasm yuklash"}</strong>
+                <small>{photoFileName ? "Rasm tanlandi" : "JPG, PNG yoki WebP"}</small>
+              </span>
+              <Upload size={18} />
             </label>
             <label>
               <span>Ishlaydigan klinika nomi</span>
-              <input defaultValue="Smile Dent" />
+              <input name="clinic_name" placeholder="Klinika nomi" />
             </label>
             <label>
               <span>Izoh</span>
-              <textarea defaultValue="Ortodontiya va estetik davolash bo'yicha konsultatsiya beradi." />
+              <textarea name="description" placeholder="Qisqa ma'lumot" />
             </label>
-            <div className="two-fields">
-              <label>
-                <span>Reytingi</span>
-                <input type="number" defaultValue="4.9" min="0" max="5" step="0.1" />
-              </label>
-              <label>
-                <span>Reytinglar soni</span>
-                <input type="number" defaultValue="112" min="0" />
-              </label>
+            <div className="admin-status">
+              <Star size={18} />
+              <span>
+                <strong>Reyting administrator orqali yuritiladi</strong>
+                <small>Reyting va sharhlar tasdiqlangan qabul tarixidan hisoblanadi.</small>
+              </span>
             </div>
             <label>
               <span>Shifokor telefon raqami</span>
-              <input defaultValue="+998 90 112 45 67" />
+              <input name="doctor_phone" placeholder="+998 ..." />
             </label>
             <div className="two-fields">
-              <label>
-                <span>Klinika tumani</span>
-                <select defaultValue="Yakkasaroy">
-                  {districts.slice(1).map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label="Klinika tumani"
+                name="clinic_district"
+                value={doctorDistrict}
+                options={districts.slice(1)}
+                onChange={setDoctorDistrict}
+              />
               <label>
                 <span>Klinika joylashuvi</span>
-                <input defaultValue="Bobur kochasi 18" />
+                <input name="clinic_address" placeholder="Manzil" />
               </label>
             </div>
             <label>
-              <span>Klinikagacham borish</span>
-              <textarea defaultValue="Lokatsiya tashlab beriladi, xaritada klinikagacha yo'l ko'rsatiladi." />
+              <span>Klinika lokatsiya linki</span>
+              <input
+                name="clinic_location_url"
+                type="url"
+                placeholder="Google Maps yoki Yandex Maps linki"
+              />
             </label>
+            <label>
+              <span>Klinikagacham borish</span>
+              <textarea name="directions" placeholder="Mo'ljal yoki lokatsiya izohi" />
+            </label>
+            {registrationError && (
+              <div className="admin-status error">
+                <Clock size={18} />
+                <span>
+                  <strong>Yuborilmadi</strong>
+                  <small>{registrationError}</small>
+                </span>
+              </div>
+            )}
             <button className="primary-btn submit" type="submit">
               <CheckCircle2 size={18} />
               Shifokor anketasini yuborish
@@ -1394,14 +1844,11 @@ function RegisterView({
               <section className="consult-form">
                 <label>
                   <span>To&apos;lov telefon raqami</span>
-                  <input defaultValue="+998 90 112 45 67" />
+                  <input placeholder="+998 ..." />
                 </label>
                 <label>
                   <span>Chek raqami</span>
-                  <input
-                    defaultValue={doctorSubscriptionPaid ? "DM-50000-2026" : ""}
-                    placeholder="Masalan: DM-50000"
-                  />
+                  <input placeholder="Chek raqami" />
                 </label>
                 <button className="primary-btn submit" type="button" onClick={onDoctorPay}>
                   <CheckCircle2 size={18} />
@@ -1456,69 +1903,30 @@ function RegisterView({
   );
 }
 
-function RecordsView() {
-  const records = [
-    ["Ortodont konsultatsiyasi", "Dr. Dilnoza Karimova", "12-iyun 2026"],
-    ["Panoramik rentgen", "Denta Pro", "03-iyun 2026"],
-    ["Gigiyena", "Neo Dental", "24-may 2026"]
-  ];
-
-  return (
-    <div className="view-stack">
-      <PageHead title="Yozuvlarim" text="Qabul tarixi, xulosa va retseptlar." />
-      {records.map(([title, place, date]) => (
-        <article className="record-card" key={title}>
-          <span className="soft-icon">
-            <ClipboardList size={18} />
-          </span>
-          <div>
-            <strong>{title}</strong>
-            <small>{place}</small>
-            <em>{date}</em>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
-
 function ProfileView({
-  userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
   onNavigate
 }: {
-  userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
   onNavigate: (view: ViewId) => void;
 }) {
   return (
     <div className="view-stack">
-      <PageHead title="Profil" text="Telefon, ro'yxatdan o'tish va xavfsizlik." />
       <section className="profile-card">
         <div className="profile-avatar">
           <User size={34} />
         </div>
-        <strong>Aziz Karimov</strong>
-        <span>+998 90 555 22 11</span>
-        <button className="primary-btn" type="button" onClick={() => onNavigate("register")}>
-          <Phone size={17} />
-          Telefonni tasdiqlash
-        </button>
+        <strong>Telegram profili ulangan</strong>
+        <span>Mini appga kirish bot orqali tasdiqlanadi.</span>
       </section>
 
-      <button className="settings-row" type="button" onClick={() => onNavigate("register")}>
-        <LockKeyhole size={18} />
+      <button className="settings-row" type="button" onClick={() => onNavigate("appointment")}>
+        <CalendarDays size={18} />
         <span>
-          <strong>Ro&apos;yxatdan o&apos;tish</strong>
-          <small>
-            {doctorRegistrationSent
-              ? "Shifokor anketasi yuborilgan"
-              : userRegistered
-                ? "Profil yaratilgan"
-                : "Rol tanlang va profilni to'ldiring"}
-          </small>
+          <strong>Qabulga yozilish</strong>
+          <small>Tanlangan shifokor uchun kun va vaqtni yuboring.</small>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -1530,19 +1938,11 @@ function ProfileView({
             <small>
               {doctorSubscriptionPaid
                 ? "Administrator to'lov chekini tasdiqlaydi."
-                : "Ro'yxatdan o'tish oynasida 50 000 so'm to'lov qiling."}
+                : "Administrator tekshiruvi uchun to'lov cheki kutiladi."}
             </small>
           </span>
         </div>
       )}
-      <button className="settings-row" type="button" onClick={() => onNavigate("records")}>
-        <Bell size={18} />
-        <span>
-          <strong>Bildirishnomalar</strong>
-          <small>Administrator tasdiqi va eslatmalar</small>
-        </span>
-        <ChevronRight size={18} />
-      </button>
     </div>
   );
 }
@@ -1556,13 +1956,6 @@ function MoreView({
 }) {
   const rows: Array<Shortcut & { description: string; badge?: string }> = [
     {
-      id: "register",
-      label: "Ro'yxatdan o'tish",
-      Icon: LockKeyhole,
-      description: "Rol tanlang va profilni to'ldiring",
-      badge: "Kerakli"
-    },
-    {
       id: "services",
       label: "Xizmatlar",
       Icon: SlidersHorizontal,
@@ -1575,16 +1968,16 @@ function MoreView({
       description: "Manzil, reyting va ish vaqti"
     },
     {
-      id: "appointment",
-      label: "Qabul",
-      Icon: CalendarCheck,
-      description: "Kun va vaqtni tanlash"
+      id: "map",
+      label: "Klinikagacha yo'l",
+      Icon: MapPin,
+      description: "Lokatsiya va marshrut"
     },
     {
-      id: "records",
-      label: "Yozuvlarim",
-      Icon: ClipboardList,
-      description: "So'rovlaringiz holati"
+      id: "feedback",
+      label: "Taklif va shikoyat",
+      Icon: MessageCircle,
+      description: "Administratorga xabar yuborish"
     },
     {
       id: "profile",
@@ -1596,7 +1989,6 @@ function MoreView({
 
   return (
     <div className="view-stack">
-      <PageHead title="Yana" text="Barcha bo'limlar va qabul holati." />
       <div className={sent ? "admin-status sent" : "admin-status"}>
         <CheckCircle2 size={18} />
         <span>
@@ -1627,18 +2019,104 @@ function MoreView({
   );
 }
 
+function FeedbackView() {
+  const [sent, setSent] = useState(false);
+  const [topic, setTopic] = useState("");
+
+  function submitFeedback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSent(true);
+  }
+
+  return (
+    <div className="view-stack">
+      <form className="consult-form" onSubmit={submitFeedback}>
+        <label>
+          <span>F.I.O.</span>
+          <input placeholder="F.I.O." />
+        </label>
+        <label>
+          <span>Telefon raqam</span>
+          <input placeholder="+998 ..." />
+        </label>
+        <ChoiceField
+          label="Mavzu"
+          name="topic"
+          value={topic}
+          options={feedbackTopics}
+          onChange={setTopic}
+        />
+        <label>
+          <span>Xabar</span>
+          <textarea placeholder="Xabaringizni yozing" />
+        </label>
+        <button className="primary-btn submit" type="submit">
+          <CheckCircle2 size={18} />
+          Administratorga yuborish
+        </button>
+      </form>
+      {sent && (
+        <div className="admin-status sent">
+          <CheckCircle2 size={18} />
+          <span>
+            <strong>Xabar yuborildi</strong>
+            <small>Administrator xabaringizni ko&apos;rib chiqadi.</small>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DoctorCard({
   doctor,
+  isSaved,
+  onToggleSaved,
+  onOpen,
   onAppointment
 }: {
   doctor: Doctor;
+  isSaved: boolean;
+  onToggleSaved: () => void;
+  onOpen: () => void;
   onAppointment: () => void;
 }) {
   return (
-    <article className="doctor-card" style={{ "--accent": doctor.accent } as CSSProperties}>
+    <article
+      className="doctor-card"
+      style={{ "--accent": doctor.accent } as CSSProperties}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+    >
       <div className="photo-box">
-        <img src={doctor.image} alt={doctor.name} />
-        <button className="heart-btn" aria-label={`${doctor.name}ni saqlash`}>
+        <button
+          className="photo-open"
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+          aria-label={`${doctor.name} haqida batafsil`}
+        >
+          {doctor.image ? <img src={doctor.image} alt={doctor.name} /> : <Stethoscope size={34} />}
+        </button>
+        <button
+          className={isSaved ? "heart-btn saved" : "heart-btn"}
+          type="button"
+          aria-label={isSaved ? `${doctor.name} saqlanganlardan olib tashlash` : `${doctor.name}ni saqlash`}
+          aria-pressed={isSaved}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleSaved();
+          }}
+        >
           <Heart size={16} />
         </button>
         <span className="doctor-badge">
@@ -1646,7 +2124,15 @@ function DoctorCard({
         </span>
       </div>
       <div className="doctor-body">
-        <strong>{doctor.name}</strong>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+        >
+          <strong>{doctor.name}</strong>
+        </button>
         <small>{doctor.specialty}</small>
         <span className="rating-line">
           <Star size={14} />
@@ -1658,10 +2144,74 @@ function DoctorCard({
           {doctor.district}
         </span>
       </div>
-      <button className="appointment-btn" type="button" onClick={onAppointment}>
+      <button
+        className="appointment-btn"
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onAppointment();
+        }}
+      >
         Qabul
       </button>
     </article>
+  );
+}
+
+function DoctorDetailView({
+  doctor,
+  onAppointment
+}: {
+  doctor: Doctor;
+  onAppointment: (doctor: Doctor) => void;
+}) {
+  return (
+    <div className="view-stack">
+      <section className="doctor-detail">
+        <DoctorAvatar doctor={doctor} size="lg" />
+        <div>
+          <h1>{doctor.name}</h1>
+          <p>{doctor.specialty}</p>
+          <span className="rating-line">
+            <Star size={15} /> {doctor.rating || "0.0"}
+            <em>{doctor.reviews} sharh</em>
+          </span>
+        </div>
+      </section>
+      <section className="detail-list">
+        <span>
+          <Building2 size={17} />
+          <strong>{doctor.clinic}</strong>
+        </span>
+        <span>
+          <MapPin size={17} />
+          <strong>{doctor.district}</strong>
+          <small>{doctor.address || "Manzil kiritilmagan"}</small>
+        </span>
+        <span>
+          <Phone size={17} />
+          <strong>{doctor.phone || "Telefon kiritilmagan"}</strong>
+        </span>
+        <span>
+          <Clock size={17} />
+          <strong>{doctor.experience || "Tajriba kiritilmagan"}</strong>
+        </span>
+      </section>
+      {doctor.locationUrl && (
+        <button
+          className="secondary-btn"
+          type="button"
+          onClick={() => window.open(doctor.locationUrl, "_blank", "noopener,noreferrer")}
+        >
+          <MapPin size={17} />
+          Lokatsiyani ochish
+        </button>
+      )}
+      <button className="primary-btn submit" type="button" onClick={() => onAppointment(doctor)}>
+        <CalendarDays size={18} />
+        Qabulga yozilish
+      </button>
+    </div>
   );
 }
 
@@ -1684,14 +2234,5 @@ function SectionTitle({
         </button>
       )}
     </div>
-  );
-}
-
-function PageHead({ title, text }: { title: string; text: string }) {
-  return (
-    <section className="page-head">
-      <h1>{title}</h1>
-      <p>{text}</p>
-    </section>
   );
 }
