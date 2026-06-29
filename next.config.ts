@@ -5,6 +5,7 @@ const isGitHubPages = process.env.GITHUB_PAGES === "true";
 const nextConfig: NextConfig = {
   output: "export",
   reactStrictMode: true,
+  devIndicators: false,
   trailingSlash: true,
   basePath: isGitHubPages ? "/dentalmap" : undefined,
   assetPrefix: isGitHubPages ? "/dentalmap/" : undefined

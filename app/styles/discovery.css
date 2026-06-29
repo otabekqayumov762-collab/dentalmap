@@ -1,0 +1,581 @@
+.filter-shortcuts {
+  display: grid;
+  gap: 13px;
+  margin: 13px 0 18px;
+}
+
+.district-filter {
+  position: relative;
+  display: grid;
+  gap: 9px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.district-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.district-title {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.district-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #d6e7ef;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f8fe8;
+  box-shadow: 0 6px 14px rgba(32, 55, 76, 0.045);
+}
+
+.district-title > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.district-filter-head strong {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.district-filter-head em {
+  overflow: hidden;
+  color: #667085;
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.district-filter-head small {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 30%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 6px 10px;
+  color: #52647a;
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px #d8e7ef, 0 6px 14px rgba(32, 55, 76, 0.035);
+}
+
+.district-chip-row {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin: 0;
+  border: 1px solid #d8e7ef;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%),
+    #ffffff;
+  padding: 6px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  box-shadow: 0 10px 24px rgba(32, 55, 76, 0.05);
+}
+
+.district-chip-row::before {
+  content: none;
+}
+
+.district-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.district-chip {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: auto;
+  min-height: 38px;
+  max-width: 160px;
+  scroll-snap-align: start;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 13px;
+  color: #43546a;
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: none;
+}
+
+.district-step-dot {
+  display: none;
+}
+
+.district-step-label {
+  display: block;
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  box-shadow: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.district-chip.active {
+  border-color: transparent;
+  background: #0f8fe8;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 143, 232, 0.18);
+}
+
+.district-chip.active .district-step-dot {
+  width: 7px;
+  height: 7px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.district-chip.active .district-step-label {
+  border-color: transparent;
+  background: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.telegram-status {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  padding: 8px 10px;
+}
+
+.telegram-status div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.telegram-status strong,
+.telegram-status small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telegram-status strong {
+  font-size: 12px;
+}
+
+.telegram-status small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.telegram-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #98a2b3;
+}
+
+.telegram-status.authenticated .telegram-dot {
+  background: var(--green);
+}
+
+.telegram-status.loading .telegram-dot {
+  background: var(--amber);
+}
+
+.telegram-status.error .telegram-dot {
+  background: #ef4444;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.tooth-logo {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.88), transparent 30%),
+    linear-gradient(135deg, #e5f7fb 0%, #ffffff 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(22, 168, 181, 0.14),
+    0 8px 18px rgba(32, 55, 76, 0.08);
+}
+
+.dental-logo {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+
+.brand-title strong {
+  color: #101928;
+  font-size: 25px;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.brand-title span span,
+.brand-title strong span {
+  color: var(--teal);
+}
+
+.round-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: #42526b;
+}
+
+.round-icon.active {
+  border-color: #9bddec;
+  background: #e5f7fb;
+  color: var(--blue-dark);
+}
+
+.notification-panel {
+  display: grid;
+  gap: 9px;
+  border: 1px solid #cfe8ef;
+  border-radius: 13px;
+  background: #ffffff;
+  padding: 11px;
+  box-shadow: 0 12px 24px rgba(32, 55, 76, 0.12);
+}
+
+.notification-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-panel > div strong {
+  font-size: 14px;
+}
+
+.notification-panel > div button {
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.notification-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f8fbfc;
+  padding: 9px;
+  text-align: left;
+}
+
+.notification-row span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.notification-row strong,
+.notification-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-row strong {
+  font-size: 13px;
+}
+
+.notification-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #eef3f7;
+  padding: 0 12px;
+  color: #748398;
+}
+
+.search-field input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.search-field input::placeholder {
+  color: #8d9aae;
+}
+
+.shortcut-row {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 1px 1px 4px;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.shortcut-row::-webkit-scrollbar {
+  display: none;
+}
+
+.shortcut {
+  display: inline-grid;
+  grid-template-columns: 36px minmax(0, auto);
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 126px;
+  min-height: 54px;
+  overflow: hidden;
+  border: 1px solid #d6e6ee;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%),
+    #fff;
+  color: var(--blue-dark);
+  padding: 0 12px 0 9px;
+  box-shadow: 0 8px 18px rgba(32, 55, 76, 0.05);
+  scroll-snap-align: start;
+  transform: translateZ(0);
+}
+
+.shortcut.active {
+  border-color: #0f8fe8;
+  background: #0f8fe8;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 143, 232, 0.2);
+}
+
+.shortcut:focus-visible,
+.doctor-card:focus-visible,
+.tab:focus-visible {
+  border-radius: 14px;
+  outline: 3px solid rgba(15, 143, 232, 0.22);
+  outline-offset: 2px;
+}
+
+.district-chip:focus-visible {
+  border-radius: 999px;
+  outline: 3px solid rgba(15, 143, 232, 0.22);
+  outline-offset: 2px;
+}
+
+.shortcut:focus:not(:focus-visible),
+.district-chip:focus:not(:focus-visible),
+.doctor-card:focus:not(:focus-visible),
+.tab:focus:not(:focus-visible) {
+  outline: 0;
+}
+
+.shortcut:active {
+  border-radius: 16px;
+  transform: translateZ(0) scale(0.99);
+}
+
+.shortcut svg {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #edf8fd;
+  padding: 8px;
+  margin-bottom: 0;
+  stroke-width: 2.35;
+}
+
+.shortcut.active svg {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.shortcut span {
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.view-stack {
+  display: grid;
+  gap: 13px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.section-title h2 {
+  font-size: 17px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.section-title button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--blue-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.doctor-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 6px 14px rgba(32, 55, 76, 0.06);
+  cursor: pointer;
+}
+
+.photo-box {
+  position: relative;
+  isolation: isolate;
+  height: 118px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, #ffffff);
+}
+
+.photo-open {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border-radius: inherit;
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.photo-open img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.heart-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #ef476f;
+  box-shadow: 0 6px 14px rgba(32, 55, 76, 0.12);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.heart-btn svg {
+  transition: fill 120ms ease;
+}
+
+.heart-btn.saved {
+  background: #ef476f;
+  color: #fff;
+}
+
+.heart-btn.saved svg {
+  fill: currentColor;
+}
+
+.heart-btn:active {
+  transform: scale(0.94);
+}
