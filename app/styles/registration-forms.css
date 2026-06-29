@@ -529,6 +529,12 @@
   box-shadow: none;
 }
 
+.success-scroll-lock .appointment-success-screen {
+  min-height: calc(var(--tg-viewport-height) - 174px - env(safe-area-inset-bottom));
+  padding-top: 18px;
+  padding-bottom: 118px;
+}
+
 .success-burst {
   position: absolute;
   inset: 0;

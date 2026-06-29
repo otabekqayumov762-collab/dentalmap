@@ -581,7 +581,7 @@ export default function DentalMapApp() {
   return (
     <main className={`${isTelegram ? "mini-shell telegram-shell" : "mini-shell"}${isMapView ? " map-mode" : ""}`}>
       <section className={isMapView ? "mini-app map-mode" : "mini-app"} aria-label="Dental Map mini ilova">
-        <div className="app-scroll" ref={scrollRef}>
+        <div className={isAppointmentSuccess ? "app-scroll success-scroll-lock" : "app-scroll"} ref={scrollRef}>
           {showAppHeader && (
             <>
               <section className="brand-card">
