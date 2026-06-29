@@ -123,7 +123,7 @@ export function ProfileView({
             <b>To&apos;ldirilgan</b>
             <em>{completionPercent}%</em>
           </span>
-          <i style={{ width: `${completionPercent}%` }} />
+          <i className={`profile-progress-fill progress-width-${completionPercent}`} />
         </div>
       </section>
 

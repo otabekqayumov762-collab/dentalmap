@@ -27,7 +27,7 @@ export function DoctorRegistrationForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form className="consult-form doctor-register-form" onSubmit={onSubmit}>
+    <form id="doctor-register-form" className="consult-form doctor-register-form" onSubmit={onSubmit}>
       <label>
         <span>Shifokor F.I.O.</span>
         <input name="full_name" placeholder="Shifokor F.I.O." />

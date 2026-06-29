@@ -21,6 +21,108 @@
   --tg-secondary-bg: #ffffff;
 }
 
+.progress-width-0 {
+  --progress-width: 0%;
+}
+
+.progress-width-8 {
+  --progress-width: 8%;
+}
+
+.progress-width-11 {
+  --progress-width: 11%;
+}
+
+.progress-width-12 {
+  --progress-width: 12%;
+}
+
+.progress-width-23 {
+  --progress-width: 23%;
+}
+
+.progress-width-25 {
+  --progress-width: 25%;
+}
+
+.progress-width-26 {
+  --progress-width: 26%;
+}
+
+.progress-width-42 {
+  --progress-width: 42%;
+}
+
+.progress-width-50 {
+  --progress-width: 50%;
+}
+
+.progress-width-51 {
+  --progress-width: 51%;
+}
+
+.progress-width-52 {
+  --progress-width: 52%;
+}
+
+.progress-width-65 {
+  --progress-width: 65%;
+}
+
+.progress-width-75 {
+  --progress-width: 75%;
+}
+
+.progress-width-100 {
+  --progress-width: 100%;
+}
+
+.not-found-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  background: #f8fbfc;
+  color: #142033;
+  padding: 24px;
+}
+
+.not-found-page section {
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.not-found-page span {
+  color: #0f8fe8;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.not-found-page h1 {
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.not-found-page p {
+  color: #667085;
+  line-height: 1.45;
+}
+
+.not-found-page a {
+  display: inline-flex;
+  justify-self: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 9px;
+  background: #0f8fe8;
+  color: #fff;
+  padding: 0 14px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 [data-telegram-theme="dark"] {
   --bg: #0f172a;
   --app-bg: #111827;

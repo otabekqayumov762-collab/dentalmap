@@ -229,7 +229,7 @@ export default function SuperstatPage() {
         <div className="superstat-bars" aria-label="Daromad va faoliyat grafigi">
           {revenueBars.map(([label, height]) => (
             <span key={label}>
-              <i style={{ height: `${height}%` }} />
+              <i className={`bar-fill bar-height-${height}`} />
               <b>{label}</b>
             </span>
           ))}
@@ -246,7 +246,7 @@ export default function SuperstatPage() {
                   <em>{value}</em>
                 </span>
                 <i>
-                  <b style={{ width: `${percent}%` }} />
+                  <b className={`progress-fill progress-width-${percent}`} />
                 </i>
                 <small>{percent}.0%</small>
               </div>
@@ -306,7 +306,7 @@ export default function SuperstatPage() {
                 </span>
                 <strong>{revenue}</strong>
                 <i>
-                  <b style={{ width: `${percent}%` }} />
+                  <b className={`progress-fill progress-width-${percent}`} />
                 </i>
               </article>
             ))}

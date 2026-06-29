@@ -2,7 +2,17 @@
 
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { API_BASE_URL, flattenClinics, isStaticPreviewHost, mapDoctor } from "@/src/dental-map/api/dentalMapApi";
+import {
+  apiRequest,
+  flattenClinics,
+  getApiUrl,
+  isBackendConfigured,
+  isStaticPreviewHost,
+  mapDoctor,
+  mapReview,
+  normalizeApiList,
+  normalizeSchedule
+} from "@/src/dental-map/api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { BrandLogo, DistrictFilter, EmptyState, NotificationPanel, TelegramStatus } from "@/src/dental-map/components/common";
 import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
@@ -14,11 +24,29 @@ import { HomeView } from "@/src/dental-map/views/HomeView";
 import { MapView } from "@/src/dental-map/views/MapView";
 import { MoreView } from "@/src/dental-map/views/MoreView";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
+import { DoctorDashboardView } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
-import type { ApiClinic, ApiDoctor, ApiList, Clinic, Doctor, DoctorReview, RegisterRole, TelegramAuthStatus, TelegramUser, TelegramWebApp, ViewId } from "@/src/dental-map/types";
+import type {
+  ApiAppointment,
+  ApiClinic,
+  ApiDoctor,
+  ApiList,
+  ApiReview,
+  ApiUser,
+  ApiWeeklyAvailability,
+  Clinic,
+  Doctor,
+  DoctorReview,
+  RegisterRole,
+  TelegramAuthStatus,
+  TelegramUser,
+  TelegramWebApp,
+  ViewId
+} from "@/src/dental-map/types";
 
 const APPOINTMENT_LEADS_KEY = "dentalmap_appointment_leads";
+const AUTH_STORAGE_KEY = "dentalmap_auth_tokens";
 const SHEETS_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_SHEETS_WEBHOOK_URL || process.env.NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL || "";
 
@@ -37,6 +65,83 @@ type AppointmentLead = {
   appointmentDate: string;
   note: string;
 };
+
+type AuthPayload = {
+  user?: ApiUser;
+  tokens?: {
+    access?: string;
+    refresh?: string;
+  };
+};
+
+let authTokens: NonNullable<AuthPayload["tokens"]> = {};
+
+function storeAuthTokens(payload: AuthPayload) {
+  authTokens = {
+    access: payload.tokens?.access,
+    refresh: payload.tokens?.refresh
+  };
+  try {
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authTokens));
+  } catch {
+    // Auth still works for the current session.
+  }
+}
+
+function getAccessToken() {
+  return authTokens.access || "";
+}
+
+function restoreAuthTokens() {
+  try {
+    const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!rawValue) {
+      return "";
+    }
+    const parsedValue = JSON.parse(rawValue) as NonNullable<AuthPayload["tokens"]>;
+    authTokens = {
+      access: typeof parsedValue.access === "string" ? parsedValue.access : "",
+      refresh: typeof parsedValue.refresh === "string" ? parsedValue.refresh : ""
+    };
+    return authTokens.access || "";
+  } catch {
+    return "";
+  }
+}
+
+function createTemporaryPassword(role: "User" | "Doctor") {
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.getRandomValues) {
+    throw new Error("Secure random generator is unavailable");
+  }
+  const bytes = new Uint8Array(18);
+  cryptoApi.getRandomValues(bytes);
+  const token = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `Dmap-${role}-${token}-Aa1!`;
+}
+
+function createIdempotencyKey() {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi?.randomUUID) {
+    return `miniapp-payment-${cryptoApi.randomUUID()}`;
+  }
+  if (cryptoApi?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(bytes);
+    return `miniapp-payment-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  }
+  return `miniapp-payment-${Date.now()}`;
+}
+
+function normalizeGender(value: string) {
+  if (value === "Erkak") {
+    return "male";
+  }
+  if (value === "Ayol") {
+    return "female";
+  }
+  return value;
+}
 
 function persistAppointmentLead(lead: AppointmentLead) {
   try {
@@ -64,6 +169,8 @@ function persistAppointmentLead(lead: AppointmentLead) {
 export default function DentalMapApp() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewLoadingTimerRef = useRef<number | null>(null);
+  const paymentIdempotencyKeyRef = useRef<string | null>(null);
+  const paymentSubmittingRef = useRef(false);
   const [activeView, setActiveView] = useState<ViewId>("home");
   const [viewLoading, setViewLoading] = useState(false);
   const [query, setQuery] = useState("");
@@ -75,18 +182,26 @@ export default function DentalMapApp() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
-  const [reviewEligibleDoctorIds, setReviewEligibleDoctorIds] = useState<string[]>([]);
   const [doctorReviews, setDoctorReviews] = useState<DoctorReview[]>(fallbackReviews);
+  const [appointments, setAppointments] = useState<ApiAppointment[]>([]);
+  const [doctorProfile, setDoctorProfile] = useState<ApiDoctor | null>(null);
+  const [doctorSchedule, setDoctorSchedule] = useState<ApiWeeklyAvailability[]>([]);
+  const [privateLoading, setPrivateLoading] = useState(false);
+  const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
+  const [appointmentSubmitError, setAppointmentSubmitError] = useState("");
+  const [doctorActionError, setDoctorActionError] = useState("");
   const [registrationError, setRegistrationError] = useState("");
   const [registerRole, setRegisterRole] = useState<RegisterRole>("user");
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [savedDoctorIds, setSavedDoctorIds] = useState<string[]>([]);
   const [savedDoctorsHydrated, setSavedDoctorsHydrated] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [authStatus, setAuthStatus] = useState<TelegramAuthStatus>("loading");
   const [authMessage, setAuthMessage] = useState("Telegram Mini App tayyorlanmoqda.");
 
@@ -135,6 +250,17 @@ export default function DentalMapApp() {
   const showAppHeader = !isMapView && !isAppointmentSuccess;
   const showDiscoveryControls = activeView === "home";
   const showPageBack = !isMapView && activeView !== "home";
+  const reviewableAppointmentByDoctor = useMemo(() => {
+    const reviewedAppointmentIds = new Set(
+      doctorReviews.map((review) => review.appointmentId).filter((appointmentId): appointmentId is string => Boolean(appointmentId))
+    );
+    const pairs = appointments
+      .filter((appointment) => appointment.status === "completed" && !reviewedAppointmentIds.has(appointment.id))
+      .map((appointment) => [appointment.doctor, appointment] as const);
+
+    return new Map(pairs);
+  }, [appointments, doctorReviews]);
+  const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
 
   const changeView = useCallback((view: ViewId) => {
     setViewLoading(true);
@@ -154,6 +280,7 @@ export default function DentalMapApp() {
     if (selectedDoctor?.id !== doctor.id) {
       setConsultationSent(false);
     }
+    setAppointmentSubmitError("");
     setSelectedDoctor(doctor);
     changeView("appointment");
   }
@@ -173,27 +300,40 @@ export default function DentalMapApp() {
     );
   }
 
-  function submitDoctorReview(doctorId: string, rating: number, text: string) {
-    setDoctorReviews((current) => [
-      {
-        id: `review-${doctorId}-${Date.now()}`,
-        doctorId,
-        author: telegramUser?.first_name || "Siz",
-        rating,
-        text,
-        date: "Bugun",
-        status: "pending"
-      },
-      ...current
-    ]);
-    webApp?.HapticFeedback?.notificationOccurred("success");
+  async function submitDoctorReview(doctorId: string, rating: number, text: string) {
+    const appointment = reviewableAppointmentByDoctor.get(doctorId);
+    const token = getAccessToken();
+
+    if (!appointment || !token || isStaticPreviewHost() || !isBackendConfigured()) {
+      return "Sharh faqat yakunlangan qabuldan keyin backend orqali yuboriladi.";
+    }
+
+    try {
+      const review = await apiRequest<ApiReview>("/api/reviews/", {
+        token,
+        method: "POST",
+        body: JSON.stringify({
+          appointment: appointment.id,
+          rating,
+          comment: text
+        })
+      });
+      setDoctorReviews((current) => [mapReview(review), ...current]);
+      webApp?.HapticFeedback?.notificationOccurred("success");
+      return "";
+    } catch (error) {
+      webApp?.HapticFeedback?.notificationOccurred("error");
+      return error instanceof Error ? error.message : "Sharh yuborilmadi.";
+    }
   }
 
-  function sendConsultation(event: FormEvent<HTMLFormElement>) {
+  async function sendConsultation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setAppointmentSubmitError("");
+
     if (selectedDoctor) {
       const formData = new FormData(event.currentTarget);
-      persistAppointmentLead({
+      const lead = {
         id: `appointment-${Date.now()}`,
         createdAt: new Date().toISOString(),
         doctorId: selectedDoctor.id,
@@ -207,14 +347,84 @@ export default function DentalMapApp() {
         age: String(formData.get("age") || "").trim(),
         appointmentDate: String(formData.get("appointmentDate") || "").trim(),
         note: String(formData.get("note") || "").trim()
-      });
+      };
+      const token = getAccessToken();
+
+      if (token && isBackendConfigured() && !isStaticPreviewHost()) {
+        try {
+          setAppointmentSubmitting(true);
+          const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
+            token,
+            method: "POST",
+            body: JSON.stringify({
+              doctor: selectedDoctor.id,
+              full_name: lead.fullName,
+              phone: lead.phone,
+              gender: normalizeGender(lead.gender),
+              age: lead.age ? Number(lead.age) : null,
+              appointment_date: lead.appointmentDate,
+              appointment_time: selectedSlot,
+              note: lead.note
+            })
+          });
+          setAppointments((current) => [appointment, ...current]);
+          persistAppointmentLead(lead);
+          submitConsultation();
+          return;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Qabul so'rovi yuborilmadi.";
+          setAppointmentSubmitError(message);
+          webApp?.HapticFeedback?.notificationOccurred("error");
+          return;
+        } finally {
+          setAppointmentSubmitting(false);
+        }
+      }
+
+      persistAppointmentLead(lead);
     }
     submitConsultation();
   }
 
-  function sendUserRegistration(event: FormEvent<HTMLFormElement>) {
+  async function sendUserRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    submitUserRegistration();
+    const formData = new FormData(event.currentTarget);
+    const fullName = String(formData.get("full_name") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
+    const city = String(formData.get("city") || "").trim() || "Toshkent";
+    const age = String(formData.get("age") || "").trim();
+
+    formData.set("role", "user");
+    formData.set("full_name", fullName);
+    formData.set("phone", phone);
+    formData.set("city", city);
+    const gender = normalizeGender(String(formData.get("gender") || ""));
+    if (gender) {
+      formData.set("gender", gender);
+    }
+    if (!age) {
+      formData.delete("age");
+    }
+
+    try {
+      setRegistrationError("");
+      formData.set("password", createTemporaryPassword("User"));
+      const response = await fetch(getApiUrl("/api/auth/register/"), {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        throw new Error(`User register ${response.status}`);
+      }
+      const payload = (await response.json()) as AuthPayload;
+      storeAuthTokens(payload);
+      setCurrentUser(payload.user || null);
+      submitUserRegistration();
+      void refreshPrivateData(payload.tokens?.access || "");
+    } catch {
+      setRegistrationError("Profil backendga yuborilmadi. F.I.O. va telefon raqamni tekshiring.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    }
   }
 
   async function sendDoctorRegistration(event: FormEvent<HTMLFormElement>) {
@@ -227,19 +437,23 @@ export default function DentalMapApp() {
 
     formData.set("role", "doctor");
     formData.set("phone", phone);
-    formData.set("password", `Dmap-${Date.now()}-Doctor!`);
     formData.set("experience_years", experienceYears);
 
     try {
       setRegistrationError("");
-      const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
+      formData.set("password", createTemporaryPassword("Doctor"));
+      const response = await fetch(getApiUrl("/api/auth/register/"), {
         method: "POST",
         body: formData
       });
       if (!response.ok) {
         throw new Error(`Doctor register ${response.status}`);
       }
+      const payload = (await response.json()) as AuthPayload;
+      storeAuthTokens(payload);
+      setCurrentUser(payload.user || null);
       submitDoctorRegistration();
+      void refreshPrivateData(payload.tokens?.access || "");
     } catch {
       setRegistrationError("Anketa backendga yuborilmadi. Maydonlarni to'liq to'ldiring.");
       webApp?.HapticFeedback?.notificationOccurred("error");
@@ -248,13 +462,8 @@ export default function DentalMapApp() {
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);
-    if (selectedDoctor) {
-      setReviewEligibleDoctorIds((current) =>
-        current.includes(selectedDoctor.id) ? current : [...current, selectedDoctor.id]
-      );
-    }
     webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [selectedDoctor, webApp]);
+  }, [webApp]);
 
   const submitUserRegistration = useCallback(() => {
     setUserRegistered(true);
@@ -266,10 +475,207 @@ export default function DentalMapApp() {
     webApp?.HapticFeedback?.notificationOccurred("success");
   }, [webApp]);
 
-  const submitDoctorPayment = useCallback(() => {
-    setDoctorSubscriptionPaid(true);
-    webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [webApp]);
+  const submitDoctorPayment = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (paymentSubmittingRef.current || doctorSubscriptionPaid) {
+      return;
+    }
+    const token = getAccessToken();
+    if (!token) {
+      setRegistrationError("To'lov yuborilmadi. Avval shifokor anketasini qayta yuboring.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const method = String(formData.get("method") || "manual");
+    const paymentPhone = String(formData.get("payment_phone") || "").trim();
+    const receiptNumber = String(formData.get("receipt_number") || "").trim();
+
+    try {
+      setRegistrationError("");
+      paymentSubmittingRef.current = true;
+      setPaymentSubmitting(true);
+      paymentIdempotencyKeyRef.current ??= createIdempotencyKey();
+      const response = await fetch(getApiUrl("/api/billing/payments/initiate/"), {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          method,
+          payment_phone: paymentPhone,
+          receipt_number: receiptNumber,
+          idempotency_key: paymentIdempotencyKeyRef.current
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Payment initiate ${response.status}`);
+      }
+      setDoctorSubscriptionPaid(true);
+      webApp?.HapticFeedback?.notificationOccurred("success");
+    } catch {
+      setRegistrationError("To'lov backendga yuborilmadi. Telefon yoki chek raqamini tekshiring.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      paymentSubmittingRef.current = false;
+      setPaymentSubmitting(false);
+    }
+  }, [doctorSubscriptionPaid, webApp]);
+
+  const refreshPrivateData = useCallback(async (token = getAccessToken()) => {
+    if (!token || !isBackendConfigured() || isStaticPreviewHost()) {
+      return;
+    }
+
+    try {
+      setPrivateLoading(true);
+      setDoctorActionError("");
+      const [mePayload, appointmentPayload, reviewPayload] = await Promise.all([
+        apiRequest<ApiUser>("/api/users/me/", { token }),
+        apiRequest<ApiList<ApiAppointment> | ApiAppointment[]>("/api/appointments/?ordering=-created_at", { token }),
+        apiRequest<ApiList<ApiReview> | ApiReview[]>("/api/reviews/?ordering=-created_at", { token })
+      ]);
+      const nextUser = mePayload;
+      setCurrentUser(nextUser);
+      setAppointments(normalizeApiList(appointmentPayload));
+      setDoctorReviews(normalizeApiList(reviewPayload).map(mapReview));
+
+      if (nextUser.role === "doctor" || nextUser.doctor_profile) {
+        const [profileResult, scheduleResult] = await Promise.allSettled([
+          apiRequest<ApiDoctor>("/api/doctors/me/", { token }),
+          apiRequest<ApiList<ApiWeeklyAvailability> | ApiWeeklyAvailability[]>("/api/availability/weekly/?ordering=weekday,start_time", { token })
+        ]);
+        if (profileResult.status === "fulfilled") {
+          setDoctorProfile(profileResult.value);
+        }
+        if (scheduleResult.status === "fulfilled") {
+          setDoctorSchedule(normalizeSchedule(scheduleResult.value));
+        }
+      }
+    } catch (error) {
+      setDoctorActionError(error instanceof Error ? error.message : "Ma'lumotlar yuklanmadi.");
+    } finally {
+      setPrivateLoading(false);
+    }
+  }, []);
+
+  async function submitDoctorProfileUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = getAccessToken();
+    if (!token) {
+      setDoctorActionError("Doktor profilini saqlash uchun avtorizatsiya kerak.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const photoFile = formData.get("photo_file");
+    if (photoFile instanceof File && !photoFile.name) {
+      formData.delete("photo_file");
+    }
+    const experience = String(formData.get("experience_years") || "").trim();
+    if (experience) {
+      formData.set("experience_years", String(Number(experience) || 0));
+    }
+
+    try {
+      setPrivateLoading(true);
+      setDoctorActionError("");
+      const profile = await apiRequest<ApiDoctor>("/api/doctors/me/", {
+        token,
+        method: "PATCH",
+        body: formData
+      });
+      setDoctorProfile(profile);
+      setCurrentUser((current) =>
+        current
+          ? {
+              ...current,
+              doctor_profile: {
+                id: profile.id,
+                approval_status: profile.approval_status || "pending",
+                is_published: Boolean(profile.is_published),
+                subscription_expires_at: profile.subscription_expires_at
+              }
+            }
+          : current
+      );
+      webApp?.HapticFeedback?.notificationOccurred("success");
+    } catch (error) {
+      setDoctorActionError(error instanceof Error ? error.message : "Doktor profili saqlanmadi.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      setPrivateLoading(false);
+    }
+  }
+
+  async function submitDoctorSchedule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = getAccessToken();
+    if (!token) {
+      setDoctorActionError("Jadval qo'shish uchun avtorizatsiya kerak.");
+      return;
+    }
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      setPrivateLoading(true);
+      setDoctorActionError("");
+      const item = await apiRequest<ApiWeeklyAvailability>("/api/availability/weekly/", {
+        token,
+        method: "POST",
+        body: JSON.stringify({
+          weekday: Number(formData.get("weekday") || 0),
+          start_time: String(formData.get("start_time") || "09:00"),
+          end_time: String(formData.get("end_time") || "18:00"),
+          slot_duration_minutes: Number(formData.get("slot_duration_minutes") || 30),
+          is_active: true,
+          note: String(formData.get("note") || "")
+        })
+      });
+      setDoctorSchedule((current) => normalizeSchedule([item, ...current]));
+      event.currentTarget.reset();
+      webApp?.HapticFeedback?.notificationOccurred("success");
+    } catch (error) {
+      setDoctorActionError(error instanceof Error ? error.message : "Jadval qo'shilmadi.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      setPrivateLoading(false);
+    }
+  }
+
+  async function runDoctorAppointmentAction(
+    appointment: ApiAppointment,
+    action: "confirm" | "reject" | "complete" | "mark_no_show",
+    reason = ""
+  ) {
+    const token = getAccessToken();
+    if (!token) {
+      setDoctorActionError("Qabulni boshqarish uchun avtorizatsiya kerak.");
+      return;
+    }
+
+    try {
+      setPrivateLoading(true);
+      setDoctorActionError("");
+      const nextAppointment = await apiRequest<ApiAppointment>(`/api/appointments/${appointment.id}/${action}/`, {
+        token,
+        method: "POST",
+        body: action === "reject" ? JSON.stringify({ reject_reason: reason }) : undefined
+      });
+      setAppointments((current) =>
+        current.map((item) => (item.id === nextAppointment.id ? nextAppointment : item))
+      );
+      webApp?.HapticFeedback?.notificationOccurred("success");
+    } catch (error) {
+      setDoctorActionError(error instanceof Error ? error.message : "Qabul holati o'zgarmadi.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      setPrivateLoading(false);
+    }
+  }
 
   function navigate(view: ViewId) {
     webApp?.HapticFeedback?.selectionChanged();
@@ -286,8 +692,15 @@ export default function DentalMapApp() {
 
     if (!tg) {
       document.documentElement.dataset.telegramTheme = "light";
-      setAuthStatus("guest");
-      setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
+      const restoredToken = restoreAuthTokens();
+      if (restoredToken) {
+        setAuthStatus("authenticated");
+        setAuthMessage("Avvalgi sessiya tiklandi.");
+        void refreshPrivateData(restoredToken);
+      } else {
+        setAuthStatus("guest");
+        setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
+      }
       return;
     }
 
@@ -299,28 +712,12 @@ export default function DentalMapApp() {
     tg.setBackgroundColor?.(tg.themeParams?.bg_color ?? "#f8fbfc");
 
     const applyTelegramTheme = () => {
-      const params = tg.themeParams ?? {};
       const root = document.documentElement;
       root.dataset.telegramTheme = tg.colorScheme === "dark" ? "dark" : "light";
-      root.style.setProperty("--tg-bg", params.bg_color ?? "#f8fbfc");
-      root.style.setProperty("--tg-text", params.text_color ?? "#142033");
-      root.style.setProperty("--tg-hint", params.hint_color ?? "#667085");
-      root.style.setProperty("--tg-button", params.button_color ?? "#0f8fe8");
-      root.style.setProperty("--tg-button-text", params.button_text_color ?? "#ffffff");
-      root.style.setProperty("--tg-secondary-bg", params.secondary_bg_color ?? "#ffffff");
-    };
-
-    const syncViewport = () => {
-      const height = tg.stableViewportHeight || tg.viewportHeight;
-      if (height) {
-        document.documentElement.style.setProperty("--tg-viewport-height", `${height}px`);
-      }
     };
 
     applyTelegramTheme();
-    syncViewport();
     tg.onEvent?.("themeChanged", applyTelegramTheme);
-    tg.onEvent?.("viewportChanged", syncViewport);
 
     const user = tg.initDataUnsafe?.user ?? null;
     setTelegramUser(user);
@@ -338,6 +735,12 @@ export default function DentalMapApp() {
         return;
       }
 
+      if (!isBackendConfigured()) {
+        setAuthStatus("error");
+        setAuthMessage("Backend URL sozlanmagan.");
+        return;
+      }
+
       try {
         setAuthStatus("loading");
         const controller = new AbortController();
@@ -347,7 +750,7 @@ export default function DentalMapApp() {
           : { telegram_user: user };
         const response = await (async () => {
           try {
-            return await fetch(`${API_BASE_URL}/api/auth/telegram/`, {
+            return await fetch(getApiUrl("/api/auth/telegram/"), {
               method: "POST",
               cache: "no-store",
               credentials: "omit",
@@ -364,13 +767,12 @@ export default function DentalMapApp() {
           throw new Error(`Telegram auth ${response.status}`);
         }
 
-        const payload = await response.json();
-        if (payload?.tokens?.access) {
-          window.sessionStorage.setItem("dentalmap_access", payload.tokens.access);
-          window.sessionStorage.setItem("dentalmap_refresh", payload.tokens.refresh);
-        }
+        const payload = (await response.json()) as AuthPayload;
+        storeAuthTokens(payload);
+        setCurrentUser(payload.user || null);
         setAuthStatus("authenticated");
         setAuthMessage("Telegram akkaunt backend bilan ulandi.");
+        void refreshPrivateData(payload.tokens?.access || "");
       } catch {
         setAuthStatus("error");
         setAuthMessage("Telegram auth ishlamadi. Backend URL yoki bot tokenni tekshiring.");
@@ -382,9 +784,8 @@ export default function DentalMapApp() {
 
     return () => {
       tg.offEvent?.("themeChanged", applyTelegramTheme);
-      tg.offEvent?.("viewportChanged", syncViewport);
     };
-  }, []);
+  }, [refreshPrivateData]);
 
   useEffect(() => {
     try {
@@ -418,10 +819,10 @@ export default function DentalMapApp() {
     const controller = new AbortController();
 
     async function loadBackendData() {
-      if (isStaticPreviewHost()) {
+      if (isStaticPreviewHost() || !isBackendConfigured()) {
         setApiDoctors(fallbackDoctors);
         setApiClinics(fallbackClinics);
-        setDataError("");
+        setDataError(isStaticPreviewHost() ? "" : "Backend URL sozlanmagan. 24/7 ko'rish rejimi ishlayapti.");
         setDataLoading(false);
         return;
       }
@@ -429,19 +830,22 @@ export default function DentalMapApp() {
       try {
         setDataLoading(true);
         setDataError("");
-        const [doctorResponse, clinicResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/doctors/`, { cache: "no-store", signal: controller.signal }),
-          fetch(`${API_BASE_URL}/api/clinics/`, { cache: "no-store", signal: controller.signal })
+        const [doctorResponse, clinicResponse, reviewResponse] = await Promise.all([
+          fetch(getApiUrl("/api/doctors/"), { cache: "no-store", signal: controller.signal }),
+          fetch(getApiUrl("/api/clinics/"), { cache: "no-store", signal: controller.signal }),
+          fetch(getApiUrl("/api/reviews/"), { cache: "no-store", signal: controller.signal })
         ]);
-        if (!doctorResponse.ok || !clinicResponse.ok) {
+        if (!doctorResponse.ok || !clinicResponse.ok || !reviewResponse.ok) {
           throw new Error("Backend data request failed");
         }
-        const [doctorPayload, clinicPayload] = (await Promise.all([
+        const [doctorPayload, clinicPayload, reviewPayload] = (await Promise.all([
           doctorResponse.json(),
-          clinicResponse.json()
-        ])) as [ApiList<ApiDoctor>, ApiList<ApiClinic>];
-        setApiDoctors((doctorPayload.results ?? []).map(mapDoctor));
-        setApiClinics(flattenClinics(clinicPayload.results ?? []));
+          clinicResponse.json(),
+          reviewResponse.json()
+        ])) as [ApiList<ApiDoctor>, ApiList<ApiClinic>, ApiList<ApiReview>];
+        setApiDoctors(normalizeApiList(doctorPayload).map(mapDoctor));
+        setApiClinics(flattenClinics(normalizeApiList(clinicPayload)));
+        setDoctorReviews(normalizeApiList(reviewPayload).map(mapReview));
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           setDataError("Backend vaqtincha ulanmagan. 24/7 ko'rish rejimi ishlayapti.");
@@ -522,16 +926,22 @@ export default function DentalMapApp() {
         }
         return;
       }
-      if (activeView === "register" && registerRole === "user") {
-        submitUserRegistration();
-        return;
-      }
-      if (activeView === "register" && registerRole === "doctor" && !doctorRegistrationSent) {
-        submitDoctorRegistration();
-        return;
-      }
       if (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid) {
-        submitDoctorPayment();
+        const paymentForm = document.getElementById("doctor-payment-form");
+        if (paymentForm instanceof HTMLFormElement) {
+          paymentForm.requestSubmit();
+        }
+        return;
+      }
+      if (activeView === "register" && registerRole === "user" && userRegistered) {
+        return;
+      }
+      if (activeView === "register") {
+        const formId = registerRole === "doctor" ? "doctor-register-form" : "user-register-form";
+        const registerForm = document.getElementById(formId);
+        if (registerForm instanceof HTMLFormElement) {
+          registerForm.requestSubmit();
+        }
       }
     };
 
@@ -551,6 +961,7 @@ export default function DentalMapApp() {
       activeView === "more" ||
       activeView === "feedback" ||
       activeView === "doctorDetail" ||
+      (activeView === "register" && registerRole === "user" && userRegistered) ||
       doctorSubscriptionPaid
     ) {
       mainButton.hide();
@@ -575,6 +986,7 @@ export default function DentalMapApp() {
     submitDoctorPayment,
     submitDoctorRegistration,
     submitUserRegistration,
+    userRegistered,
     webApp
   ]);
 
@@ -714,7 +1126,7 @@ export default function DentalMapApp() {
               reviews={doctorReviews.filter(
                 (review) => review.doctorId === selectedDoctor.id && review.status === "approved"
               )}
-              canWriteReview={reviewEligibleDoctorIds.includes(selectedDoctor.id)}
+              canWriteReview={reviewableAppointmentByDoctor.has(selectedDoctor.id)}
               isSaved={savedDoctorIds.includes(selectedDoctor.id)}
               onAppointment={openAppointment}
               onToggleSaved={() => toggleSavedDoctor(selectedDoctor.id)}
@@ -730,6 +1142,8 @@ export default function DentalMapApp() {
                 onSelectSlot={setSelectedSlot}
                 onSubmit={sendConsultation}
                 sent={consultationSent}
+                submitting={appointmentSubmitting}
+                submitError={appointmentSubmitError}
               />
             ) : (
               <EmptyState
@@ -746,8 +1160,12 @@ export default function DentalMapApp() {
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
+              paymentSubmitting={paymentSubmitting}
               registrationError={registrationError}
-              onRoleChange={setRegisterRole}
+              onRoleChange={(role) => {
+                setRegistrationError("");
+                setRegisterRole(role);
+              }}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
               onDoctorPay={submitDoctorPayment}
@@ -756,11 +1174,26 @@ export default function DentalMapApp() {
           )}
 
           {activeView === "profile" && (
-            <ProfileView
-              doctorRegistrationSent={doctorRegistrationSent}
-              doctorSubscriptionPaid={doctorSubscriptionPaid}
-              onNavigate={navigate}
-            />
+            isDoctorAccount ? (
+              <DoctorDashboardView
+                user={currentUser}
+                profile={doctorProfile}
+                appointments={appointments}
+                schedule={doctorSchedule}
+                loading={privateLoading}
+                error={doctorActionError}
+                onRefresh={() => void refreshPrivateData()}
+                onProfileSubmit={submitDoctorProfileUpdate}
+                onScheduleSubmit={submitDoctorSchedule}
+                onAppointmentAction={runDoctorAppointmentAction}
+              />
+            ) : (
+              <ProfileView
+                doctorRegistrationSent={doctorRegistrationSent}
+                doctorSubscriptionPaid={doctorSubscriptionPaid}
+                onNavigate={navigate}
+              />
+            )
           )}
 
           {activeView === "more" && (

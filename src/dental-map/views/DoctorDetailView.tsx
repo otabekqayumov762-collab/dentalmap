@@ -18,14 +18,15 @@ export function DoctorDetailView({
   isSaved: boolean;
   onAppointment: (doctor: Doctor) => void;
   onToggleSaved: () => void;
-  onReviewSubmit: (rating: number, text: string) => void;
+  onReviewSubmit: (rating: number, text: string) => Promise<string | void>;
 }) {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewSent, setReviewSent] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  function submitReview(event: FormEvent<HTMLFormElement>) {
+  async function submitReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleanText = text.trim();
 
@@ -38,7 +39,13 @@ export function DoctorDetailView({
       return;
     }
 
-    onReviewSubmit(rating, cleanText);
+    setReviewSubmitting(true);
+    const error = await onReviewSubmit(rating, cleanText);
+    setReviewSubmitting(false);
+    if (error) {
+      setReviewError(error);
+      return;
+    }
     setText("");
     setReviewError("");
     setReviewSent(true);
@@ -155,9 +162,9 @@ export function DoctorDetailView({
             />
             {reviewError && <small className="review-error">{reviewError}</small>}
             {reviewSent && <small className="review-success">Sharh moderatsiyaga yuborildi.</small>}
-            <button className="primary-btn submit" type="submit">
+            <button className="primary-btn submit" type="submit" disabled={reviewSubmitting}>
               <Send size={17} />
-              Sharh yuborish
+              {reviewSubmitting ? "Yuborilmoqda" : "Sharh yuborish"}
             </button>
           </form>
         ) : (

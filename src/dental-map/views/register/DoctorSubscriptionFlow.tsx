@@ -1,17 +1,22 @@
 import { CheckCircle2, Clock, CreditCard } from "lucide-react";
+import type { FormEvent } from "react";
 import { paymentMethods } from "../../catalog";
 import { SectionTitle } from "../../components/common";
 
 export function DoctorSubscriptionFlow({
   method,
   doctorSubscriptionPaid,
+  paymentSubmitting,
+  paymentError,
   onMethodChange,
   onDoctorPay
 }: {
   method: (typeof paymentMethods)[number][0];
   doctorSubscriptionPaid: boolean;
+  paymentSubmitting: boolean;
+  paymentError: string;
   onMethodChange: (method: (typeof paymentMethods)[number][0]) => void;
-  onDoctorPay: () => void;
+  onDoctorPay: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <>
@@ -54,6 +59,7 @@ export function DoctorSubscriptionFlow({
             key={id}
             className={method === id ? "payment-method active" : "payment-method"}
             type="button"
+            disabled={paymentSubmitting || doctorSubscriptionPaid}
             onClick={() => onMethodChange(id)}
           >
             <CreditCard size={18} />
@@ -65,20 +71,30 @@ export function DoctorSubscriptionFlow({
         ))}
       </div>
 
-      <section className="consult-form">
+      <form id="doctor-payment-form" className="consult-form" onSubmit={onDoctorPay}>
+        <input type="hidden" name="method" value={method} />
         <label>
           <span>To&apos;lov telefon raqami</span>
-          <input placeholder="+998 ..." />
+          <input name="payment_phone" placeholder="+998 ..." disabled={paymentSubmitting || doctorSubscriptionPaid} />
         </label>
         <label>
           <span>Chek raqami</span>
-          <input placeholder="Chek raqami" />
+          <input name="receipt_number" placeholder="Chek raqami" disabled={paymentSubmitting || doctorSubscriptionPaid} />
         </label>
-        <button className="primary-btn submit" type="button" onClick={onDoctorPay}>
+        {paymentError && (
+          <div className="admin-status error">
+            <Clock size={18} />
+            <span>
+              <strong>To&apos;lov yuborilmadi</strong>
+              <small>{paymentError}</small>
+            </span>
+          </div>
+        )}
+        <button className="primary-btn submit" type="submit" disabled={paymentSubmitting || doctorSubscriptionPaid}>
           <CheckCircle2 size={18} />
-          {doctorSubscriptionPaid ? "To'lov yuborilgan" : "50 000 so'm to'lash"}
+          {doctorSubscriptionPaid ? "To'lov yuborilgan" : paymentSubmitting ? "Yuborilmoqda" : "50 000 so'm to'lash"}
         </button>
-      </section>
+      </form>
 
       <section className="payment-timeline" aria-label="Shifokor obuna jarayoni">
         <div className="timeline-row done">

@@ -1,3 +1,28 @@
+.doctor-card,
+.doctor-avatar {
+  --accent: #22b8ad;
+}
+
+.accent-teal {
+  --accent: #22b8ad;
+}
+
+.accent-blue {
+  --accent: #1d7eea;
+}
+
+.accent-rose {
+  --accent: #ef476f;
+}
+
+.accent-violet {
+  --accent: #7c3aed;
+}
+
+.accent-sky {
+  --accent: #0f8fe8;
+}
+
 .doctor-badge {
   position: absolute;
   right: 8px;

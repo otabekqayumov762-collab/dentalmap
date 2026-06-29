@@ -1,7 +1,30 @@
-import type { ApiClinic, ApiDoctor, Clinic, Doctor } from "../types";
+import type {
+  ApiAppointment,
+  ApiClinic,
+  ApiDoctor,
+  ApiReview,
+  ApiWeeklyAvailability,
+  Clinic,
+  Doctor,
+  DoctorReview
+} from "../types";
+
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "";
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/[/]$/, "") || "http://localhost:8000";
+  configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+
+export function isBackendConfigured() {
+  return Boolean(API_BASE_URL);
+}
+
+export function getApiUrl(path: string) {
+  if (!API_BASE_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is required before calling the backend API.");
+  }
+
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export function isStaticPreviewHost() {
   if (typeof window === "undefined") {
@@ -9,6 +32,63 @@ export function isStaticPreviewHost() {
   }
 
   return window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
+}
+
+export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return Array.isArray(payload.results) ? payload.results : [];
+}
+
+export async function apiRequest<T>(
+  path: string,
+  {
+    token,
+    method = "GET",
+    body,
+    signal
+  }: {
+    token?: string;
+    method?: string;
+    body?: BodyInit | null;
+    signal?: AbortSignal;
+  } = {}
+): Promise<T> {
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (body && !(body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(getApiUrl(path), {
+    method,
+    cache: "no-store",
+    credentials: "omit",
+    headers,
+    body,
+    signal
+  });
+
+  if (!response.ok) {
+    let message = `API request failed: ${response.status}`;
+    try {
+      const errorPayload = await response.json();
+      if (typeof errorPayload?.detail === "string") {
+        message = errorPayload.detail;
+      } else if (typeof errorPayload === "object" && errorPayload) {
+        message = Object.values(errorPayload).flat().join(" ");
+      }
+    } catch {
+      // Response body is optional.
+    }
+    throw new Error(message);
+  }
+
+  return (await response.json()) as T;
 }
 
 const accentColors = ["#22b8ad", "#1d7eea", "#ef476f", "#7c3aed", "#0f8fe8"];
@@ -30,6 +110,41 @@ export function mapDoctor(item: ApiDoctor, index: number): Doctor {
     image: item.photo || undefined,
     accent: accentColors[index % accentColors.length]
   };
+}
+
+export function mapReview(item: ApiReview): DoctorReview {
+  return {
+    id: item.id,
+    appointmentId: item.appointment,
+    doctorId: item.doctor,
+    author: item.patient_name || "Foydalanuvchi",
+    rating: Number(item.rating || 0),
+    text: item.comment || "",
+    date: item.created_at
+      ? new Intl.DateTimeFormat("uz-UZ", { day: "2-digit", month: "short" }).format(new Date(item.created_at))
+      : "Bugun",
+    status: item.status
+  };
+}
+
+export function appointmentStatusLabel(status: ApiAppointment["status"]) {
+  const labels: Record<ApiAppointment["status"], string> = {
+    pending: "Doktor tasdig'i kutilmoqda",
+    doctor_confirmed: "Tasdiqlangan",
+    doctor_rejected: "Rad etilgan",
+    user_cancelled: "Bekor qilingan",
+    completed: "Yakunlangan",
+    no_show: "Kelmagan"
+  };
+  return labels[status] || status;
+}
+
+export function weekdayLabel(weekday: number) {
+  return ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"][weekday] || "Kun";
+}
+
+export function normalizeSchedule(items: { results?: ApiWeeklyAvailability[] } | ApiWeeklyAvailability[]) {
+  return normalizeApiList(items).sort((left, right) => left.weekday - right.weekday || left.start_time.localeCompare(right.start_time));
 }
 
 export function flattenClinics(items: ApiClinic[]): Clinic[] {
@@ -58,4 +173,3 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
     }));
   });
 }
-

@@ -12,6 +12,7 @@ export function RegisterView({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
+  paymentSubmitting,
   registrationError,
   onRoleChange,
   onUserSubmit,
@@ -23,11 +24,12 @@ export function RegisterView({
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
+  paymentSubmitting: boolean;
   registrationError: string;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPay: () => void;
+  onDoctorPay: (event: FormEvent<HTMLFormElement>) => void;
   onNavigate: (view: ViewId) => void;
 }) {
   const [method, setMethod] = useState<(typeof paymentMethods)[number][0]>("click");
@@ -55,29 +57,34 @@ export function RegisterView({
           userGender={userGender}
           userDistrict={userDistrict}
           userRegistered={userRegistered}
+          registrationError={registrationError}
           onGenderChange={setUserGender}
           onDistrictChange={setUserDistrict}
           onSubmit={onUserSubmit}
         />
       ) : (
         <>
-          <DoctorRegistrationForm
-            doctorSpecialty={doctorSpecialty}
-            doctorDistrict={doctorDistrict}
-            selectedServiceIds={selectedServiceIds}
-            photoFileName={photoFileName}
-            registrationError={registrationError}
-            onSpecialtyChange={setDoctorSpecialty}
-            onDistrictChange={setDoctorDistrict}
-            onToggleService={toggleService}
-            onPhotoFileChange={setPhotoFileName}
-            onSubmit={onDoctorSubmit}
-          />
+          {!doctorRegistrationSent && (
+            <DoctorRegistrationForm
+              doctorSpecialty={doctorSpecialty}
+              doctorDistrict={doctorDistrict}
+              selectedServiceIds={selectedServiceIds}
+              photoFileName={photoFileName}
+              registrationError={registrationError}
+              onSpecialtyChange={setDoctorSpecialty}
+              onDistrictChange={setDoctorDistrict}
+              onToggleService={toggleService}
+              onPhotoFileChange={setPhotoFileName}
+              onSubmit={onDoctorSubmit}
+            />
+          )}
 
           {doctorRegistrationSent ? (
             <DoctorSubscriptionFlow
               method={method}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
+              paymentSubmitting={paymentSubmitting}
+              paymentError={registrationError}
               onMethodChange={setMethod}
               onDoctorPay={onDoctorPay}
             />

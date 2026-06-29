@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { CheckCircle2, ChevronRight, MapPin, Stethoscope, type LucideIcon } from "lucide-react";
-import type { CSSProperties } from "react";
+import { doctorAccentClass } from "./accent";
 import { districts } from "../catalog";
 import type { Doctor, TelegramAuthStatus, TelegramUser } from "../types";
 
@@ -158,7 +158,7 @@ export function ChoiceField({
 
 export function DoctorAvatar({ doctor, size = "md" }: { doctor: Doctor; size?: "sm" | "md" | "lg" }) {
   return (
-    <span className={`doctor-avatar ${size}`} style={{ "--accent": doctor.accent } as CSSProperties}>
+    <span className={`doctor-avatar ${size} ${doctorAccentClass(doctor.accent)}`}>
       {doctor.image ? <img src={doctor.image} alt={doctor.name} /> : <Stethoscope size={size === "lg" ? 34 : 22} />}
     </span>
   );

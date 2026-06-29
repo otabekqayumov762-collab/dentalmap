@@ -79,6 +79,30 @@
     height: 20px;
   }
 
+  .doctor-dashboard-hero {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .doctor-dashboard-avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+  }
+
+  .doctor-refresh {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .doctor-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-actions,
+  .appointment-actions.two {
+    grid-template-columns: 1fr;
+  }
+
   .settings-row strong {
     font-size: 14.5px;
   }

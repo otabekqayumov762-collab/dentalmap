@@ -99,12 +99,13 @@ export type Doctor = {
 
 export type DoctorReview = {
   id: string;
+  appointmentId?: string;
   doctorId: string;
   author: string;
   rating: number;
   text: string;
   date: string;
-  status: "approved" | "pending";
+  status: "approved" | "pending" | "rejected";
 };
 
 export type Clinic = {
@@ -127,6 +128,20 @@ export type ApiList<T> = {
   results?: T[];
 };
 
+export type ApiUser = {
+  id: string;
+  full_name?: string;
+  phone?: string;
+  role?: "user" | "doctor" | "admin";
+  telegram_username?: string;
+  doctor_profile?: {
+    id: string;
+    approval_status: string;
+    is_published: boolean;
+    subscription_expires_at?: string | null;
+  } | null;
+};
+
 export type ApiDoctor = {
   id: string;
   full_name?: string;
@@ -135,12 +150,60 @@ export type ApiDoctor = {
   work_time?: string;
   photo?: string;
   clinic_name?: string;
+  description?: string;
   doctor_phone?: string;
   clinic_district?: string;
   clinic_address?: string;
   clinic_location_url?: string;
+  directions?: string;
   rating?: string | number;
   reviews_count?: number;
+  approval_status?: string;
+  is_published?: boolean;
+  subscription_expires_at?: string | null;
+  is_subscription_active?: boolean;
+};
+
+export type ApiAppointment = {
+  id: string;
+  patient?: string;
+  doctor: string;
+  doctor_name?: string;
+  full_name: string;
+  phone: string;
+  gender?: string;
+  age?: number | null;
+  appointment_date: string;
+  appointment_time: string;
+  note?: string;
+  status: "pending" | "doctor_confirmed" | "doctor_rejected" | "user_cancelled" | "completed" | "no_show";
+  reject_reason?: string;
+  created_at?: string;
+};
+
+export type ApiReview = {
+  id: string;
+  appointment?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  doctor: string;
+  doctor_name?: string;
+  patient_name?: string;
+  rating: number;
+  comment?: string;
+  status: "pending" | "approved" | "rejected";
+  created_at?: string;
+};
+
+export type ApiWeeklyAvailability = {
+  id: string;
+  doctor?: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  slot_duration_minutes: number;
+  is_active: boolean;
+  note?: string;
 };
 
 export type ApiClinicBranch = {

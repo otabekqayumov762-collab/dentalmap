@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { Heart, MapPin, ShieldCheck, Star, Stethoscope } from "lucide-react";
-import type { CSSProperties } from "react";
+import { doctorAccentClass } from "./accent";
 import type { Doctor } from "../types";
 
 export function DoctorCard({
@@ -19,8 +19,7 @@ export function DoctorCard({
 }) {
   return (
     <article
-      className="doctor-card"
-      style={{ "--accent": doctor.accent } as CSSProperties}
+      className={`doctor-card ${doctorAccentClass(doctor.accent)}`}
       role="button"
       tabIndex={0}
       onClick={onOpen}
@@ -93,4 +92,3 @@ export function DoctorCard({
     </article>
   );
 }
-

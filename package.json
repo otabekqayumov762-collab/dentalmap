@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:github-pages": "GITHUB_PAGES=true next build",
-    "start": "next start",
-    "lint": "eslint app components src next.config.ts"
+    "build": "node scripts/validate-env.mjs && next build && node scripts/finalize-static-export.mjs",
+    "build:github-pages": "GITHUB_PAGES=true node scripts/validate-env.mjs && GITHUB_PAGES=true next build && GITHUB_PAGES=true node scripts/finalize-static-export.mjs",
+    "start": "node scripts/serve-static.mjs out",
+    "lint": "eslint app components src next.config.ts",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
@@ -16,6 +17,9 @@
     "next": "^15.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.16"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

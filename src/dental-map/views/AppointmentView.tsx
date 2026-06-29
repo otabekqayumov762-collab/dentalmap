@@ -21,18 +21,27 @@ type AppointmentDraft = {
 
 const draftKey = "dentalmap_appointment_draft";
 
-const defaultDraft: AppointmentDraft = {
-  fullName: "",
-  phone: "",
-  age: "",
-  note: "",
-  gender: "",
-  dateParts: {
-    day: "25",
-    month: "06",
-    year: "2026"
-  }
-};
+function defaultDateParts(): DateParts {
+  const today = new Date();
+  return {
+    day: String(today.getDate()).padStart(2, "0"),
+    month: String(today.getMonth() + 1).padStart(2, "0"),
+    year: String(today.getFullYear())
+  };
+}
+
+function createDefaultDraft(): AppointmentDraft {
+  return {
+    fullName: "",
+    phone: "",
+    age: "",
+    note: "",
+    gender: "",
+    dateParts: defaultDateParts()
+  };
+}
+
+const defaultDraft = createDefaultDraft();
 
 function buildDateValue(parts: DateParts) {
   if (parts.day.length < 1 || parts.month.length < 1 || parts.year.length !== 4) {
@@ -63,13 +72,17 @@ export function AppointmentView({
   selectedSlot,
   onSelectSlot,
   onSubmit,
-  sent
+  sent,
+  submitting,
+  submitError
 }: {
   doctor: Doctor;
   selectedSlot: string;
   onSelectSlot: (slot: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   sent: boolean;
+  submitting: boolean;
+  submitError: string;
 }) {
   const [draft, setDraft] = useState<AppointmentDraft>(defaultDraft);
   const [hydrated, setHydrated] = useState(false);
@@ -116,8 +129,9 @@ export function AppointmentView({
 
   function updateDatePart(part: keyof DateParts, delta: number) {
     setDraft((current) => {
-      const rawValue = Number(current.dateParts[part]) || (part === "year" ? 2026 : 1);
-      const minValue = part === "year" ? 2026 : 1;
+      const currentYear = new Date().getFullYear();
+      const rawValue = Number(current.dateParts[part]) || (part === "year" ? currentYear : 1);
+      const minValue = part === "year" ? currentYear : 1;
       const maxValue = part === "day" ? 31 : part === "month" ? 12 : 2030;
       const nextValue = Math.min(maxValue, Math.max(minValue, rawValue + delta));
 
@@ -353,9 +367,15 @@ export function AppointmentView({
             <span>{formError}</span>
           </div>
         )}
-        <button className="primary-btn submit" type="submit" disabled={sent}>
+        {submitError && (
+          <div className="form-error" role="alert">
+            <AlertCircle size={17} />
+            <span>{submitError}</span>
+          </div>
+        )}
+        <button className="primary-btn submit" type="submit" disabled={sent || submitting}>
           <CheckCircle2 size={18} />
-          {sent ? "Yuborildi" : "Qabulga yozilish"}
+          {submitting ? "Yuborilmoqda" : sent ? "Yuborildi" : "Qabulga yozilish"}
         </button>
       </form>
     </div>
