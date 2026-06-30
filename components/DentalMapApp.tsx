@@ -345,11 +345,12 @@ export default function DentalMapApp() {
     submitConsultation
   });
 
-  // The mini app is Telegram-only. A real launch carries signed initData (or a
-  // resolved user); a plain browser has neither, so we block it behind a gate.
+  // Telegram-only mode (off by default so the app stays browsable). Flip
+  // NEXT_PUBLIC_TELEGRAM_ONLY=true to block browser access behind the gate.
+  const telegramOnly = process.env.NEXT_PUBLIC_TELEGRAM_ONLY === "true";
   const isInTelegram = Boolean(webApp?.initData) || Boolean(telegramUser);
 
-  if (!telegramInitialized) {
+  if (telegramOnly && !telegramInitialized) {
     return (
       <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
         <Loader2 size={26} className="animate-spin text-brand-500" />
@@ -357,7 +358,7 @@ export default function DentalMapApp() {
     );
   }
 
-  if (!isInTelegram) {
+  if (telegramOnly && !isInTelegram) {
     return <TelegramGate />;
   }
 
