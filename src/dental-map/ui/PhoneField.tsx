@@ -1,0 +1,93 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import { cn } from "./cn";
+
+/** Strips to national digits (drops the 998 country code), max 9 digits. */
+function parseDigits(value?: string | null) {
+  let digits = (value ?? "").replace(/\D/g, "");
+  if (digits.startsWith("998")) {
+    digits = digits.slice(3);
+  }
+  return digits.slice(0, 9);
+}
+
+/** "901234567" → "90 123 45 67" (Uzbek grouping 2-3-2-2). */
+function formatNational(digits: string) {
+  return [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function fullValue(digits: string) {
+  return digits ? `+998 ${formatNational(digits)}` : "";
+}
+
+export type PhoneFieldProps = {
+  label?: ReactNode;
+  name?: string;
+  /** Controlled full value (e.g. "+998 90 123 45 67"). Omit for uncontrolled use. */
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (fullValue: string) => void;
+  required?: boolean;
+  className?: string;
+};
+
+/**
+ * Phone input with a fixed +998 prefix and a 90 123 45 67 mask. Submits the full
+ * "+998 90 123 45 67" string via a hidden input (uncontrolled forms) and/or
+ * onValueChange (controlled). Empty input submits "".
+ */
+export function PhoneField({
+  label,
+  name,
+  value,
+  defaultValue,
+  onValueChange,
+  required,
+  className
+}: PhoneFieldProps) {
+  const controlled = value !== undefined;
+  const [digits, setDigits] = useState(() => parseDigits(value ?? defaultValue ?? ""));
+
+  useEffect(() => {
+    if (controlled) {
+      setDigits(parseDigits(value));
+    }
+  }, [controlled, value]);
+
+  function update(raw: string) {
+    const next = parseDigits(raw);
+    if (!controlled) {
+      setDigits(next);
+    }
+    onValueChange?.(fullValue(next));
+  }
+
+  return (
+    <label className="block">
+      {label && <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>}
+      <div
+        className={cn(
+          "flex h-12 items-center rounded-2xl border border-surface-200 bg-surface-50 transition-colors",
+          "focus-within:border-brand-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100",
+          className
+        )}
+      >
+        <span className="select-none pl-4 pr-2 font-medium text-ink-500">+998</span>
+        <input
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel"
+          className="min-w-0 flex-1 bg-transparent pr-4 text-ink-900 outline-none placeholder:text-ink-400"
+          value={formatNational(digits)}
+          onChange={(event) => update(event.target.value)}
+          placeholder="90 123 45 67"
+          required={required}
+        />
+      </div>
+      {name && <input type="hidden" name={name} value={fullValue(digits)} />}
+    </label>
+  );
+}

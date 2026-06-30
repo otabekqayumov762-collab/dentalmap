@@ -5,6 +5,7 @@ export { Card, type CardProps } from "./Card";
 export { Badge } from "./Badge";
 export { Chip, type ChipProps } from "./Chip";
 export { Field, TextareaField, type FieldProps, type TextareaFieldProps } from "./Field";
+export { PhoneField, type PhoneFieldProps } from "./PhoneField";
 export { Select, type SelectOption, type SelectProps } from "./Select";
 export { Modal, type ModalProps } from "./Modal";
 export { Sheet, type SheetProps } from "./Sheet";

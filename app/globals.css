@@ -1,15 +1,20 @@
+/* Declare `legacy` as the lowest cascade layer so every Tailwind utility wins
+   over the leftover hand-written CSS (otherwise unlayered legacy rules like
+   `button { background: transparent }` override utilities such as bg-brand-500). */
+@layer legacy;
+
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
-/* Legacy stylesheets — being migrated to Tailwind section by section. Remove a
-   file from here once every consumer of its classes is on the design system. */
-@import "./styles/base-shell.css";
-@import "./styles/discovery.css";
-@import "./styles/content-cards.css";
-@import "./styles/registration-forms.css";
-@import "./styles/profile-menu.css";
-@import "./styles/superstat.css";
-@import "./styles/responsive.css";
+/* Legacy stylesheets — global foundation (root vars, leaflet markers) + dead
+   component rules pending removal. Scoped to the low-priority `legacy` layer. */
+@import "./styles/base-shell.css" layer(legacy);
+@import "./styles/discovery.css" layer(legacy);
+@import "./styles/content-cards.css" layer(legacy);
+@import "./styles/registration-forms.css" layer(legacy);
+@import "./styles/profile-menu.css" layer(legacy);
+@import "./styles/superstat.css" layer(legacy);
+@import "./styles/responsive.css" layer(legacy);
 
 /* ── Dental Map design tokens ───────────────────────────────────────────────
    Built around the brand logo gradient (teal #16A8B5 → blue #1686EF).

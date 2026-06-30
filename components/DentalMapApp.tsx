@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bell, Loader2, Search, Stethoscope } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getApiUrl, isBackendConfigured, isStaticPreviewHost } from "@/src/dental-map/api/dentalMapApi";
 import { shortcuts, tabs } from "@/src/dental-map/catalog";
@@ -73,6 +73,7 @@ export default function DentalMapApp() {
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isTelegram = Boolean(webApp);
 
@@ -118,6 +119,7 @@ export default function DentalMapApp() {
   const isAppointmentSuccess = activeView === "appointment" && consultationSent;
   const showAppHeader = !isMapView && !isAppointmentSuccess;
   const showDiscoveryControls = activeView === "home";
+  const showSearch = activeView === "home" || activeView === "doctors" || activeView === "clinics";
   const showPageBack = !isMapView && activeView !== "home";
   const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
 
@@ -343,9 +345,9 @@ export default function DentalMapApp() {
   });
 
   return (
-    <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-50">
+    <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
       <section
-        className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-50"
+        className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-100"
         aria-label="Dental Map mini ilova"
       >
         <div
@@ -367,19 +369,37 @@ export default function DentalMapApp() {
                       DENTAL <span className="text-brand-500">MAP</span>
                     </strong>
                   </button>
-                  <button
-                    type="button"
-                    aria-label="Bildirishnomalar"
-                    onClick={() => navigate("notifications")}
-                    className={cn(
-                      "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
-                      activeView === "notifications"
-                        ? "border-brand-300 bg-brand-50 text-brand-600"
-                        : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
+                  <div className="flex items-center gap-2">
+                    {showSearch && (
+                      <button
+                        type="button"
+                        aria-label="Qidirish"
+                        aria-pressed={searchOpen}
+                        onClick={() => setSearchOpen((open) => !open)}
+                        className={cn(
+                          "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                          searchOpen
+                            ? "border-brand-300 bg-brand-50 text-brand-600"
+                            : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
+                        )}
+                      >
+                        <Search size={18} />
+                      </button>
                     )}
-                  >
-                    <Bell size={18} />
-                  </button>
+                    <button
+                      type="button"
+                      aria-label="Bildirishnomalar"
+                      onClick={() => navigate("notifications")}
+                      className={cn(
+                        "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                        activeView === "notifications"
+                          ? "border-brand-300 bg-brand-50 text-brand-600"
+                          : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
+                      )}
+                    >
+                      <Bell size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <TelegramStatus
@@ -389,15 +409,23 @@ export default function DentalMapApp() {
                   isTelegram={isTelegram}
                 />
 
-                <label className="flex h-12 items-center gap-2.5 rounded-2xl border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
-                  <Search size={17} />
-                  <input
-                    className="min-w-0 flex-1 bg-transparent text-ink-900 outline-none placeholder:text-ink-400"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Shifokor yoki klinika qidirish..."
-                  />
-                </label>
+                {showSearch && searchOpen && (
+                  <label className="flex h-12 animate-[modal-in_0.15s_ease-out] items-center gap-2.5 rounded-2xl border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+                    <Search size={17} />
+                    <input
+                      autoFocus
+                      className="min-w-0 flex-1 bg-transparent text-ink-900 outline-none placeholder:text-ink-400"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Shifokor yoki klinika qidirish..."
+                    />
+                    {query && (
+                      <button type="button" aria-label="Tozalash" onClick={() => setQuery("")} className="text-ink-400 hover:text-ink-600">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </label>
+                )}
               </section>
 
               {showDiscoveryControls && (
