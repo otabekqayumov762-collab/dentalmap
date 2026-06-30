@@ -23,6 +23,7 @@ import { HomeView } from "@/src/dental-map/views/HomeView";
 import { MapView } from "@/src/dental-map/views/MapView";
 import { MoreView } from "@/src/dental-map/views/MoreView";
 import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
+import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
@@ -343,6 +344,22 @@ export default function DentalMapApp() {
     changeView,
     submitConsultation
   });
+
+  // The mini app is Telegram-only. A real launch carries signed initData (or a
+  // resolved user); a plain browser has neither, so we block it behind a gate.
+  const isInTelegram = Boolean(webApp?.initData) || Boolean(telegramUser);
+
+  if (!telegramInitialized) {
+    return (
+      <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
+        <Loader2 size={26} className="animate-spin text-brand-500" />
+      </main>
+    );
+  }
+
+  if (!isInTelegram) {
+    return <TelegramGate />;
+  }
 
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
