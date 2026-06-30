@@ -43,12 +43,11 @@ export function DoctorRegistrationForm({
         </legend>
         <input type="hidden" name="services" value={selectedServiceIds.join(",")} />
         <div className="flex flex-wrap gap-2">
-          {serviceItems.map(({ id, label, Icon }) => {
+          {serviceItems.map(({ id, label }) => {
             const active = selectedServiceIds.includes(id);
 
             return (
               <Chip key={id} active={active} onClick={() => onToggleService(id)}>
-                <Icon size={16} />
                 {label}
                 {active && <CheckCircle2 size={14} />}
               </Chip>
@@ -95,16 +94,14 @@ export function DoctorRegistrationForm({
         </span>
       </div>
       <PhoneField label="Shifokor telefon raqami" name="doctor_phone" />
-      <div className="grid grid-cols-2 gap-3">
-        <ChoiceField
-          label="Klinika tumani"
-          name="clinic_district"
-          value={doctorDistrict}
-          options={districts.slice(1)}
-          onChange={onDistrictChange}
-        />
-        <Field label="Klinika joylashuvi" name="clinic_address" placeholder="Manzil" />
-      </div>
+      <ChoiceField
+        label="Klinika tumani"
+        name="clinic_district"
+        value={doctorDistrict}
+        options={districts.slice(1)}
+        onChange={onDistrictChange}
+      />
+      <Field label="Klinika joylashuvi" name="clinic_address" placeholder="Manzil" />
       <Field
         label="Klinika lokatsiya linki"
         name="clinic_location_url"

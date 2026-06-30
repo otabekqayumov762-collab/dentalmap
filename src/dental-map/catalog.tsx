@@ -1,18 +1,10 @@
 import {
-  Baby,
-  Bone,
   Building2,
   CalendarDays,
-  HeartPulse,
   Home,
   MapPin,
-  MessageCircle,
   MoreHorizontal,
-  ScanLine,
-  ShieldPlus,
   SlidersHorizontal,
-  SmilePlus,
-  Sparkles,
   Stethoscope,
   User
 } from "lucide-react";
@@ -174,14 +166,14 @@ export const tabs: Shortcut[] = [
 ];
 
 export const serviceItems = [
-  { id: "consultation", label: "Konsultatsiya", Icon: MessageCircle },
-  { id: "treatment", label: "Tish davolash", Icon: HeartPulse },
-  { id: "extraction", label: "Tish olish", Icon: Bone },
-  { id: "implant", label: "Implant", Icon: ShieldPlus },
-  { id: "braces", label: "Breket", Icon: SmilePlus },
-  { id: "xray", label: "Rentgen", Icon: ScanLine },
-  { id: "whitening", label: "Oqartirish", Icon: Sparkles },
-  { id: "kids", label: "Bolalar stomatologiyasi", Icon: Baby }
+  { id: "consultation", label: "Konsultatsiya" },
+  { id: "treatment", label: "Tish davolash" },
+  { id: "extraction", label: "Tish olish" },
+  { id: "implant", label: "Implant" },
+  { id: "braces", label: "Breket" },
+  { id: "xray", label: "Rentgen" },
+  { id: "whitening", label: "Oqartirish" },
+  { id: "kids", label: "Bolalar stomatologiyasi" }
 ];
 
 export const genderOptions = ["Erkak", "Ayol"];
