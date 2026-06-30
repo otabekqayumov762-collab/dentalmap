@@ -61,7 +61,7 @@ function createContentSecurityPolicy() {
     getOptionalOrigin("NEXT_PUBLIC_SHEETS_WEBHOOK_URL") ||
     getOptionalOrigin("NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL");
   const scriptSources = ["'self'", "https://telegram.org", ...collectInlineScriptHashes(outDir)];
-  const connectSources = ["'self'", apiOrigin].filter(Boolean);
+  const connectSources = ["'self'", apiOrigin, "https://nominatim.openstreetmap.org"].filter(Boolean);
   if (sheetsOrigin && !connectSources.includes(sheetsOrigin)) {
     connectSources.push(sheetsOrigin);
   }

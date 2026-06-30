@@ -2,7 +2,8 @@ import { Camera, CheckCircle2, Clock, Star, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
 import { ChoiceField } from "../../components/common";
-import { Button, Chip, Field, PhoneField, TextareaField } from "../../ui";
+import { Button, Chip, Field, PhoneField, Select, TextareaField } from "../../ui";
+import { LocationPickerField } from "./LocationPickerField";
 
 export function DoctorRegistrationForm({
   doctorSpecialty,
@@ -94,25 +95,20 @@ export function DoctorRegistrationForm({
         </span>
       </div>
       <PhoneField label="Shifokor telefon raqami" name="doctor_phone" />
-      <ChoiceField
+      <Select
         label="Klinika tumani"
         name="clinic_district"
         value={doctorDistrict}
-        options={districts.slice(1)}
+        options={districts.slice(1).map((district) => ({ value: district, label: district }))}
         onChange={onDistrictChange}
+        placeholder="Tumanni tanlang"
       />
-      <Field label="Klinika joylashuvi" name="clinic_address" placeholder="Manzil" />
       <Field
-        label="Klinika lokatsiya linki"
-        name="clinic_location_url"
-        type="url"
-        placeholder="Google Maps yoki Yandex Maps linki"
+        label="Klinika manzili"
+        name="clinic_address"
+        placeholder="Ko'cha va uy raqami (masalan: Bunyodkor 9)"
       />
-      <TextareaField
-        label="Klinikagacham borish"
-        name="directions"
-        placeholder="Mo'ljal yoki lokatsiya izohi"
-      />
+      <LocationPickerField name="clinic_location_url" label="Klinika lokatsiyasi (kartada)" />
       {registrationError && (
         <div
           role="alert"
