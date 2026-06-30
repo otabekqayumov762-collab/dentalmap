@@ -4,6 +4,7 @@
 
 import { Check, MapPin, Search, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import type { CircleMarker, Map as LeafletMap } from "leaflet";
 import { cn } from "../../ui";
 
@@ -58,12 +59,14 @@ function PickerFooter({
 function PickerHeader({
   query,
   searching,
+  inputId,
   onQueryChange,
   onSearch,
   onClose
 }: {
   query: string;
   searching: boolean;
+  inputId?: string;
   onQueryChange: (value: string) => void;
   onSearch: (event: FormEvent<HTMLFormElement>) => void;
   onClose: () => void;
@@ -73,6 +76,8 @@ function PickerHeader({
       <form className="flex flex-1 items-center gap-2 rounded-pill border border-surface-200 bg-surface-50 px-3" onSubmit={onSearch}>
         <Search size={17} className="shrink-0 text-ink-400" />
         <input
+          id={inputId}
+          autoComplete="off"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Manzil yoki klinika nomini qidiring"
@@ -201,7 +206,7 @@ function YandexPickerModal({ initial, onClose, onConfirm }: ModalProps) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-surface-0">
       <PickerHeader
         query={query}
@@ -212,7 +217,8 @@ function YandexPickerModal({ initial, onClose, onConfirm }: ModalProps) {
       />
       <div ref={nodeRef} className="min-h-0 flex-1" aria-label="Yandex lokatsiya xaritasi" />
       <PickerFooter coords={coords} onConfirm={onConfirm} note={error || undefined} />
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -289,7 +295,7 @@ function OsmPickerModal({ initial, onClose, onConfirm }: ModalProps) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-surface-0">
       <PickerHeader
         query={query}
@@ -300,7 +306,8 @@ function OsmPickerModal({ initial, onClose, onConfirm }: ModalProps) {
       />
       <div ref={nodeRef} className="min-h-0 flex-1" aria-label="Lokatsiya xaritasi" />
       <PickerFooter coords={coords} onConfirm={onConfirm} />
-    </div>
+    </div>,
+    document.body
   );
 }
 
