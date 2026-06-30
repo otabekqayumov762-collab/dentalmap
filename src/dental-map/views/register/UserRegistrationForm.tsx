@@ -36,7 +36,7 @@ export function UserRegistrationForm({
   }
 
   return (
-    <form id="user-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form id="user-register-form" className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={onSubmit}>
       <Field label="F.I.O." name="full_name" placeholder="F.I.O." />
       <PhoneField label="Telefon raqam" name="phone" />
       <div className="grid grid-cols-2 gap-3">

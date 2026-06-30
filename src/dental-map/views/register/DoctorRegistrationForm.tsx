@@ -28,7 +28,7 @@ export function DoctorRegistrationForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form id="doctor-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form id="doctor-register-form" className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={onSubmit}>
       <Field label="Shifokor F.I.O." name="full_name" placeholder="Shifokor F.I.O." />
       <ChoiceField
         label="Asosiy yo'nalish"

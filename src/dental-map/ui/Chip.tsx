@@ -20,7 +20,7 @@ export function Chip({ active = false, onClick, className, children }: ChipProps
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97]",
         active
           ? "bg-brand-500 text-white shadow-card"
-          : "bg-surface-100 text-ink-600 hover:bg-surface-200",
+          : "border border-surface-200 bg-surface-0 text-ink-600 hover:border-brand-300 hover:bg-brand-50/40",
         className
       )}
     >
