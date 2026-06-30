@@ -25,6 +25,7 @@ import { LoginView } from "@/src/dental-map/views/LoginView";
 import { MapView } from "@/src/dental-map/views/MapView";
 import { MoreView } from "@/src/dental-map/views/MoreView";
 import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
+import { PatientAppointmentsView } from "@/src/dental-map/views/PatientAppointmentsView";
 import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView } from "@/src/dental-map/views/DoctorDashboardView";
@@ -59,7 +60,9 @@ export default function DentalMapApp() {
     submitDoctorReview,
     submitDoctorProfileUpdate,
     submitDoctorSchedule,
-    runDoctorAppointmentAction
+    runDoctorAppointmentAction,
+    cancelAppointment,
+    deleteAvailability
   } = useDentalData({ webApp, telegramUser, telegramInitialized });
 
   const paymentIdempotencyKeyRef = useRef<string | null>(null);
@@ -656,6 +659,7 @@ export default function DentalMapApp() {
                 onProfileSubmit={submitDoctorProfileUpdate}
                 onScheduleSubmit={submitDoctorSchedule}
                 onAppointmentAction={runDoctorAppointmentAction}
+                onScheduleDelete={(item) => void deleteAvailability(item)}
               />
             ) : (
               <ProfileView
@@ -679,6 +683,16 @@ export default function DentalMapApp() {
           )}
 
           {activeView === "login" && <LoginView onLogin={handleLogin} onNavigate={navigate} />}
+
+          {activeView === "myAppointments" && (
+            <PatientAppointmentsView
+              appointments={appointments}
+              loading={privateLoading}
+              error={doctorActionError}
+              onRefresh={() => void refreshPrivateData()}
+              onCancel={(appointment) => void cancelAppointment(appointment)}
+            />
+          )}
         </div>
 
         {viewLoading && (

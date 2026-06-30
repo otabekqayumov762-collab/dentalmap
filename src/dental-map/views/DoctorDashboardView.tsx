@@ -2,11 +2,13 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  CreditCard,
   ImageUp,
   Loader2,
   RefreshCcw,
   Save,
   Stethoscope,
+  Trash2,
   XCircle
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -14,7 +16,7 @@ import { appointmentStatusLabel, weekdayLabel } from "../api/dentalMapApi";
 import { districts, specialtyOptions } from "../catalog";
 import { DoctorAvatar } from "../components/common";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability } from "../types";
-import { Badge, Button, Card, Field, PhoneField, TextareaField } from "../ui";
+import { Badge, Button, Card, Field, IconButton, PhoneField, TextareaField } from "../ui";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-ink-700";
 const selectClass =
@@ -39,6 +41,37 @@ function statusTone(status: AppointmentStatus): "brand" | "success" | "warning" 
   return "neutral";
 }
 
+function approvalTone(status?: string): "brand" | "success" | "warning" | "danger" | "neutral" {
+  if (status === "approved") {
+    return "success";
+  }
+  if (status === "rejected") {
+    return "danger";
+  }
+  return "warning";
+}
+
+function approvalLabel(status?: string) {
+  if (status === "approved") {
+    return "Tasdiqlangan";
+  }
+  if (status === "rejected") {
+    return "Rad etilgan";
+  }
+  return "Tasdiq kutilmoqda";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("uz-UZ", { day: "2-digit", month: "short", year: "numeric" }).format(parsed);
+}
+
 export function DoctorDashboardView({
   user,
   profile,
@@ -49,7 +82,8 @@ export function DoctorDashboardView({
   onRefresh,
   onProfileSubmit,
   onScheduleSubmit,
-  onAppointmentAction
+  onAppointmentAction,
+  onScheduleDelete
 }: {
   user: ApiUser | null;
   profile: ApiDoctor | null;
@@ -61,10 +95,17 @@ export function DoctorDashboardView({
   onProfileSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onScheduleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onAppointmentAction: (appointment: ApiAppointment, action: "confirm" | "reject" | "complete" | "mark_no_show", reason?: string) => Promise<void>;
+  onScheduleDelete?: (item: ApiWeeklyAvailability) => Promise<void> | void;
 }) {
   const [photoFileName, setPhotoFileName] = useState("");
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
   const pendingAppointments = appointments.filter((appointment) => appointment.status === "pending");
+  const confirmedCount = appointments.filter((appointment) => appointment.status === "doctor_confirmed").length;
+  const completedCount = appointments.filter((appointment) => appointment.status === "completed").length;
+  const approvalStatus = profile?.approval_status || user?.doctor_profile?.approval_status;
+  const isPublished = Boolean(profile?.is_published);
+  const isSubscriptionActive = Boolean(profile?.is_subscription_active);
+  const subscriptionExpiry = formatDate(profile?.subscription_expires_at);
 
   return (
     <div className="flex flex-col gap-4">
@@ -99,8 +140,7 @@ export function DoctorDashboardView({
             {profile?.full_name || user?.full_name || "Shifokor"}
           </strong>
           <span className="mt-0.5 block truncate text-xs text-ink-500">
-            {profile?.approval_status || user?.doctor_profile?.approval_status || "pending"} |{" "}
-            {profile?.is_published ? "saytda ko'rinyapti" : "saytda yashirilgan"}
+            {profile?.specialty || "Stomatolog"}
           </span>
         </div>
         <Button variant="secondary" size="sm" type="button" onClick={onRefresh} disabled={loading} className="shrink-0">
@@ -118,6 +158,30 @@ export function DoctorDashboardView({
           <span>{error}</span>
         </div>
       )}
+
+      <Card as="section" className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <CreditCard size={18} />
+          </span>
+          <div className="min-w-0">
+            <strong className="block font-bold text-ink-900">Holat va obuna</strong>
+            <span className="block text-xs text-ink-500">Admin tasdig&apos;i va obuna muddati.</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={approvalTone(approvalStatus)}>{approvalLabel(approvalStatus)}</Badge>
+          <Badge tone={isPublished ? "success" : "neutral"}>
+            {isPublished ? "Saytda ko'rinmoqda" : "Saytda yashirilgan"}
+          </Badge>
+          <Badge tone={isSubscriptionActive ? "success" : "danger"}>
+            {isSubscriptionActive ? "Obuna faol" : "Obuna faol emas"}
+          </Badge>
+        </div>
+        {subscriptionExpiry && (
+          <span className="text-xs text-ink-500">Obuna muddati: {subscriptionExpiry} gacha</span>
+        )}
+      </Card>
 
       <section className="grid grid-cols-3 gap-3">
         <Card className="flex flex-col gap-0.5 p-3.5">
@@ -143,6 +207,8 @@ export function DoctorDashboardView({
             <strong className="block font-bold text-ink-900">Profil va rasm</strong>
             <span className="mt-0.5 block text-xs text-ink-500">O&apos;zgartirilsa admin qayta tasdiqlaydi.</span>
           </div>
+
+          <Field label="F.I.O." name="full_name" defaultValue={profile?.full_name || user?.full_name || ""} />
 
           <label className="block">
             <span className={labelClass}>Mutaxassislik</span>
@@ -231,7 +297,21 @@ export function DoctorDashboardView({
                       {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)} | {item.slot_duration_minutes} daqiqa
                     </small>
                   </span>
-                  <Badge tone={item.is_active ? "success" : "neutral"}>{item.is_active ? "Faol" : "O'chirilgan"}</Badge>
+                  <Badge tone={item.is_active ? "success" : "neutral"} className="shrink-0">
+                    {item.is_active ? "Faol" : "O'chirilgan"}
+                  </Badge>
+                  {onScheduleDelete && (
+                    <IconButton
+                      type="button"
+                      variant="ghost"
+                      onClick={() => void onScheduleDelete(item)}
+                      disabled={loading}
+                      aria-label={`${weekdayLabel(item.weekday)} jadvalini o'chirish`}
+                      className="shrink-0"
+                    >
+                      <Trash2 size={17} />
+                    </IconButton>
+                  )}
                 </div>
               ))}
             </div>
@@ -271,6 +351,11 @@ export function DoctorDashboardView({
           <span className="mt-0.5 block text-xs text-ink-500">
             Foydalanuvchini qabul qilish yoki sabab bilan rad etish.
           </span>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <Badge tone="warning">Kutilmoqda: {pendingAppointments.length}</Badge>
+            <Badge tone="brand">Tasdiqlangan: {confirmedCount}</Badge>
+            <Badge tone="success">Yakunlangan: {completedCount}</Badge>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3">

@@ -148,6 +148,22 @@ export function ProfileView({
         </div>
       </Card>
 
+      <Card
+        as="section"
+        interactive
+        onClick={() => onNavigate("myAppointments")}
+        className="flex items-center gap-3"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+          <CalendarDays size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <strong className="block text-ink-900">Mening qabullarim</strong>
+          <small className="text-xs text-ink-500">Yozilgan qabullar va ularning holati</small>
+        </div>
+        <ChevronRight size={18} className="shrink-0 text-ink-400" />
+      </Card>
+
       <Card as="section">
         <form onSubmit={saveProfile} className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-3">

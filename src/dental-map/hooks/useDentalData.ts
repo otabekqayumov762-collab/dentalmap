@@ -470,6 +470,64 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     [webApp]
   );
 
+  const cancelAppointment = useCallback(
+    async (appointment: ApiAppointment) => {
+      const token = getAccessToken();
+      if (!token) {
+        setDoctorActionError("Qabulni bekor qilish uchun avtorizatsiya kerak.");
+        return;
+      }
+
+      try {
+        setPrivateLoading(true);
+        setDoctorActionError("");
+        const next = await apiRequest<ApiAppointment>(`/api/appointments/${appointment.id}/cancel/`, {
+          token,
+          method: "POST"
+        });
+        setAppointments((current) => current.map((item) => (item.id === next.id ? next : item)));
+        webApp?.HapticFeedback?.notificationOccurred("success");
+      } catch (error) {
+        setDoctorActionError(error instanceof Error ? error.message : "Qabul bekor qilinmadi.");
+        webApp?.HapticFeedback?.notificationOccurred("error");
+      } finally {
+        setPrivateLoading(false);
+      }
+    },
+    [webApp]
+  );
+
+  const deleteAvailability = useCallback(
+    async (item: ApiWeeklyAvailability) => {
+      const token = getAccessToken();
+      if (!token) {
+        setDoctorActionError("Jadvalni o'chirish uchun avtorizatsiya kerak.");
+        return;
+      }
+
+      try {
+        setPrivateLoading(true);
+        setDoctorActionError("");
+        const response = await fetch(getApiUrl(`/api/availability/weekly/${item.id}/`), {
+          method: "DELETE",
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          throw new Error(`Delete availability ${response.status}`);
+        }
+        setDoctorSchedule((current) => current.filter((entry) => entry.id !== item.id));
+        webApp?.HapticFeedback?.notificationOccurred("success");
+      } catch (error) {
+        setDoctorActionError(error instanceof Error ? error.message : "Jadval o'chirilmadi.");
+        webApp?.HapticFeedback?.notificationOccurred("error");
+      } finally {
+        setPrivateLoading(false);
+      }
+    },
+    [webApp]
+  );
+
   return {
     apiDoctors,
     apiClinics,
@@ -493,6 +551,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     submitDoctorReview,
     submitDoctorProfileUpdate,
     submitDoctorSchedule,
-    runDoctorAppointmentAction
+    runDoctorAppointmentAction,
+    cancelAppointment,
+    deleteAvailability
   };
 }

@@ -11,6 +11,7 @@ export type ViewId =
   | "register"
   | "login"
   | "profile"
+  | "myAppointments"
   | "feedback"
   | "notifications"
   | "more";
