@@ -7,6 +7,7 @@ import { shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { createIdempotencyKey, createTemporaryPassword } from "@/src/dental-map/lib/secure";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
+import { cn } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
@@ -342,26 +343,40 @@ export default function DentalMapApp() {
   });
 
   return (
-    <main className={`${isTelegram ? "mini-shell telegram-shell" : "mini-shell"}${isMapView ? " map-mode" : ""}`}>
-      <section className={isMapView ? "mini-app map-mode" : "mini-app"} aria-label="Dental Map mini ilova">
-        <div className={isAppointmentSuccess ? "app-scroll success-scroll-lock" : "app-scroll"} ref={scrollRef}>
+    <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-50">
+      <section
+        className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-50"
+        aria-label="Dental Map mini ilova"
+      >
+        <div
+          ref={scrollRef}
+          className={cn(
+            "h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5",
+            isAppointmentSuccess ? "pb-0 overflow-hidden" : "pb-[calc(158px+env(safe-area-inset-bottom))]"
+          )}
+        >
           {showAppHeader && (
             <>
-              <section className="brand-card">
-                <div className="brand-row">
-                  <button className="brand-title" type="button" onClick={() => navigate("home")}>
-                    <span className="tooth-logo">
+              <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 py-4 shadow-[0_8px_18px_rgba(32,55,76,0.08)]">
+                <div className="flex items-center justify-between gap-3">
+                  <button className="flex items-center gap-2.5" type="button" onClick={() => navigate("home")}>
+                    <span className="inline-flex">
                       <BrandLogo />
                     </span>
-                    <strong>
-                      DENTAL <span>MAP</span>
+                    <strong className="text-xl font-extrabold tracking-tight text-ink-900">
+                      DENTAL <span className="text-brand-500">MAP</span>
                     </strong>
                   </button>
                   <button
-                    className={activeView === "notifications" ? "round-icon active" : "round-icon"}
                     type="button"
                     aria-label="Bildirishnomalar"
                     onClick={() => navigate("notifications")}
+                    className={cn(
+                      "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                      activeView === "notifications"
+                        ? "border-brand-300 bg-brand-50 text-brand-600"
+                        : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
+                    )}
                   >
                     <Bell size={18} />
                   </button>
@@ -374,29 +389,36 @@ export default function DentalMapApp() {
                   isTelegram={isTelegram}
                 />
 
-                <label className="search-field">
+                <label className="flex h-12 items-center gap-2.5 rounded-2xl border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
                   <Search size={17} />
                   <input
+                    className="min-w-0 flex-1 bg-transparent text-ink-900 outline-none placeholder:text-ink-400"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Shifokor yoki klinika qidirish..."
                   />
                 </label>
-
               </section>
 
               {showDiscoveryControls && (
-                <section className="filter-shortcuts">
+                <section className="grid gap-3">
                   <DistrictFilter value={district} onChange={setDistrict} />
-                  <div className="shortcut-row" aria-label="Bo'limlar">
+                  <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (
                       <button
                         key={id}
-                        className={activeView === id ? "shortcut active" : "shortcut"}
                         type="button"
                         onClick={() => navigate(id)}
+                        className={cn(
+                          "flex h-12 shrink-0 items-center gap-2 rounded-2xl border px-3.5 font-semibold transition-colors",
+                          activeView === id
+                            ? "border-brand-300 bg-brand-50 text-brand-700"
+                            : "border-surface-100 bg-surface-0 text-brand-600 shadow-card"
+                        )}
                       >
-                        <Icon size={18} />
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                          <Icon size={16} />
+                        </span>
                         <span>{label}</span>
                       </button>
                     ))}
@@ -407,7 +429,11 @@ export default function DentalMapApp() {
           )}
 
           {showPageBack && (
-            <button className="view-back-button" type="button" onClick={() => navigate("home")}>
+            <button
+              className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"
+              type="button"
+              onClick={() => navigate("home")}
+            >
               <ArrowLeft size={17} />
               <span>Ortga</span>
             </button>
@@ -551,20 +577,30 @@ export default function DentalMapApp() {
         </div>
 
         {viewLoading && (
-          <div className="view-loading" role="status" aria-live="polite">
-            <Loader2 size={22} />
+          <div
+            className="absolute left-1/2 top-[86px] z-[70] inline-flex h-10 -translate-x-1/2 items-center gap-2 rounded-pill border border-surface-200 bg-white/95 px-3.5 text-[13px] font-bold text-accent-700 shadow-float backdrop-blur"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 size={22} className="animate-spin" />
             <span>Yuklanmoqda</span>
           </div>
         )}
 
         {!isMapView && (
-          <nav className="bottom-tabs" aria-label="Pastki navigatsiya">
+          <nav
+            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
+            aria-label="Pastki navigatsiya"
+          >
             {tabs.map(({ id, label, Icon }) => (
               <button
                 key={id}
-                className={activeTabId === id ? "tab active" : "tab"}
                 type="button"
                 onClick={() => navigate(id)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-semibold transition-colors",
+                  activeTabId === id ? "bg-brand-50 text-brand-600" : "text-ink-400 hover:text-ink-500"
+                )}
               >
                 <Icon size={20} />
                 <span>{label}</span>

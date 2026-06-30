@@ -94,3 +94,11 @@
     transform: translateY(0);
   }
 }
+
+/* Hide scrollbars on scroll containers (shell + horizontal chip rows). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
