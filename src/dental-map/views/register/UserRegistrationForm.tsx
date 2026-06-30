@@ -2,6 +2,7 @@ import { CheckCircle2, Clock } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, genderOptions } from "../../catalog";
 import { ChoiceField } from "../../components/common";
+import { Button, Field, TextareaField } from "../../ui";
 
 export function UserRegistrationForm({
   userGender,
@@ -22,69 +23,57 @@ export function UserRegistrationForm({
 }) {
   if (userRegistered) {
     return (
-      <div className="admin-status sent">
-        <CheckCircle2 size={18} />
+      <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3.5">
+        <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
         <span>
-          <strong>Profil tayyor</strong>
-          <small>Endi qabulga yozilish va shifokor tanlash mumkin.</small>
+          <strong className="block text-sm font-semibold text-ink-900">Profil tayyor</strong>
+          <small className="block text-xs text-ink-500">
+            Endi qabulga yozilish va shifokor tanlash mumkin.
+          </small>
         </span>
       </div>
     );
   }
 
   return (
-    <>
-      <form id="user-register-form" className="consult-form" onSubmit={onSubmit}>
-        <label>
-          <span>F.I.O.</span>
-          <input name="full_name" placeholder="F.I.O." />
-        </label>
-        <label>
-          <span>Telefon raqam</span>
-          <input name="phone" placeholder="+998 ..." />
-        </label>
-        <div className="two-fields">
-          <ChoiceField
-            label="Jinsi"
-            name="gender"
-            value={userGender}
-            options={genderOptions}
-            onChange={onGenderChange}
-          />
-          <label>
-            <span>Yoshi</span>
-            <input name="age" type="number" min="1" max="100" placeholder="Yosh" />
-          </label>
-        </div>
-        <label>
-          <span>Shahar</span>
-          <input name="city" placeholder="Shahar" />
-        </label>
+    <form id="user-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <Field label="F.I.O." name="full_name" placeholder="F.I.O." />
+      <Field label="Telefon raqam" name="phone" placeholder="+998 ..." />
+      <div className="grid grid-cols-2 gap-3">
         <ChoiceField
-          label="Tuman"
-          name="district"
-          value={userDistrict}
-          options={districts.slice(1)}
-          onChange={onDistrictChange}
+          label="Jinsi"
+          name="gender"
+          value={userGender}
+          options={genderOptions}
+          onChange={onGenderChange}
         />
-        <label>
-          <span>Yashash joyi</span>
-          <textarea name="address" placeholder="Manzil" />
-        </label>
-        {registrationError && (
-          <div className="admin-status error">
-            <Clock size={18} />
-            <span>
-              <strong>Yuborilmadi</strong>
-              <small>{registrationError}</small>
-            </span>
-          </div>
-        )}
-        <button className="primary-btn submit" type="submit">
-          <CheckCircle2 size={18} />
-          Profil yaratish
-        </button>
-      </form>
-    </>
+        <Field label="Yoshi" name="age" type="number" min="1" max="100" placeholder="Yosh" />
+      </div>
+      <Field label="Shahar" name="city" placeholder="Shahar" />
+      <ChoiceField
+        label="Tuman"
+        name="district"
+        value={userDistrict}
+        options={districts.slice(1)}
+        onChange={onDistrictChange}
+      />
+      <TextareaField label="Yashash joyi" name="address" placeholder="Manzil" />
+      {registrationError && (
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger"
+        >
+          <Clock size={18} className="shrink-0" />
+          <span>
+            <strong className="block text-sm font-semibold">Yuborilmadi</strong>
+            <small className="block text-xs opacity-90">{registrationError}</small>
+          </span>
+        </div>
+      )}
+      <Button type="submit" size="lg">
+        <CheckCircle2 size={18} />
+        Profil yaratish
+      </Button>
+    </form>
   );
 }

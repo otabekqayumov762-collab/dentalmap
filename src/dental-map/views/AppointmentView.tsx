@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { genderOptions, slots } from "../catalog";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import type { Doctor } from "../types";
+import { Button, Card, Chip, Field, IconButton, TextareaField } from "../ui";
 
 type DateParts = {
   day: string;
@@ -66,6 +67,12 @@ function buildDateValue(parts: DateParts) {
 
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
+
+const datePartLabels: Record<keyof DateParts, string> = {
+  day: "Kun",
+  month: "Oy",
+  year: "Yil"
+};
 
 export function AppointmentView({
   doctor,
@@ -180,58 +187,45 @@ export function AppointmentView({
 
   if (sent) {
     return (
-      <div className="appointment-success-screen">
-        <span className="success-burst" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="success-icon">
+      <div className="flex flex-col items-center px-2 py-10 text-center">
+        <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-brand-500 shadow-card">
           <CheckCircle2 size={40} />
         </span>
-        <strong>So&apos;rov yuborildi</strong>
-        <p>Administrator so&apos;rovni ko&apos;rib chiqadi. Shifokor tasdiqlagandan keyin xabar yuboriladi.</p>
-        <div className="success-summary">
-          <span>{doctor.name}</span>
-          <b>
+        <strong className="text-xl font-bold text-ink-900">So&apos;rov yuborildi</strong>
+        <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
+          Administrator so&apos;rovni ko&apos;rib chiqadi. Shifokor tasdiqlagandan keyin xabar yuboriladi.
+        </p>
+        <Card className="mt-6 flex w-full max-w-xs flex-col items-center gap-2">
+          <span className="text-sm font-medium text-ink-700">{doctor.name}</span>
+          <b className="flex flex-col items-center gap-1 text-base font-bold text-ink-900">
             {appointmentDate || "Kun tanlanmagan"}
-            <em>{selectedSlot}</em>
+            <em className="not-italic text-sm font-semibold text-brand-600">{selectedSlot}</em>
           </b>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="view-stack">
-      <article className="selected-doctor">
+    <div className="flex flex-col gap-4">
+      <Card as="article" className="flex items-center gap-3">
         <DoctorAvatar doctor={doctor} size="md" />
-        <div>
-          <strong>{doctor.name}</strong>
-          <span>{doctor.specialty}</span>
-          <small>
+        <div className="min-w-0">
+          <strong className="block truncate text-ink-900">{doctor.name}</strong>
+          <span className="block text-sm text-ink-600">{doctor.specialty}</span>
+          <small className="block truncate text-xs text-ink-400">
             {doctor.clinic}, {doctor.district}
           </small>
         </div>
-      </article>
+      </Card>
 
       <SectionTitle title="Vaqt belgilash" />
-      <div className="slot-grid">
-        {slots.length > 0 ? (
-          slots.map((slot) => (
-            <button
+      {slots.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {slots.map((slot) => (
+            <Chip
               key={slot}
-              className={selectedSlot === slot ? "slot active" : "slot"}
-              type="button"
+              active={selectedSlot === slot}
               onClick={() => {
                 onSelectSlot(slot);
                 setFormError("");
@@ -239,144 +233,134 @@ export function AppointmentView({
             >
               <Clock size={15} />
               {slot}
-            </button>
-          ))
-        ) : (
-          <div className="admin-status slot-empty">
-            <Clock size={18} />
-            <span>
-              <strong>Bo&apos;sh vaqtlar ulanmagan</strong>
-              <small>Jadval backend/admin paneldan kelganda shu yerda chiqadi.</small>
-            </span>
-          </div>
-        )}
-      </div>
+            </Chip>
+          ))}
+        </div>
+      ) : (
+        <Card className="flex items-center gap-3 text-ink-600">
+          <Clock size={18} className="shrink-0 text-ink-400" />
+          <span>
+            <strong className="block text-sm text-ink-700">Bo&apos;sh vaqtlar ulanmagan</strong>
+            <small className="block text-xs text-ink-400">
+              Jadval backend/admin paneldan kelganda shu yerda chiqadi.
+            </small>
+          </span>
+        </Card>
+      )}
 
-      <form id="appointment-form" className="consult-form appointment-form" noValidate onSubmit={handleSubmit}>
-        <label>
-          <span>F.I.O.</span>
-          <input
-            name="fullName"
-            autoComplete="name"
-            value={draft.fullName}
-            placeholder="Ism familiya"
-            onChange={(event) => updateDraft("fullName", event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Telefon raqam</span>
-          <input
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={draft.phone}
-            placeholder="+998 90 123 45 67"
-            onChange={(event) => updateDraft("phone", event.target.value)}
-          />
-        </label>
-        <div className="appointment-two-fields">
-          <div className="field-block">
-            <span className="field-label">Jinsi</span>
+      <form id="appointment-form" className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
+        <Field
+          label="F.I.O."
+          name="fullName"
+          autoComplete="name"
+          value={draft.fullName}
+          placeholder="Ism familiya"
+          onChange={(event) => updateDraft("fullName", event.target.value)}
+        />
+        <Field
+          label="Telefon raqam"
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={draft.phone}
+          placeholder="+998 90 123 45 67"
+          onChange={(event) => updateDraft("phone", event.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</span>
             <input type="hidden" name="gender" value={draft.gender} />
-            <div className="gender-row">
+            <div className="flex flex-wrap gap-2">
               {genderOptions.map((option) => (
-                <button
+                <Chip
                   key={option}
-                  className={draft.gender === option ? "gender-option active" : "gender-option"}
-                  type="button"
-                  aria-pressed={draft.gender === option}
+                  active={draft.gender === option}
                   onClick={() => updateDraft("gender", option)}
                 >
                   {option}
-                </button>
+                </Chip>
               ))}
             </div>
           </div>
-          <label className="field-block">
-            <span className="field-label">Yoshi</span>
-            <input
-              name="age"
-              type="number"
-              inputMode="numeric"
-              min="1"
-              max="100"
-              value={draft.age}
-              placeholder="26"
-              onChange={(event) => updateDraft("age", event.target.value.replace(/\D/g, "").slice(0, 3))}
-            />
-          </label>
+          <Field
+            label="Yoshi"
+            name="age"
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="100"
+            value={draft.age}
+            placeholder="26"
+            onChange={(event) => updateDraft("age", event.target.value.replace(/\D/g, "").slice(0, 3))}
+          />
         </div>
-        <div className="date-field" role="group" aria-labelledby="appointment-date-label">
-          <span id="appointment-date-label" className="field-label">Kun belgilash</span>
+        <div role="group" aria-labelledby="appointment-date-label">
+          <span id="appointment-date-label" className="mb-1.5 block text-sm font-medium text-ink-700">
+            Kun belgilash
+          </span>
           <input type="hidden" name="appointmentDate" value={appointmentDate} />
-          <div className="date-composer">
-            <span className="date-composer-icon">
+          <Card className="flex items-center gap-2 p-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
               <CalendarDays size={17} />
             </span>
-            <div className="date-stepper">
-              <span>Kun</span>
-              <div>
-                <button type="button" aria-label="Kunni kamaytirish" onClick={() => updateDatePart("day", -1)}>
-                  <Minus size={14} />
-                </button>
-                <strong>{draft.dateParts.day}</strong>
-                <button type="button" aria-label="Kunni oshirish" onClick={() => updateDatePart("day", 1)}>
-                  <Plus size={14} />
-                </button>
+            {(Object.keys(datePartLabels) as Array<keyof DateParts>).map((part) => (
+              <div key={part} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-xs font-medium text-ink-400">{datePartLabels[part]}</span>
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    type="button"
+                    aria-label={`${datePartLabels[part]}ni kamaytirish`}
+                    className="h-8 w-8"
+                    onClick={() => updateDatePart(part, -1)}
+                  >
+                    <Minus size={14} />
+                  </IconButton>
+                  <strong className="min-w-9 text-center text-base font-bold text-ink-900">
+                    {draft.dateParts[part]}
+                  </strong>
+                  <IconButton
+                    type="button"
+                    aria-label={`${datePartLabels[part]}ni oshirish`}
+                    className="h-8 w-8"
+                    onClick={() => updateDatePart(part, 1)}
+                  >
+                    <Plus size={14} />
+                  </IconButton>
+                </div>
               </div>
-            </div>
-            <div className="date-stepper">
-              <span>Oy</span>
-              <div>
-                <button type="button" aria-label="Oyni kamaytirish" onClick={() => updateDatePart("month", -1)}>
-                  <Minus size={14} />
-                </button>
-                <strong>{draft.dateParts.month}</strong>
-                <button type="button" aria-label="Oyni oshirish" onClick={() => updateDatePart("month", 1)}>
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="date-stepper">
-              <span>Yil</span>
-              <div>
-                <button type="button" aria-label="Yilni kamaytirish" onClick={() => updateDatePart("year", -1)}>
-                  <Minus size={14} />
-                </button>
-                <strong>{draft.dateParts.year}</strong>
-                <button type="button" aria-label="Yilni oshirish" onClick={() => updateDatePart("year", 1)}>
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
+            ))}
+          </Card>
         </div>
-        <label>
-          <span>Izoh</span>
-          <textarea
-            name="note"
-            value={draft.note}
-            placeholder="Shikoyat yoki qo'shimcha izoh"
-            onChange={(event) => updateDraft("note", event.target.value)}
-          />
-        </label>
+        <TextareaField
+          label="Izoh"
+          name="note"
+          value={draft.note}
+          placeholder="Shikoyat yoki qo'shimcha izoh"
+          onChange={(event) => updateDraft("note", event.target.value)}
+        />
         {formError && (
-          <div className="form-error" role="alert">
-            <AlertCircle size={17} />
+          <div
+            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-danger"
+            role="alert"
+          >
+            <AlertCircle size={17} className="shrink-0" />
             <span>{formError}</span>
           </div>
         )}
         {submitError && (
-          <div className="form-error" role="alert">
-            <AlertCircle size={17} />
+          <div
+            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-danger"
+            role="alert"
+          >
+            <AlertCircle size={17} className="shrink-0" />
             <span>{submitError}</span>
           </div>
         )}
-        <button className="primary-btn submit" type="submit" disabled={sent || submitting}>
+        <Button type="submit" size="lg" disabled={sent || submitting}>
           <CheckCircle2 size={18} />
           {submitting ? "Yuborilmoqda" : sent ? "Yuborildi" : "Qabulga yozilish"}
-        </button>
+        </Button>
       </form>
     </div>
   );

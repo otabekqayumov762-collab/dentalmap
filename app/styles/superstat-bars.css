@@ -1,0 +1,47 @@
+/* Scoped numeric helpers for the SUPERSTAT charts.
+   The strict CSP forbids inline styles, so dynamic bar heights and progress
+   widths are expressed here as small width/height-only utility classes.
+   Everything else on the page is plain Tailwind + design tokens. */
+
+/* Vertical revenue bar heights (percentage of the chart track). */
+.bar-height-8 {
+  height: 8%;
+}
+.bar-height-18 {
+  height: 18%;
+}
+.bar-height-23 {
+  height: 23%;
+}
+.bar-height-26 {
+  height: 26%;
+}
+.bar-height-42 {
+  height: 42%;
+}
+.bar-height-51 {
+  height: 51%;
+}
+.bar-height-100 {
+  height: 100%;
+}
+
+/* Horizontal progress widths (percentage of the track). */
+.progress-width-7 {
+  width: 7%;
+}
+.progress-width-11 {
+  width: 11%;
+}
+.progress-width-12 {
+  width: 12%;
+}
+.progress-width-52 {
+  width: 52%;
+}
+.progress-width-65 {
+  width: 65%;
+}
+.progress-width-100 {
+  width: 100%;
+}

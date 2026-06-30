@@ -21,8 +21,8 @@ export function DoctorsView({
   onAppointment: (doctor: Doctor) => void;
 }) {
   return (
-    <div className="view-stack">
-      <div className="doctor-grid">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {doctors.map((doctor) => (
           <DoctorCard
             key={doctor.id}

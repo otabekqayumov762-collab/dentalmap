@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { paymentMethods } from "../catalog";
 import type { RegisterRole, ViewId } from "../types";
+import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
 import { DoctorSubscriptionFlow } from "./register/DoctorSubscriptionFlow";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
@@ -49,7 +50,7 @@ export function RegisterView({
   }
 
   return (
-    <div className="view-stack">
+    <div className="flex flex-col gap-4">
       <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />
 
       {role === "user" ? (
@@ -89,20 +90,24 @@ export function RegisterView({
               onDoctorPay={onDoctorPay}
             />
           ) : (
-            <div className="admin-status">
-              <Clock size={18} />
+            <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-4 py-3.5">
+              <Clock size={18} className="shrink-0 text-ink-400" />
               <span>
-                <strong>To&apos;lov keyingi bosqichda</strong>
-                <small>Avval shifokor ma&apos;lumotlarini to&apos;liq yuboring.</small>
+                <strong className="block text-sm font-semibold text-ink-900">
+                  To&apos;lov keyingi bosqichda
+                </strong>
+                <small className="block text-xs text-ink-500">
+                  Avval shifokor ma&apos;lumotlarini to&apos;liq yuboring.
+                </small>
               </span>
             </div>
           )}
         </>
       )}
 
-      <button className="secondary-btn" type="button" onClick={() => onNavigate("profile")}>
+      <Button variant="secondary" size="lg" type="button" onClick={() => onNavigate("profile")}>
         Profilga qaytish
-      </button>
+      </Button>
     </div>
   );
 }

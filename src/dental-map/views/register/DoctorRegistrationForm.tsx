@@ -2,6 +2,7 @@ import { Camera, CheckCircle2, Clock, Star, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
 import { ChoiceField } from "../../components/common";
+import { Button, Chip, Field, TextareaField } from "../../ui";
 
 export function DoctorRegistrationForm({
   doctorSpecialty,
@@ -27,11 +28,8 @@ export function DoctorRegistrationForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form id="doctor-register-form" className="consult-form doctor-register-form" onSubmit={onSubmit}>
-      <label>
-        <span>Shifokor F.I.O.</span>
-        <input name="full_name" placeholder="Shifokor F.I.O." />
-      </label>
+    <form id="doctor-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <Field label="Shifokor F.I.O." name="full_name" placeholder="Shifokor F.I.O." />
       <ChoiceField
         label="Asosiy yo'nalish"
         name="specialty"
@@ -39,75 +37,65 @@ export function DoctorRegistrationForm({
         options={specialtyOptions}
         onChange={onSpecialtyChange}
       />
-      <fieldset className="service-picker">
-        <legend>Ko&apos;rsatadigan xizmatlar</legend>
+      <fieldset className="m-0 border-0 p-0">
+        <legend className="mb-1.5 block text-sm font-medium text-ink-700">
+          Ko&apos;rsatadigan xizmatlar
+        </legend>
         <input type="hidden" name="services" value={selectedServiceIds.join(",")} />
-        <div className="service-pill-row">
+        <div className="flex flex-wrap gap-2">
           {serviceItems.map(({ id, label, Icon }) => {
             const active = selectedServiceIds.includes(id);
 
             return (
-              <button
-                key={id}
-                className={active ? "service-pill active" : "service-pill"}
-                type="button"
-                aria-pressed={active}
-                onClick={() => onToggleService(id)}
-              >
+              <Chip key={id} active={active} onClick={() => onToggleService(id)}>
                 <Icon size={16} />
-                <span>{label}</span>
+                {label}
                 {active && <CheckCircle2 size={14} />}
-              </button>
+              </Chip>
             );
           })}
         </div>
       </fieldset>
-      <div className="two-fields">
-        <label>
-          <span>Ish staji</span>
-          <input name="experience_years" placeholder="Masalan: 8 yil" />
-        </label>
-        <label>
-          <span>Ish vaqti</span>
-          <input name="work_time" placeholder="09:00 - 18:00" />
-        </label>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
+        <Field label="Ish vaqti" name="work_time" placeholder="09:00 - 18:00" />
       </div>
-      <label className="upload-card">
+      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-surface-200 bg-surface-50 px-4 py-3.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
         <input
           type="file"
           name="photo_file"
           accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
           onChange={(event) => onPhotoFileChange(event.currentTarget.files?.[0]?.name ?? "")}
         />
-        <span className="upload-icon">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
           <Camera size={20} />
         </span>
-        <span className="upload-copy">
-          <strong>{photoFileName || "Rasm yuklash"}</strong>
-          <small>{photoFileName ? "Rasm tanlandi" : "JPG, PNG yoki WebP"}</small>
+        <span className="min-w-0 flex-1">
+          <strong className="block truncate text-sm font-semibold text-ink-900">
+            {photoFileName || "Rasm yuklash"}
+          </strong>
+          <small className="block text-xs text-ink-500">
+            {photoFileName ? "Rasm tanlandi" : "JPG, PNG yoki WebP"}
+          </small>
         </span>
-        <Upload size={18} />
+        <Upload size={18} className="shrink-0 text-ink-400" />
       </label>
-      <label>
-        <span>Ishlaydigan klinika nomi</span>
-        <input name="clinic_name" placeholder="Klinika nomi" />
-      </label>
-      <label>
-        <span>Izoh</span>
-        <textarea name="description" placeholder="Qisqa ma'lumot" />
-      </label>
-      <div className="admin-status">
-        <Star size={18} />
+      <Field label="Ishlaydigan klinika nomi" name="clinic_name" placeholder="Klinika nomi" />
+      <TextareaField label="Izoh" name="description" placeholder="Qisqa ma'lumot" />
+      <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-4 py-3.5">
+        <Star size={18} className="shrink-0 text-warning" />
         <span>
-          <strong>Reyting administrator orqali yuritiladi</strong>
-          <small>Reyting va sharhlar tasdiqlangan qabul tarixidan hisoblanadi.</small>
+          <strong className="block text-sm font-semibold text-ink-900">
+            Reyting administrator orqali yuritiladi
+          </strong>
+          <small className="block text-xs text-ink-500">
+            Reyting va sharhlar tasdiqlangan qabul tarixidan hisoblanadi.
+          </small>
         </span>
       </div>
-      <label>
-        <span>Shifokor telefon raqami</span>
-        <input name="doctor_phone" placeholder="+998 ..." />
-      </label>
-      <div className="two-fields">
+      <Field label="Shifokor telefon raqami" name="doctor_phone" placeholder="+998 ..." />
+      <div className="grid grid-cols-2 gap-3">
         <ChoiceField
           label="Klinika tumani"
           name="clinic_district"
@@ -115,36 +103,35 @@ export function DoctorRegistrationForm({
           options={districts.slice(1)}
           onChange={onDistrictChange}
         />
-        <label>
-          <span>Klinika joylashuvi</span>
-          <input name="clinic_address" placeholder="Manzil" />
-        </label>
+        <Field label="Klinika joylashuvi" name="clinic_address" placeholder="Manzil" />
       </div>
-      <label>
-        <span>Klinika lokatsiya linki</span>
-        <input
-          name="clinic_location_url"
-          type="url"
-          placeholder="Google Maps yoki Yandex Maps linki"
-        />
-      </label>
-      <label>
-        <span>Klinikagacham borish</span>
-        <textarea name="directions" placeholder="Mo'ljal yoki lokatsiya izohi" />
-      </label>
+      <Field
+        label="Klinika lokatsiya linki"
+        name="clinic_location_url"
+        type="url"
+        placeholder="Google Maps yoki Yandex Maps linki"
+      />
+      <TextareaField
+        label="Klinikagacham borish"
+        name="directions"
+        placeholder="Mo'ljal yoki lokatsiya izohi"
+      />
       {registrationError && (
-        <div className="admin-status error">
-          <Clock size={18} />
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger"
+        >
+          <Clock size={18} className="shrink-0" />
           <span>
-            <strong>Yuborilmadi</strong>
-            <small>{registrationError}</small>
+            <strong className="block text-sm font-semibold">Yuborilmadi</strong>
+            <small className="block text-xs opacity-90">{registrationError}</small>
           </span>
         </div>
       )}
-      <button className="primary-btn submit" type="submit">
+      <Button type="submit" size="lg">
         <CheckCircle2 size={18} />
         Shifokor anketasini yuborish
-      </button>
+      </Button>
     </form>
   );
 }

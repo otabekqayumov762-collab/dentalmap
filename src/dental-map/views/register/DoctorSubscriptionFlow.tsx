@@ -1,7 +1,48 @@
-import { CheckCircle2, Clock, CreditCard } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, type LucideIcon } from "lucide-react";
 import type { FormEvent } from "react";
 import { paymentMethods } from "../../catalog";
 import { SectionTitle } from "../../components/common";
+import { Button, Card, Field, cn } from "../../ui";
+
+type TimelineState = "done" | "active" | "pending";
+
+function TimelineRow({
+  state,
+  Icon,
+  title,
+  text
+}: {
+  state: TimelineState;
+  Icon: LucideIcon;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          state === "done" && "bg-brand-500 text-white",
+          state === "active" && "bg-brand-50 text-brand-500 ring-2 ring-brand-100",
+          state === "pending" && "bg-surface-100 text-ink-400"
+        )}
+      >
+        <Icon size={16} />
+      </span>
+      <span>
+        <strong
+          className={cn(
+            "block text-sm font-semibold",
+            state === "pending" ? "text-ink-400" : "text-ink-900"
+          )}
+        >
+          {title}
+        </strong>
+        <small className="block text-xs leading-snug text-ink-500">{text}</small>
+      </span>
+    </div>
+  );
+}
 
 export function DoctorSubscriptionFlow({
   method,
@@ -18,110 +59,150 @@ export function DoctorSubscriptionFlow({
   onMethodChange: (method: (typeof paymentMethods)[number][0]) => void;
   onDoctorPay: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const locked = paymentSubmitting || doctorSubscriptionPaid;
+
   return (
     <>
-      <div className="admin-status sent">
-        <CheckCircle2 size={18} />
+      <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3.5">
+        <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
         <span>
-          <strong>Shifokor ma&apos;lumotlari yuborildi</strong>
-          <small>Endi 1 oylik obuna to&apos;lovini qiling.</small>
+          <strong className="block text-sm font-semibold text-ink-900">
+            Shifokor ma&apos;lumotlari yuborildi
+          </strong>
+          <small className="block text-xs text-ink-500">Endi 1 oylik obuna to&apos;lovini qiling.</small>
         </span>
       </div>
 
-      <section className="bill-card">
-        <div className="bill-top">
-          <span className="soft-icon">
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
             <CreditCard size={18} />
           </span>
           <span>
-            <strong>Shifokor obunasi</strong>
-            <small>Profil 1 oy davomida faol bo&apos;ladi.</small>
+            <strong className="block text-sm font-bold text-ink-900">Shifokor obunasi</strong>
+            <small className="block text-xs text-ink-500">Profil 1 oy davomida faol bo&apos;ladi.</small>
           </span>
         </div>
-        <div className="bill-row">
-          <span>1 oylik obuna</span>
-          <b>50 000 so&apos;m</b>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-ink-600">1 oylik obuna</span>
+          <b className="font-semibold text-ink-900">50 000 so&apos;m</b>
         </div>
-        <div className="bill-row">
-          <span>Administrator sozlamasi</span>
-          <b>Narx administrator panelidan o&apos;zgaradi</b>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-ink-600">Administrator sozlamasi</span>
+          <b className="text-right font-semibold text-ink-900">
+            Narx administrator panelidan o&apos;zgaradi
+          </b>
         </div>
-        <div className="bill-total">
-          <span>Jami</span>
-          <strong>50 000 so&apos;m</strong>
+        <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
+          <span className="font-medium text-ink-700">Jami</span>
+          <strong className="text-base font-bold text-brand-600">50 000 so&apos;m</strong>
         </div>
-      </section>
+      </Card>
 
       <SectionTitle title="To'lov usuli" />
-      <div className="payment-methods">
-        {paymentMethods.map(([id, name, text]) => (
-          <button
-            key={id}
-            className={method === id ? "payment-method active" : "payment-method"}
-            type="button"
-            disabled={paymentSubmitting || doctorSubscriptionPaid}
-            onClick={() => onMethodChange(id)}
-          >
-            <CreditCard size={18} />
-            <span>
-              <strong>{name}</strong>
-              <small>{text}</small>
-            </span>
-          </button>
-        ))}
+      <div className="flex flex-col gap-2">
+        {paymentMethods.map(([id, name, text]) => {
+          const active = method === id;
+
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={active}
+              disabled={locked}
+              onClick={() => onMethodChange(id)}
+              className={cn(
+                "flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.99]",
+                "disabled:pointer-events-none disabled:opacity-55",
+                active
+                  ? "border-brand-400 bg-brand-50 shadow-card"
+                  : "border-surface-100 bg-surface-0 hover:bg-surface-50"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                  active ? "bg-brand-500 text-white" : "bg-surface-100 text-ink-500"
+                )}
+              >
+                <CreditCard size={18} />
+              </span>
+              <span>
+                <strong
+                  className={cn(
+                    "block text-sm font-semibold",
+                    active ? "text-brand-700" : "text-ink-900"
+                  )}
+                >
+                  {name}
+                </strong>
+                <small className="block text-xs text-ink-500">{text}</small>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <form id="doctor-payment-form" className="consult-form" onSubmit={onDoctorPay}>
+      <form id="doctor-payment-form" className="flex flex-col gap-4" onSubmit={onDoctorPay}>
         <input type="hidden" name="method" value={method} />
-        <label>
-          <span>To&apos;lov telefon raqami</span>
-          <input name="payment_phone" placeholder="+998 ..." disabled={paymentSubmitting || doctorSubscriptionPaid} />
-        </label>
-        <label>
-          <span>Chek raqami</span>
-          <input name="receipt_number" placeholder="Chek raqami" disabled={paymentSubmitting || doctorSubscriptionPaid} />
-        </label>
+        <Field
+          label="To'lov telefon raqami"
+          name="payment_phone"
+          placeholder="+998 ..."
+          disabled={locked}
+        />
+        <Field
+          label="Chek raqami"
+          name="receipt_number"
+          placeholder="Chek raqami"
+          disabled={locked}
+        />
         {paymentError && (
-          <div className="admin-status error">
-            <Clock size={18} />
+          <div
+            role="alert"
+            className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger"
+          >
+            <Clock size={18} className="shrink-0" />
             <span>
-              <strong>To&apos;lov yuborilmadi</strong>
-              <small>{paymentError}</small>
+              <strong className="block text-sm font-semibold">To&apos;lov yuborilmadi</strong>
+              <small className="block text-xs opacity-90">{paymentError}</small>
             </span>
           </div>
         )}
-        <button className="primary-btn submit" type="submit" disabled={paymentSubmitting || doctorSubscriptionPaid}>
+        <Button type="submit" size="lg" disabled={locked}>
           <CheckCircle2 size={18} />
-          {doctorSubscriptionPaid ? "To'lov yuborilgan" : paymentSubmitting ? "Yuborilmoqda" : "50 000 so'm to'lash"}
-        </button>
+          {doctorSubscriptionPaid
+            ? "To'lov yuborilgan"
+            : paymentSubmitting
+              ? "Yuborilmoqda"
+              : "50 000 so'm to'lash"}
+        </Button>
       </form>
 
-      <section className="payment-timeline" aria-label="Shifokor obuna jarayoni">
-        <div className="timeline-row done">
-          <CheckCircle2 size={17} />
-          <span>
-            <strong>Anketa to&apos;ldirildi</strong>
-            <small>Shifokor ma&apos;lumotlari administrator tekshiruviga tayyor.</small>
-          </span>
-        </div>
-        <div className={doctorSubscriptionPaid ? "timeline-row done" : "timeline-row active"}>
-          <CreditCard size={17} />
-          <span>
-            <strong>{doctorSubscriptionPaid ? "To'lov yuborildi" : "To'lov kutilmoqda"}</strong>
-            <small>1 oy uchun 50 000 so&apos;m obuna to&apos;lovi.</small>
-          </span>
-        </div>
-        <div className={doctorSubscriptionPaid ? "timeline-row active" : "timeline-row"}>
-          <Clock size={17} />
-          <span>
-            <strong>Administrator tasdig&apos;i</strong>
-            <small>
-              {doctorSubscriptionPaid
-                ? "Administrator shifokor profilini va to'lov chekini tasdiqlaydi."
-                : "To'lov yuborilgandan keyin administrator tekshiruvi boshlanadi."}
-            </small>
-          </span>
-        </div>
+      <section className="flex flex-col gap-3" aria-label="Shifokor obuna jarayoni">
+        <TimelineRow
+          state="done"
+          Icon={CheckCircle2}
+          title="Anketa to'ldirildi"
+          text="Shifokor ma'lumotlari administrator tekshiruviga tayyor."
+        />
+        <TimelineRow
+          state={doctorSubscriptionPaid ? "done" : "active"}
+          Icon={CreditCard}
+          title={doctorSubscriptionPaid ? "To'lov yuborildi" : "To'lov kutilmoqda"}
+          text="1 oy uchun 50 000 so'm obuna to'lovi."
+        />
+        <TimelineRow
+          state={doctorSubscriptionPaid ? "active" : "pending"}
+          Icon={Clock}
+          title="Administrator tasdig'i"
+          text={
+            doctorSubscriptionPaid
+              ? "Administrator shifokor profilini va to'lov chekini tasdiqlaydi."
+              : "To'lov yuborilgandan keyin administrator tekshiruvi boshlanadi."
+          }
+        />
       </section>
     </>
   );
