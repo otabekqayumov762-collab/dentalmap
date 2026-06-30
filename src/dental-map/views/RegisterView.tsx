@@ -1,4 +1,3 @@
-import { Clock } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { paymentMethods } from "../catalog";
 import type { RegisterRole, ViewId } from "../types";
@@ -80,7 +79,7 @@ export function RegisterView({
             />
           )}
 
-          {doctorRegistrationSent ? (
+          {doctorRegistrationSent && (
             <DoctorSubscriptionFlow
               method={method}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
@@ -89,18 +88,6 @@ export function RegisterView({
               onMethodChange={setMethod}
               onDoctorPay={onDoctorPay}
             />
-          ) : (
-            <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-4 py-3.5">
-              <Clock size={18} className="shrink-0 text-ink-400" />
-              <span>
-                <strong className="block text-sm font-semibold text-ink-900">
-                  To&apos;lov keyingi bosqichda
-                </strong>
-                <small className="block text-xs text-ink-500">
-                  Avval shifokor ma&apos;lumotlarini to&apos;liq yuboring.
-                </small>
-              </span>
-            </div>
           )}
         </>
       )}

@@ -1,8 +1,9 @@
-import { Camera, CheckCircle2, Clock, Star, Upload } from "lucide-react";
+import { Camera, CheckCircle2, Clock, Upload } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
 import { Button, Field, OptionGrid, PhoneField, Select, TextareaField } from "../../ui";
 import { LocationPickerField } from "./LocationPickerField";
+import { WorkTimeField } from "./WorkTimeField";
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
@@ -96,22 +97,9 @@ export function DoctorRegistrationForm({
             options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
           />
         </FieldGroup>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
-          <Field label="Ish vaqti" name="work_time" placeholder="09:00 - 18:00" />
-        </div>
+        <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
+        <WorkTimeField name="work_time" />
         <TextareaField label="Izoh" name="description" placeholder="Qisqa ma'lumot" />
-        <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-4 py-3.5">
-          <Star size={18} className="shrink-0 text-warning" />
-          <span>
-            <strong className="block text-sm font-semibold text-ink-900">
-              Reyting administrator orqali yuritiladi
-            </strong>
-            <small className="block text-xs text-ink-500">
-              Reyting va sharhlar tasdiqlangan qabul tarixidan hisoblanadi.
-            </small>
-          </span>
-        </div>
       </Section>
 
       <Section step={3} title="Klinika">
