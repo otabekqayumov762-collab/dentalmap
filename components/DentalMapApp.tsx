@@ -19,6 +19,7 @@ import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
 import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
 import { DoctorsView } from "@/src/dental-map/views/DoctorsView";
 import { FeedbackView } from "@/src/dental-map/views/FeedbackView";
+import { AuthGate, type AuthMode } from "@/src/dental-map/views/AuthGate";
 import { HomeView } from "@/src/dental-map/views/HomeView";
 import { LoginView } from "@/src/dental-map/views/LoginView";
 import { MapView } from "@/src/dental-map/views/MapView";
@@ -77,6 +78,8 @@ export default function DentalMapApp() {
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const landedRef = useRef(false);
 
   const isTelegram = Boolean(webApp);
 
@@ -167,11 +170,7 @@ export default function DentalMapApp() {
   }
 
   async function handleLogin(login: string, password: string) {
-    const message = await loginWithPassword(login, password);
-    if (!message) {
-      changeView("profile");
-    }
-    return message;
+    return loginWithPassword(login, password);
   }
 
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
@@ -343,6 +342,16 @@ export default function DentalMapApp() {
     }
   }, [apiDoctors, selectedDoctor]);
 
+  // First time a session resolves, send doctors straight to their dashboard.
+  useEffect(() => {
+    if (currentUser && !landedRef.current) {
+      landedRef.current = true;
+      if (isDoctorAccount) {
+        changeView("profile");
+      }
+    }
+  }, [currentUser, isDoctorAccount, changeView]);
+
   useTelegramButtons({
     webApp,
     activeView,
@@ -370,6 +379,42 @@ export default function DentalMapApp() {
 
   if (telegramOnly && !isInTelegram) {
     return <TelegramGate />;
+  }
+
+  // Auth wall: no entry without logging in or registering (as patient/doctor).
+  // A doctor mid-registration must finish the subscription payment before entry.
+  const doctorRegistrationPending =
+    authMode === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid;
+  const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
+
+  if (!isAuthenticated) {
+    if (authStatus === "loading") {
+      return (
+        <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
+          <Loader2 size={26} className="animate-spin text-brand-500" />
+        </main>
+      );
+    }
+    return (
+      <AuthGate
+        mode={authMode}
+        onModeChange={setAuthMode}
+        onLogin={handleLogin}
+        role={registerRole}
+        userRegistered={userRegistered}
+        doctorRegistrationSent={doctorRegistrationSent}
+        doctorSubscriptionPaid={doctorSubscriptionPaid}
+        paymentSubmitting={paymentSubmitting}
+        registrationError={registrationError}
+        onRoleChange={(role) => {
+          setRegistrationError("");
+          setRegisterRole(role);
+        }}
+        onUserSubmit={sendUserRegistration}
+        onDoctorSubmit={sendDoctorRegistration}
+        onDoctorPay={submitDoctorPayment}
+      />
+    );
   }
 
   return (

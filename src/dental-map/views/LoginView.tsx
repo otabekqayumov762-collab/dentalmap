@@ -1,6 +1,5 @@
 import { LogIn } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { BrandLogo } from "../components/common";
 import type { ViewId } from "../types";
 import { Button, Field } from "../ui";
 
@@ -35,17 +34,7 @@ export function LoginView({
   }
 
   return (
-    <div className="flex flex-col gap-6 pt-2">
-      <header className="flex flex-col items-center gap-3 pt-4 text-center">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-50">
-          <BrandLogo />
-        </span>
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Tizimga kirish</h1>
-          <p className="mt-1 text-sm text-ink-500">Login va parolingiz bilan kiring</p>
-        </div>
-      </header>
-
+    <div className="flex flex-col gap-5">
       <form className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={handleSubmit}>
         <Field label="Login" name="login" autoComplete="username" placeholder="Login" />
         <Field label="Parol" name="password" type="password" autoComplete="current-password" placeholder="••••••••" />
