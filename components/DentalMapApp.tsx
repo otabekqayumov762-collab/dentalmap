@@ -12,7 +12,7 @@ import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
 import { useViewNavigation } from "@/src/dental-map/hooks/useViewNavigation";
-import { BrandLogo, DistrictFilter, EmptyState, NotificationPanel, TelegramStatus } from "@/src/dental-map/components/common";
+import { BrandLogo, DistrictFilter, EmptyState, TelegramStatus } from "@/src/dental-map/components/common";
 import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
 import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
@@ -21,6 +21,7 @@ import { FeedbackView } from "@/src/dental-map/views/FeedbackView";
 import { HomeView } from "@/src/dental-map/views/HomeView";
 import { MapView } from "@/src/dental-map/views/MapView";
 import { MoreView } from "@/src/dental-map/views/MoreView";
+import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
@@ -71,7 +72,6 @@ export default function DentalMapApp() {
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const isTelegram = Boolean(webApp);
 
@@ -338,7 +338,6 @@ export default function DentalMapApp() {
     doctorRegistrationSent,
     doctorSubscriptionPaid,
     changeView,
-    closeNotifications: useCallback(() => setNotificationsOpen(false), []),
     submitConsultation
   });
 
@@ -359,10 +358,10 @@ export default function DentalMapApp() {
                     </strong>
                   </button>
                   <button
-                    className={notificationsOpen ? "round-icon active" : "round-icon"}
+                    className={activeView === "notifications" ? "round-icon active" : "round-icon"}
                     type="button"
                     aria-label="Bildirishnomalar"
-                    onClick={() => setNotificationsOpen((open) => !open)}
+                    onClick={() => navigate("notifications")}
                   >
                     <Bell size={18} />
                   </button>
@@ -374,16 +373,6 @@ export default function DentalMapApp() {
                   user={telegramUser}
                   isTelegram={isTelegram}
                 />
-
-                {notificationsOpen && (
-                  <NotificationPanel
-                    sent={consultationSent}
-                    onOpenAppointment={() => {
-                      setNotificationsOpen(false);
-                      navigate("appointment");
-                    }}
-                  />
-                )}
 
                 <label className="search-field">
                   <Search size={17} />
@@ -554,6 +543,10 @@ export default function DentalMapApp() {
 
           {activeView === "feedback" && (
             <FeedbackView />
+          )}
+
+          {activeView === "notifications" && (
+            <NotificationsView sent={consultationSent} onOpenAppointment={() => navigate("appointment")} />
           )}
         </div>
 

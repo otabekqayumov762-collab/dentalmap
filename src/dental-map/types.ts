@@ -11,6 +11,7 @@ export type ViewId =
   | "register"
   | "profile"
   | "feedback"
+  | "notifications"
   | "more";
 
 export type RegisterRole = "user" | "doctor";

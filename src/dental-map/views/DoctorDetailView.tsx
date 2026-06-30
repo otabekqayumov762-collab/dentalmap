@@ -1,6 +1,7 @@
 import { Building2, CalendarDays, Clock, Heart, LockKeyhole, MapPin, Phone, Send, Star } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { DoctorAvatar } from "../components/common";
+import { isSafeHttpUrl, openExternal } from "../lib/url";
 import type { Doctor, DoctorReview } from "../types";
 
 export function DoctorDetailView({
@@ -92,11 +93,11 @@ export function DoctorDetailView({
           <strong>{doctor.experience || "Tajriba kiritilmagan"}</strong>
         </span>
       </section>
-      {doctor.locationUrl && (
+      {isSafeHttpUrl(doctor.locationUrl) && (
         <button
           className="secondary-btn"
           type="button"
-          onClick={() => window.open(doctor.locationUrl, "_blank", "noopener,noreferrer")}
+          onClick={() => openExternal(doctor.locationUrl)}
         >
           <MapPin size={17} />
           Lokatsiyani ochish
