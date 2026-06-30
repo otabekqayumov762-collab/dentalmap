@@ -2,7 +2,7 @@ import { Camera, CheckCircle2, Clock, Star, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
 import { ChoiceField } from "../../components/common";
-import { Button, Chip, Field, TextareaField } from "../../ui";
+import { Button, Chip, Field, PhoneField, TextareaField } from "../../ui";
 
 export function DoctorRegistrationForm({
   doctorSpecialty,
@@ -94,7 +94,7 @@ export function DoctorRegistrationForm({
           </small>
         </span>
       </div>
-      <Field label="Shifokor telefon raqami" name="doctor_phone" placeholder="+998 ..." />
+      <PhoneField label="Shifokor telefon raqami" name="doctor_phone" />
       <div className="grid grid-cols-2 gap-3">
         <ChoiceField
           label="Klinika tumani"

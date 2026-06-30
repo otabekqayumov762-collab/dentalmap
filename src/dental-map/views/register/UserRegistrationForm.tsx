@@ -2,7 +2,7 @@ import { CheckCircle2, Clock } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, genderOptions } from "../../catalog";
 import { ChoiceField } from "../../components/common";
-import { Button, Field, TextareaField } from "../../ui";
+import { Button, Field, PhoneField, TextareaField } from "../../ui";
 
 export function UserRegistrationForm({
   userGender,
@@ -38,7 +38,7 @@ export function UserRegistrationForm({
   return (
     <form id="user-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
       <Field label="F.I.O." name="full_name" placeholder="F.I.O." />
-      <Field label="Telefon raqam" name="phone" placeholder="+998 ..." />
+      <PhoneField label="Telefon raqam" name="phone" />
       <div className="grid grid-cols-2 gap-3">
         <ChoiceField
           label="Jinsi"

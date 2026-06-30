@@ -215,7 +215,7 @@ export function MapView({
       </div>
 
       <div
-        className="absolute inset-x-0 top-[4.75rem] z-20 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="absolute inset-x-0 top-[4.75rem] z-20 flex gap-2 overflow-x-auto no-scrollbar px-4 pb-1"
         aria-label="Hududlar"
       >
         {districts.slice(0, 7).map((item) => (
@@ -288,7 +288,7 @@ export function MapView({
             </Card>
           )}
 
-          <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
             {featuredClinics.slice(1).map((clinic) => (
               <button
                 key={clinic.id}

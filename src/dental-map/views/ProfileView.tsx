@@ -1,8 +1,8 @@
-import { CalendarDays, CheckCircle2, ChevronRight, Clock, Home, MapPin, Phone, Save, User } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, Clock, Home, MapPin, Save, User } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { districts } from "../catalog";
 import type { ViewId } from "../types";
-import { Button, Card, Select, cn } from "../ui";
+import { Button, Card, PhoneField, Select, cn } from "../ui";
 
 type ProfileForm = {
   name: string;
@@ -175,20 +175,11 @@ export function ProfileView({
               </div>
             </label>
 
-            <label className="block">
-              <span className={labelClass}>Telefon raqam</span>
-              <div className="relative">
-                <Phone size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
-                <input
-                  className={fieldShell}
-                  autoComplete="tel"
-                  inputMode="tel"
-                  placeholder="+998 90 123 45 67"
-                  value={profile.phone}
-                  onChange={(event) => updateProfile("phone", event.target.value)}
-                />
-              </div>
-            </label>
+            <PhoneField
+              label="Telefon raqam"
+              value={profile.phone}
+              onValueChange={(value) => updateProfile("phone", value)}
+            />
 
             <Select
               label={

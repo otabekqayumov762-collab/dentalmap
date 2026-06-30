@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "./cn";
 
 /** Strips to national digits (drops the 998 country code), max 9 digits. */
@@ -49,19 +49,22 @@ export function PhoneField({
   className
 }: PhoneFieldProps) {
   const controlled = value !== undefined;
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [digits, setDigits] = useState(() => parseDigits(value ?? defaultValue ?? ""));
 
+  // Sync from an external value only when the user is NOT typing here, so the
+  // controlled round-trip can't drop characters mid-entry.
   useEffect(() => {
-    if (controlled) {
-      setDigits(parseDigits(value));
+    if (!controlled || document.activeElement === inputRef.current) {
+      return;
     }
+    const next = parseDigits(value);
+    setDigits((current) => (current === next ? current : next));
   }, [controlled, value]);
 
   function update(raw: string) {
     const next = parseDigits(raw);
-    if (!controlled) {
-      setDigits(next);
-    }
+    setDigits(next);
     onValueChange?.(fullValue(next));
   }
 
@@ -77,6 +80,7 @@ export function PhoneField({
       >
         <span className="select-none pl-4 pr-2 font-medium text-ink-500">+998</span>
         <input
+          ref={inputRef}
           type="tel"
           inputMode="numeric"
           autoComplete="tel"

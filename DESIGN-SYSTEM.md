@@ -41,6 +41,16 @@ upgrading the visual quality (modern, calm, medical-grade, mobile-first).
 - `Select` — custom dropdown with styled options; `value/options/onChange`, `name`.
 - `Modal` — centered dialog (backdrop, Esc, scroll lock).
 - `Sheet` — bottom sheet (mobile pickers).
+- `PhoneField` — phone input with fixed **+998** prefix + `90 123 45 67` mask.
+  Uncontrolled: `<PhoneField name="phone" defaultValue={...} />` (submits
+  "+998 90 123 45 67" via hidden input). Controlled: `<PhoneField value={x}
+  onValueChange={setX} name="phone" />`. Use it for EVERY phone input.
+
+## Overflow rule (mobile-critical)
+Never let a row overflow the viewport. For horizontal chip/scroll rows use
+`overflow-x-auto no-scrollbar` AND make sure ancestors can shrink: parent grid
+must be `grid-cols-1` (not bare `grid`) and flex/grid children need `min-w-0`.
+Verify nothing is wider than the screen.
 
 ## Visual language
 - Calm medical palette; generous whitespace; `rounded-card`/`rounded-2xl`.

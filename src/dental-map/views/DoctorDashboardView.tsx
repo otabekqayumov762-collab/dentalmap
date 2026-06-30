@@ -14,7 +14,7 @@ import { appointmentStatusLabel, weekdayLabel } from "../api/dentalMapApi";
 import { districts, specialtyOptions } from "../catalog";
 import { DoctorAvatar } from "../components/common";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability } from "../types";
-import { Badge, Button, Card, Field, TextareaField } from "../ui";
+import { Badge, Button, Card, Field, PhoneField, TextareaField } from "../ui";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-ink-700";
 const selectClass =
@@ -198,7 +198,7 @@ export function DoctorDashboardView({
                 ))}
               </select>
             </label>
-            <Field label="Telefon" name="doctor_phone" defaultValue={profile?.doctor_phone || user?.phone || ""} />
+            <PhoneField label="Telefon" name="doctor_phone" defaultValue={profile?.doctor_phone || user?.phone || ""} />
           </div>
 
           <TextareaField label="Manzil" name="clinic_address" defaultValue={profile?.clinic_address || ""} />

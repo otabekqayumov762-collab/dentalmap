@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { feedbackTopics } from "../catalog";
-import { Button, Chip, Field, TextareaField } from "../ui";
+import { Button, Chip, Field, PhoneField, TextareaField } from "../ui";
 
 export function FeedbackView() {
   const [sent, setSent] = useState(false);
@@ -19,7 +19,7 @@ export function FeedbackView() {
         onSubmit={submitFeedback}
       >
         <Field label="F.I.O." placeholder="F.I.O." />
-        <Field label="Telefon raqam" type="tel" placeholder="+998 ..." />
+        <PhoneField label="Telefon raqam" />
 
         <fieldset className="min-w-0 border-0 p-0">
           <legend className="mb-1.5 block text-sm font-medium text-ink-700">Mavzu</legend>

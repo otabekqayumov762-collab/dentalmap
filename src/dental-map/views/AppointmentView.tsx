@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { genderOptions, slots } from "../catalog";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import type { Doctor } from "../types";
-import { Button, Card, Chip, Field, IconButton, TextareaField } from "../ui";
+import { Button, Card, Chip, Field, IconButton, PhoneField, TextareaField } from "../ui";
 
 type DateParts = {
   day: string;
@@ -257,15 +257,11 @@ export function AppointmentView({
           placeholder="Ism familiya"
           onChange={(event) => updateDraft("fullName", event.target.value)}
         />
-        <Field
+        <PhoneField
           label="Telefon raqam"
           name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
           value={draft.phone}
-          placeholder="+998 90 123 45 67"
-          onChange={(event) => updateDraft("phone", event.target.value)}
+          onValueChange={(v) => updateDraft("phone", v)}
         />
         <div className="grid grid-cols-2 gap-3">
           <div>

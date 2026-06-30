@@ -2,7 +2,7 @@ import { CheckCircle2, Clock, CreditCard, type LucideIcon } from "lucide-react";
 import type { FormEvent } from "react";
 import { paymentMethods } from "../../catalog";
 import { SectionTitle } from "../../components/common";
-import { Button, Card, Field, cn } from "../../ui";
+import { Button, Card, Field, PhoneField, cn } from "../../ui";
 
 type TimelineState = "done" | "active" | "pending";
 
@@ -146,12 +146,9 @@ export function DoctorSubscriptionFlow({
 
       <form id="doctor-payment-form" className="flex flex-col gap-4" onSubmit={onDoctorPay}>
         <input type="hidden" name="method" value={method} />
-        <Field
-          label="To'lov telefon raqami"
-          name="payment_phone"
-          placeholder="+998 ..."
-          disabled={locked}
-        />
+        <fieldset disabled={locked} className="m-0 border-0 p-0 disabled:opacity-55">
+          <PhoneField label="To'lov telefon raqami" name="payment_phone" />
+        </fieldset>
         <Field
           label="Chek raqami"
           name="receipt_number"
