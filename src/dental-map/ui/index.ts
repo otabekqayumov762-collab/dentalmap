@@ -7,5 +7,6 @@ export { Chip, type ChipProps } from "./Chip";
 export { Field, TextareaField, type FieldProps, type TextareaFieldProps } from "./Field";
 export { PhoneField, type PhoneFieldProps } from "./PhoneField";
 export { Select, type SelectOption, type SelectProps } from "./Select";
+export { OptionGrid, type Option, type OptionGridProps } from "./OptionGrid";
 export { Modal, type ModalProps } from "./Modal";
 export { Sheet, type SheetProps } from "./Sheet";

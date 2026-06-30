@@ -1,8 +1,7 @@
 import { Camera, CheckCircle2, Clock, Star, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
-import { ChoiceField } from "../../components/common";
-import { Button, Chip, Field, PhoneField, Select, TextareaField } from "../../ui";
+import { Button, Field, OptionGrid, PhoneField, Select, TextareaField } from "../../ui";
 import { LocationPickerField } from "./LocationPickerField";
 
 export function DoctorRegistrationForm({
@@ -31,30 +30,26 @@ export function DoctorRegistrationForm({
   return (
     <form id="doctor-register-form" className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={onSubmit}>
       <Field label="Shifokor F.I.O." name="full_name" placeholder="Shifokor F.I.O." />
-      <ChoiceField
-        label="Asosiy yo'nalish"
-        name="specialty"
-        value={doctorSpecialty}
-        options={specialtyOptions}
-        onChange={onSpecialtyChange}
-      />
+      <fieldset className="m-0 border-0 p-0">
+        <legend className="mb-1.5 block text-sm font-medium text-ink-700">Asosiy yo&apos;nalish</legend>
+        <OptionGrid
+          name="specialty"
+          value={doctorSpecialty}
+          onChange={onSpecialtyChange}
+          options={specialtyOptions.map((item) => ({ value: item, label: item }))}
+        />
+      </fieldset>
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1.5 block text-sm font-medium text-ink-700">
           Ko&apos;rsatadigan xizmatlar
         </legend>
-        <input type="hidden" name="services" value={selectedServiceIds.join(",")} />
-        <div className="flex flex-wrap gap-2">
-          {serviceItems.map(({ id, label }) => {
-            const active = selectedServiceIds.includes(id);
-
-            return (
-              <Chip key={id} active={active} onClick={() => onToggleService(id)}>
-                {label}
-                {active && <CheckCircle2 size={14} />}
-              </Chip>
-            );
-          })}
-        </div>
+        <OptionGrid
+          multiple
+          name="services"
+          value={selectedServiceIds}
+          onChange={onToggleService}
+          options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
+        />
       </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
