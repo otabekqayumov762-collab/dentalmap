@@ -8,11 +8,11 @@ import { WorkTimeField } from "./WorkTimeField";
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
     <section className="rounded-card bg-surface-0 p-5 shadow-card">
-      <div className="mb-4 flex items-center gap-2.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-600">
+      <div className="mb-4 flex items-center gap-3 border-b border-surface-100 pb-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-sm font-bold text-white shadow-card">
           {step}
         </span>
-        <h3 className="text-sm font-bold text-ink-900">{title}</h3>
+        <h3 className="text-lg font-extrabold tracking-tight text-ink-900">{title}</h3>
       </div>
       <div className="flex flex-col gap-4">{children}</div>
     </section>
