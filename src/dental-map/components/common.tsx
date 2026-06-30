@@ -114,7 +114,7 @@ export function DistrictFilter({
   onChange: (district: string) => void;
 }) {
   return (
-    <section className="rounded-card bg-surface-0 p-4 shadow-card" aria-label="Hudud tanlash">
+    <section className="min-w-0 rounded-card bg-surface-0 p-4 shadow-card" aria-label="Hudud tanlash">
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="flex items-center gap-2.5">
           <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
@@ -129,7 +129,7 @@ export function DistrictFilter({
         </span>
         <small className="text-xs font-medium text-ink-400">{districts.length - 1} ta</small>
       </div>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="list">
+      <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1" role="list">
         {districts.map((item) => (
           <Chip key={item} active={value === item} onClick={() => onChange(item)} className="shrink-0">
             {item}

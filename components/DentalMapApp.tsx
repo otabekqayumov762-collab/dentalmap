@@ -401,9 +401,9 @@ export default function DentalMapApp() {
               </section>
 
               {showDiscoveryControls && (
-                <section className="grid gap-3">
+                <section className="grid grid-cols-1 gap-3">
                   <DistrictFilter value={district} onChange={setDistrict} />
-                  <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1" aria-label="Bo'limlar">
+                  <div className="flex min-w-0 gap-2.5 overflow-x-auto no-scrollbar pb-1" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (
                       <button
                         key={id}
