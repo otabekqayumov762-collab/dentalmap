@@ -9,6 +9,7 @@ export type ViewId =
   | "doctors"
   | "doctorDetail"
   | "register"
+  | "login"
   | "profile"
   | "feedback"
   | "notifications"

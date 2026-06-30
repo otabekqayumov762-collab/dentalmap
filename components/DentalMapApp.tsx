@@ -20,6 +20,7 @@ import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
 import { DoctorsView } from "@/src/dental-map/views/DoctorsView";
 import { FeedbackView } from "@/src/dental-map/views/FeedbackView";
 import { HomeView } from "@/src/dental-map/views/HomeView";
+import { LoginView } from "@/src/dental-map/views/LoginView";
 import { MapView } from "@/src/dental-map/views/MapView";
 import { MoreView } from "@/src/dental-map/views/MoreView";
 import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
@@ -50,6 +51,7 @@ export default function DentalMapApp() {
     authMessage,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
+    loginWithPassword,
     createAppointment,
     registerUser,
     registerDoctor,
@@ -162,6 +164,14 @@ export default function DentalMapApp() {
       return;
     }
     changeView(view);
+  }
+
+  async function handleLogin(login: string, password: string) {
+    const message = await loginWithPassword(login, password);
+    if (!message) {
+      changeView("profile");
+    }
+    return message;
   }
 
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
@@ -587,7 +597,9 @@ export default function DentalMapApp() {
           )}
 
           {activeView === "profile" && (
-            isDoctorAccount ? (
+            !currentUser && !isDoctorAccount ? (
+              <LoginView onLogin={handleLogin} onNavigate={navigate} />
+            ) : isDoctorAccount ? (
               <DoctorDashboardView
                 user={currentUser}
                 profile={doctorProfile}
@@ -620,6 +632,8 @@ export default function DentalMapApp() {
           {activeView === "notifications" && (
             <NotificationsView sent={consultationSent} onOpenAppointment={() => navigate("appointment")} />
           )}
+
+          {activeView === "login" && <LoginView onLogin={handleLogin} onNavigate={navigate} />}
         </div>
 
         {viewLoading && (

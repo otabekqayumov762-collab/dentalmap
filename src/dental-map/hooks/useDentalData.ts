@@ -239,6 +239,36 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     return () => controller.abort();
   }, []);
 
+  const loginWithPassword = useCallback(
+    async (login: string, password: string) => {
+      if (!isBackendConfigured() || isStaticPreviewHost()) {
+        return "Backend ulanmagan. Kirish hozircha ishlamaydi.";
+      }
+      try {
+        const response = await fetch(getApiUrl("/api/auth/login/"), {
+          method: "POST",
+          cache: "no-store",
+          credentials: "omit",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ login, password })
+        });
+        if (!response.ok) {
+          return "Login yoki parol noto'g'ri.";
+        }
+        const payload = await response.json();
+        storeAuthTokens(payload);
+        setCurrentUser(payload.user || null);
+        setAuthStatus("authenticated");
+        setAuthMessage("Tizimga kirildi.");
+        void refreshPrivateData(payload.tokens?.access || "");
+        return "";
+      } catch {
+        return "Kirishda xatolik. Keyinroq urinib ko'ring.";
+      }
+    },
+    [refreshPrivateData]
+  );
+
   const createAppointment = useCallback(async (body: Record<string, unknown>, token: string) => {
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
       token,
@@ -456,6 +486,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     authMessage,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
+    loginWithPassword,
     createAppointment,
     registerUser,
     registerDoctor,
