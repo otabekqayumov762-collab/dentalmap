@@ -63,3 +63,29 @@ Verify nothing is wider than the screen.
 - File renders with Tailwind only (no legacy classes).
 - `npm run typecheck` and `npm run lint` pass.
 - No inline styles, no hardcoded hex.
+
+## Audit checklist (make every screen ideal)
+When polishing a screen, verify ALL of these:
+1. **Consistent inputs** — use ONLY shared primitives: `Field`, `TextareaField`,
+   `PhoneField` (phone), `Select` (single pick), `OptionGrid` (compact multi/single
+   choice grid), `MultiSelectSheet` (many options → bottom sheet). NEVER hand-roll
+   `<input>` with custom icon shells. Every input has a label; no icon on some and
+   bare on others.
+2. **375px, no horizontal overflow** — test at 375px width. Rows that can exceed
+   width use `overflow-x-auto no-scrollbar` with `min-w-0` and a `grid-cols-1`
+   parent (bare `grid` defaults to max-content). Never let anything be wider than
+   the viewport.
+3. **Cards** — `rounded-card bg-surface-0 shadow-card` (or `Card`), even padding,
+   grouped logically. Avoid a long stack of many separate one-line cards — group
+   related rows into one divided card.
+4. **Titles** — section titles clearly outrank field labels (bigger/bolder).
+5. **Role-appropriate** — never show patient-only actions in doctor views or vice
+   versa.
+6. **States** — every list has empty/loading/error states.
+7. **Tokens only** — no inline `style={{}}`, no hardcoded hex.
+8. **Bottom sheets** — use `Sheet` (has drag-to-close + X built in).
+
+## Maps
+Use `src/dental-map/lib/yandex.ts` — `loadYandex()`, `TASHKENT`, `TASHKENT_BOUNDS`,
+`isYandexEnabled()`, `yandexMapsUrl()`. Prefer Yandex when `isYandexEnabled()`;
+otherwise fall back to Leaflet + OpenStreetMap. Yandex JS API v2.1 uses `[lat,lng]`.
