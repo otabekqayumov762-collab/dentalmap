@@ -15,6 +15,7 @@ import {
 import { districts } from "../catalog";
 import { geocodePlace } from "../lib/geocode";
 import { requestUserLocation } from "../lib/location";
+import { openExternal } from "../lib/url";
 import { isYandexEnabled, loadYandex } from "../lib/yandex";
 import type { Clinic, Doctor } from "../types";
 import { Button, Card, Chip } from "../ui";
@@ -64,6 +65,9 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const searchMarkerRef = useRef<any>(null);
+  const userMarkRef = useRef<any>(null);
+  const userRef = useRef<LatLng>(user);
+  userRef.current = user;
   const [ready, setReady] = useState(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -72,7 +76,7 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
     ref,
     () => ({
       recenter(target?: LatLng) {
-        mapRef.current?.setCenter(target ?? user, 15, { duration: 300 });
+        mapRef.current?.setCenter(target ?? userRef.current, 15, { duration: 300 });
       },
       async searchTo(query: string) {
         const map = mapRef.current;
@@ -100,9 +104,10 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
         return true;
       }
     }),
-    [user]
+    []
   );
 
+  // Mount the map exactly once (re-mounting on every location change caused a flash).
   useEffect(() => {
     let cancelled = false;
 
@@ -113,7 +118,7 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
         }
         const map = new ymaps.Map(
           nodeRef.current,
-          { center: user, zoom: 13, controls: ["geolocationControl"] },
+          { center: userRef.current, zoom: 13, controls: ["geolocationControl"] },
           { suppressMapOpenBlock: true }
         );
         mapRef.current = map;
@@ -131,10 +136,12 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
         // map may not have finished initialising
       }
       mapRef.current = null;
+      userMarkRef.current = null;
       setReady(false);
     };
-  }, [user]);
+  }, []);
 
+  // Draw user + clinic markers and fit bounds only when the clinic set changes.
   useEffect(() => {
     const map = mapRef.current;
     const ymaps = (window as any).ymaps;
@@ -146,11 +153,12 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
     searchMarkerRef.current = null;
 
     const userMark = new ymaps.Placemark(
-      user,
+      userRef.current,
       { iconCaption: "Siz" },
       { preset: "islands#circleDotIconWithCaption", iconColor: USER_COLOR }
     );
     map.geoObjects.add(userMark);
+    userMarkRef.current = userMark;
 
     clinics.forEach(({ clinic, position, tone }) => {
       const mark = new ymaps.Placemark(
@@ -162,8 +170,8 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
       map.geoObjects.add(mark);
     });
 
-    const lats = [user[0], ...clinics.map(({ position }) => position[0])];
-    const lngs = [user[1], ...clinics.map(({ position }) => position[1])];
+    const lats = [userRef.current[0], ...clinics.map(({ position }) => position[0])];
+    const lngs = [userRef.current[1], ...clinics.map(({ position }) => position[1])];
     const bounds: [[number, number], [number, number]] = [
       [Math.min(...lats), Math.min(...lngs)],
       [Math.max(...lats), Math.max(...lngs)]
@@ -172,7 +180,14 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
       checkZoomRange: true,
       zoomMargin: [96, 42, 240, 42]
     });
-  }, [clinics, ready, user]);
+  }, [clinics, ready]);
+
+  // Move only the user marker when the location changes (no re-fit / no flash).
+  useEffect(() => {
+    if (ready && userMarkRef.current) {
+      userMarkRef.current.geometry.setCoordinates(user);
+    }
+  }, [user, ready]);
 
   return <div ref={nodeRef} className="absolute inset-0 z-0 bg-surface-100" aria-label="Interaktiv xarita" />;
 });
@@ -187,6 +202,9 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<LeafletModule | null>(null);
+  const userMarkerRef = useRef<LeafletMarker | null>(null);
+  const userRef = useRef<LatLng>(user);
+  userRef.current = user;
   const [ready, setReady] = useState(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -195,7 +213,7 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
     ref,
     () => ({
       recenter(target?: LatLng) {
-        mapRef.current?.setView(target ?? user, 15, { animate: true });
+        mapRef.current?.setView(target ?? userRef.current, 15, { animate: true });
       },
       async searchTo(query: string) {
         const map = mapRef.current;
@@ -210,9 +228,10 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
         return true;
       }
     }),
-    [user]
+    []
   );
 
+  // Mount once.
   useEffect(() => {
     let cancelled = false;
 
@@ -232,7 +251,7 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
         scrollWheelZoom: true,
         touchZoom: true,
         zoomControl: false
-      }).setView(user, 13);
+      }).setView(userRef.current, 13);
 
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         keepBuffer: 6,
@@ -254,13 +273,15 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
     return () => {
       cancelled = true;
       layerRef.current = null;
+      userMarkerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       leafletRef.current = null;
       setReady(false);
     };
-  }, [user]);
+  }, []);
 
+  // Draw markers + fit bounds only when the clinic set changes.
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapRef.current;
@@ -271,7 +292,7 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
 
     layer.clearLayers();
 
-    L.marker(user, {
+    userMarkerRef.current = L.marker(userRef.current, {
       icon: L.divIcon({
         className: "map-leaflet-user-marker",
         html: "<span><b>Siz</b></span>",
@@ -294,14 +315,21 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
       ).on("click", () => onSelectRef.current(clinic));
     });
 
-    const bounds = L.latLngBounds([user, ...clinics.map(({ position }) => position)]);
+    const bounds = L.latLngBounds([userRef.current, ...clinics.map(({ position }) => position)]);
     map.fitBounds(bounds, {
       animate: false,
       maxZoom: 14,
       paddingBottomRight: [42, 240],
       paddingTopLeft: [80, 144]
     });
-  }, [clinics, ready, user]);
+  }, [clinics, ready]);
+
+  // Move only the user marker when the location changes.
+  useEffect(() => {
+    if (ready && userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(user);
+    }
+  }, [user, ready]);
 
   return <div className="leaflet-map" ref={nodeRef} aria-label="Interaktiv xarita" />;
 });
@@ -357,7 +385,7 @@ export function MapView({
       ? `${clinic.name} ${clinic.district} ${clinic.address}`
       : "stomatologiya Toshkent";
 
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery)}`, "_blank");
+    openExternal(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery)}`);
   }, []);
 
   const centerNearby = useCallback(async () => {

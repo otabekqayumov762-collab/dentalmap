@@ -166,13 +166,19 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
 
+      // Only ever send SIGNED initData — never an unsigned telegram_user object
+      // (that path is spoofable and is an account-takeover vector).
+      if (!telegramApp.initData) {
+        setAuthStatus("guest");
+        setAuthMessage("Telegram imzosi topilmadi.");
+        return;
+      }
+
       try {
         setAuthStatus("loading");
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 8000);
-        const authBody = telegramApp.initData
-          ? { init_data: telegramApp.initData }
-          : { telegram_user: telegramUser };
+        const authBody = { init_data: telegramApp.initData };
         const response = await (async () => {
           try {
             return await fetch(getApiUrl("/api/auth/telegram/"), {
@@ -311,6 +317,13 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   const logout = useCallback(() => {
     clearLocalAccount();
     storeAuthTokens({});
+    // Don't leak the previous person's profile/draft to the next user on a shared device.
+    try {
+      window.localStorage.removeItem("dental-map-user-profile");
+      window.localStorage.removeItem("dentalmap_appointment_draft");
+    } catch {
+      // storage may be unavailable
+    }
     setCurrentUser(null);
     setAppointments([]);
     setDoctorProfile(null);
