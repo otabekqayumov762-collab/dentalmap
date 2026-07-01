@@ -43,16 +43,6 @@ function cleanProfile(value: Partial<ProfileForm>): ProfileForm {
   };
 }
 
-function formatSavedTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Hali saqlanmagan";
-  }
-  return new Intl.DateTimeFormat("uz-UZ", { day: "2-digit", hour: "2-digit", minute: "2-digit", month: "short" }).format(
-    date
-  );
-}
-
 function initialsOf(name: string) {
   return (
     name
@@ -117,7 +107,6 @@ export function ProfileView({
   onLogout: () => void;
 }) {
   const [profile, setProfile] = useState<ProfileForm>(defaultProfile);
-  const [savedAt, setSavedAt] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -126,9 +115,7 @@ export function ProfileView({
       if (!rawProfile) {
         return;
       }
-      const parsedProfile = JSON.parse(rawProfile) as Partial<ProfileForm> & { savedAt?: string };
-      setProfile(cleanProfile(parsedProfile));
-      setSavedAt(typeof parsedProfile.savedAt === "string" ? parsedProfile.savedAt : "");
+      setProfile(cleanProfile(JSON.parse(rawProfile) as Partial<ProfileForm>));
       setIsSaved(true);
     } catch {
       setProfile(defaultProfile);
@@ -139,7 +126,6 @@ export function ProfileView({
     value.trim()
   ).length;
   const completionPercent = Math.round((completedFields / 4) * 100);
-  const savedTime = savedAt ? formatSavedTime(savedAt) : "Hali saqlanmagan";
   const initials = useMemo(() => initialsOf(profile.name), [profile.name]);
 
   function updateProfile(field: keyof ProfileForm, value: string) {
@@ -149,9 +135,7 @@ export function ProfileView({
 
   function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextSavedAt = new Date().toISOString();
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({ ...profile, savedAt: nextSavedAt }));
-    setSavedAt(nextSavedAt);
+    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
     setIsSaved(true);
   }
 
@@ -251,10 +235,8 @@ export function ProfileView({
               onChange={(event) => updateProfile("address", event.target.value)}
             />
 
-            <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
-              <span className={cn("text-xs", isSaved ? "text-success" : "text-ink-400")}>
-                {isSaved ? `Saqlandi · ${savedTime}` : "O'zgarishlarni saqlang."}
-              </span>
+            <div className="flex items-center justify-end gap-3 border-t border-surface-100 pt-3">
+              {!isSaved && <span className="mr-auto text-xs text-ink-400">O&apos;zgarishlarni saqlang.</span>}
               <Button type="submit" size="sm" disabled={isSaved}>
                 {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
                 {isSaved ? "Saqlangan" : "Saqlash"}
