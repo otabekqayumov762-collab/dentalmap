@@ -22,6 +22,10 @@ export function DoctorsView({
 }) {
   return (
     <div className="flex flex-col gap-4">
+      <header className="flex items-baseline justify-between gap-3">
+        <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Shifokorlar</h1>
+        {doctors.length > 0 && <span className="shrink-0 text-sm text-ink-500">{doctors.length} ta</span>}
+      </header>
       <div className="grid grid-cols-2 gap-3">
         {doctors.map((doctor) => (
           <DoctorCard

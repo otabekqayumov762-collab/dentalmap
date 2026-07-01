@@ -2,6 +2,7 @@ import { CalendarDays, Clock, Loader2, RefreshCcw, Star, Stethoscope, XCircle } 
 import { useState } from "react";
 import { appointmentStatusLabel } from "../api/dentalMapApi";
 import { EmptyState } from "../components/common";
+import { formatUzDate } from "../lib/date";
 import type { ApiAppointment } from "../types";
 import { Badge, Button, Card, Modal, TextareaField, cn } from "../ui";
 
@@ -124,24 +125,15 @@ export function PatientAppointmentsView({
             return (
               <Card key={appointment.id} as="article" className="flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
                       <Stethoscope size={20} />
                     </span>
                     <div className="min-w-0">
                       <strong className="block truncate font-semibold text-ink-900">
                         {appointment.doctor_name || "Shifokor"}
                       </strong>
-                      <small className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-500">
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                          <CalendarDays size={13} className="shrink-0" />
-                          {appointment.appointment_date}
-                        </span>
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                          <Clock size={13} className="shrink-0" />
-                          {appointment.appointment_time.slice(0, 5)}
-                        </span>
-                      </small>
+                      <small className="text-xs text-ink-400">Shifokor</small>
                     </div>
                   </div>
                   <Badge tone={statusTone(appointment.status)} className="shrink-0">
@@ -149,12 +141,24 @@ export function PatientAppointmentsView({
                   </Badge>
                 </div>
 
+                <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <CalendarDays size={15} className="shrink-0 text-brand-500" />
+                    {formatUzDate(appointment.appointment_date)}
+                  </span>
+                  <span className="h-4 w-px shrink-0 bg-surface-200" />
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <Clock size={15} className="shrink-0 text-brand-500" />
+                    {appointment.appointment_time.slice(0, 5)}
+                  </span>
+                </div>
+
                 {appointment.note && (
                   <p className="rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">{appointment.note}</p>
                 )}
 
                 {(canCancel || canReview || (appointment.status === "completed" && isReviewed)) && (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-surface-100 pt-3">
                     {canReview && (
                       <Button type="button" size="sm" onClick={() => openReview(appointment)}>
                         <Star size={16} />

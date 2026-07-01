@@ -1,17 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
-import {
-  ArrowLeft,
-  Building2,
-  Clock3,
-  MapPin,
-  Navigation,
-  Search,
-  SlidersHorizontal,
-  Star,
-  Stethoscope
-} from "lucide-react";
+import { ArrowLeft, Building2, Clock3, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -427,20 +417,13 @@ export function MapView({
           />
           {searching && <span className="shrink-0 text-xs text-ink-400">...</span>}
         </form>
-        <button
-          type="button"
-          aria-label="Xarita filtrlari"
-          className="pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
-        >
-          <SlidersHorizontal size={21} />
-        </button>
       </div>
 
       <div
         className="absolute inset-x-0 top-[4.75rem] z-20 flex gap-2 overflow-x-auto no-scrollbar px-4 pb-1"
         aria-label="Hududlar"
       >
-        {districts.slice(0, 7).map((item) => (
+        {districts.map((item) => (
           <Chip
             key={item}
             active={district === item}
