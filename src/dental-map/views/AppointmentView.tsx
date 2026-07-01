@@ -212,7 +212,7 @@ export function AppointmentView({
         <DoctorAvatar doctor={doctor} size="md" />
         <div className="min-w-0">
           <strong className="block truncate text-ink-900">{doctor.name}</strong>
-          <span className="block text-sm text-ink-600">{doctor.specialty}</span>
+          <span className="block text-sm text-ink-500">{doctor.specialty}</span>
           <small className="block truncate text-xs text-ink-400">
             {doctor.clinic}, {doctor.district}
           </small>
@@ -237,7 +237,7 @@ export function AppointmentView({
           ))}
         </div>
       ) : (
-        <Card className="flex items-center gap-3 text-ink-600">
+        <Card className="flex items-center gap-3 text-ink-500">
           <Clock size={18} className="shrink-0 text-ink-400" />
           <span>
             <strong className="block text-sm text-ink-700">Bo&apos;sh vaqtlar ulanmagan</strong>
@@ -264,7 +264,7 @@ export function AppointmentView({
           onValueChange={(v) => updateDraft("phone", v)}
         />
         <div className="grid grid-cols-2 gap-3">
-          <div>
+          <div className="min-w-0">
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</span>
             <input type="hidden" name="gender" value={draft.gender} />
             <div className="flex flex-wrap gap-2">
@@ -296,36 +296,39 @@ export function AppointmentView({
             Kun belgilash
           </span>
           <input type="hidden" name="appointmentDate" value={appointmentDate} />
-          <Card className="flex items-center gap-2 p-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <CalendarDays size={17} />
+          <Card className="flex flex-col gap-3 p-4">
+            <span className="flex items-center gap-2">
+              <CalendarDays size={16} className="shrink-0 text-brand-500" />
+              <span className="text-sm font-medium text-ink-700">
+                {appointmentDate || "Sanani tanlang"}
+              </span>
             </span>
-            {(Object.keys(datePartLabels) as Array<keyof DateParts>).map((part) => (
-              <div key={part} className="flex flex-1 flex-col items-center gap-1">
-                <span className="text-xs font-medium text-ink-400">{datePartLabels[part]}</span>
-                <div className="flex items-center gap-1">
+            <div className="grid grid-cols-3 gap-3">
+              {(Object.keys(datePartLabels) as Array<keyof DateParts>).map((part) => (
+                <div key={part} className="flex min-w-0 flex-col items-center gap-2">
+                  <span className="text-xs font-medium text-ink-400">{datePartLabels[part]}</span>
                   <IconButton
                     type="button"
-                    aria-label={`${datePartLabels[part]}ni kamaytirish`}
-                    className="h-8 w-8"
-                    onClick={() => updateDatePart(part, -1)}
+                    aria-label={`${datePartLabels[part]}ni oshirish`}
+                    className="h-9 w-9"
+                    onClick={() => updateDatePart(part, 1)}
                   >
-                    <Minus size={14} />
+                    <Plus size={15} />
                   </IconButton>
-                  <strong className="min-w-9 text-center text-base font-bold text-ink-900">
+                  <strong className="text-lg font-bold tabular-nums text-ink-900">
                     {draft.dateParts[part]}
                   </strong>
                   <IconButton
                     type="button"
-                    aria-label={`${datePartLabels[part]}ni oshirish`}
-                    className="h-8 w-8"
-                    onClick={() => updateDatePart(part, 1)}
+                    aria-label={`${datePartLabels[part]}ni kamaytirish`}
+                    className="h-9 w-9"
+                    onClick={() => updateDatePart(part, -1)}
                   >
-                    <Plus size={14} />
+                    <Minus size={15} />
                   </IconButton>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </Card>
         </div>
         <TextareaField
@@ -337,7 +340,7 @@ export function AppointmentView({
         />
         {formError && (
           <div
-            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-danger"
+            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger"
             role="alert"
           >
             <AlertCircle size={17} className="shrink-0" />
@@ -346,7 +349,7 @@ export function AppointmentView({
         )}
         {submitError && (
           <div
-            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-danger"
+            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger"
             role="alert"
           >
             <AlertCircle size={17} className="shrink-0" />

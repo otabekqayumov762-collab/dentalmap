@@ -1,6 +1,8 @@
 import {
+  CalendarCheck2,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Clock,
   CreditCard,
   ImageUp,
@@ -11,19 +13,60 @@ import {
   Save,
   Stethoscope,
   Trash2,
-  XCircle
+  XCircle,
+  type LucideIcon
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode, type SelectHTMLAttributes } from "react";
 import { appointmentStatusLabel, weekdayLabel } from "../api/dentalMapApi";
 import { districts, specialtyOptions } from "../catalog";
 import { DoctorAvatar } from "../components/common";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
-import { Badge, Button, Card, Field, IconButton, PhoneField, TextareaField } from "../ui";
+import { Badge, Button, Card, Field, IconButton, PhoneField, TextareaField, cn } from "../ui";
 
-const labelClass = "mb-1.5 block text-sm font-medium text-ink-700";
-const selectClass =
-  "w-full rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-ink-900 transition-colors " +
-  "focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100";
+/** Section header (icon + title + subtitle) — keeps every card section visually consistent. */
+function SectionHeader({ Icon, title, subtitle }: { Icon: LucideIcon; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        <Icon size={18} />
+      </span>
+      <div className="min-w-0">
+        <strong className="block text-base font-bold text-ink-900">{title}</strong>
+        <span className="block text-xs text-ink-500">{subtitle}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Labelled native <select> — matches the Select primitive visually while staying uncontrolled for FormData. */
+function NativeSelect({
+  label,
+  className,
+  children,
+  ...rest
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
+      <div className="relative">
+        <select
+          className={cn(
+            "w-full appearance-none rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 pr-10 text-ink-900",
+            "transition-colors focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100",
+            className
+          )}
+          {...rest}
+        >
+          {children}
+        </select>
+        <ChevronDown
+          size={18}
+          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-400"
+        />
+      </div>
+    </label>
+  );
+}
 
 type AppointmentStatus = ApiAppointment["status"];
 
@@ -166,15 +209,7 @@ export function DoctorDashboardView({
       )}
 
       <Card as="section" className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <CreditCard size={18} />
-          </span>
-          <div className="min-w-0">
-            <strong className="block font-bold text-ink-900">Holat va obuna</strong>
-            <span className="block text-xs text-ink-500">Admin tasdig&apos;i va obuna muddati.</span>
-          </div>
-        </div>
+        <SectionHeader Icon={CreditCard} title="Holat va obuna" subtitle="Admin tasdig'i va obuna muddati." />
         <div className="flex flex-wrap gap-2">
           <Badge tone={approvalTone(approvalStatus)}>{approvalLabel(approvalStatus)}</Badge>
           <Badge tone={isPublished ? "success" : "neutral"}>
@@ -209,23 +244,17 @@ export function DoctorDashboardView({
 
       <Card as="section">
         <form onSubmit={onProfileSubmit} className="flex flex-col gap-3.5">
-          <div>
-            <strong className="block font-bold text-ink-900">Profil va rasm</strong>
-            <span className="mt-0.5 block text-xs text-ink-500">O&apos;zgartirilsa admin qayta tasdiqlaydi.</span>
-          </div>
+          <SectionHeader Icon={Stethoscope} title="Profil va rasm" subtitle="O'zgartirilsa admin qayta tasdiqlaydi." />
 
           <Field label="F.I.O." name="full_name" defaultValue={profile?.full_name || user?.full_name || ""} />
 
-          <label className="block">
-            <span className={labelClass}>Mutaxassislik</span>
-            <select name="specialty" defaultValue={profile?.specialty || specialtyOptions[0]} className={selectClass}>
-              {specialtyOptions.map((specialty) => (
-                <option key={specialty} value={specialty}>
-                  {specialty}
-                </option>
-              ))}
-            </select>
-          </label>
+          <NativeSelect label="Mutaxassislik" name="specialty" defaultValue={profile?.specialty || specialtyOptions[0]}>
+            {specialtyOptions.map((specialty) => (
+              <option key={specialty} value={specialty}>
+                {specialty}
+              </option>
+            ))}
+          </NativeSelect>
 
           <div className="grid grid-cols-2 gap-3">
             <Field
@@ -259,17 +288,14 @@ export function DoctorDashboardView({
           <Field label="Rasm linki" name="photo" type="url" defaultValue={profile?.photo || ""} placeholder="https://..." />
           <Field label="Klinika" name="clinic_name" defaultValue={profile?.clinic_name || ""} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className={labelClass}>Klinika tumani</span>
-              <select name="clinic_district" defaultValue={profile?.clinic_district || districts[1]} className={selectClass}>
-                {districts.slice(1).map((district) => (
-                  <option key={district} value={district}>
-                    {district}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <NativeSelect label="Klinika tumani" name="clinic_district" defaultValue={profile?.clinic_district || districts[1]}>
+              {districts.slice(1).map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </NativeSelect>
             <PhoneField label="Telefon" name="doctor_phone" defaultValue={profile?.doctor_phone || user?.phone || ""} />
           </div>
 
@@ -287,10 +313,11 @@ export function DoctorDashboardView({
 
       <Card as="section">
         <form onSubmit={onScheduleSubmit} className="flex flex-col gap-3.5">
-          <div>
-            <strong className="block font-bold text-ink-900">Haftalik bo&apos;sh vaqtlar</strong>
-            <span className="mt-0.5 block text-xs text-ink-500">Masalan: Dushanba 09:00-18:00, 30 daqiqalik slot.</span>
-          </div>
+          <SectionHeader
+            Icon={CalendarDays}
+            title="Haftalik bo'sh vaqtlar"
+            subtitle="Masalan: Dushanba 09:00-18:00, 30 daqiqalik slot."
+          />
 
           {schedule.length > 0 && (
             <div className="flex flex-col gap-2">
@@ -324,16 +351,13 @@ export function DoctorDashboardView({
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className={labelClass}>Hafta kuni</span>
-              <select name="weekday" defaultValue="0" className={selectClass}>
-                {Array.from({ length: 7 }, (_, weekday) => (
-                  <option key={weekday} value={weekday}>
-                    {weekdayLabel(weekday)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <NativeSelect label="Hafta kuni" name="weekday" defaultValue="0">
+              {Array.from({ length: 7 }, (_, weekday) => (
+                <option key={weekday} value={weekday}>
+                  {weekdayLabel(weekday)}
+                </option>
+              ))}
+            </NativeSelect>
             <Field label="Slot davomiyligi" name="slot_duration_minutes" type="number" min="5" max="240" defaultValue="30" />
           </div>
 
@@ -352,12 +376,13 @@ export function DoctorDashboardView({
       </Card>
 
       <Card as="section">
-        <div className="mb-3.5">
-          <strong className="block font-bold text-ink-900">Qabul so&apos;rovlari</strong>
-          <span className="mt-0.5 block text-xs text-ink-500">
-            Foydalanuvchini qabul qilish yoki sabab bilan rad etish.
-          </span>
-          <div className="mt-2.5 flex flex-wrap gap-2">
+        <div className="mb-3.5 flex flex-col gap-2.5">
+          <SectionHeader
+            Icon={CalendarCheck2}
+            title="Qabul so'rovlari"
+            subtitle="Foydalanuvchini qabul qilish yoki sabab bilan rad etish."
+          />
+          <div className="flex flex-wrap gap-2">
             <Badge tone="warning">Kutilmoqda: {pendingAppointments.length}</Badge>
             <Badge tone="brand">Tasdiqlangan: {confirmedCount}</Badge>
             <Badge tone="success">Yakunlangan: {completedCount}</Badge>
@@ -385,6 +410,7 @@ export function DoctorDashboardView({
               {appointment.status === "pending" && (
                 <div className="mt-3 flex flex-col gap-2">
                   <Field
+                    aria-label="Rad etish sababi"
                     placeholder="Rad etish sababi"
                     value={rejectReasons[appointment.id] || ""}
                     onChange={(event) =>

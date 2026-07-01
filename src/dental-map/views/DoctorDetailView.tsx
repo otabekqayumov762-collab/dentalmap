@@ -59,7 +59,7 @@ export function DoctorDetailView({
         <DoctorAvatar doctor={doctor} size="lg" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-bold text-ink-900">{doctor.name}</h1>
-          <p className="text-sm text-ink-600">{doctor.specialty}</p>
+          <p className="text-sm text-ink-500">{doctor.specialty}</p>
           <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-ink-700">
             <Star size={15} className="fill-warning text-warning" /> {doctor.rating || "0.0"}
             <em className="ml-1 not-italic text-xs font-normal text-ink-400">{doctor.reviews} sharh</em>
@@ -72,7 +72,7 @@ export function DoctorDetailView({
           className={cn(
             "inline-flex shrink-0 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95",
-            isSaved ? "bg-rose-50 text-danger" : "bg-surface-100 text-ink-500 hover:bg-surface-200"
+            isSaved ? "bg-danger/10 text-danger" : "bg-surface-100 text-ink-500 hover:bg-surface-200"
           )}
         >
           <Heart size={18} className={cn(isSaved && "fill-danger")} />
@@ -121,6 +121,11 @@ export function DoctorDetailView({
           </small>
         </div>
 
+        {reviews.length === 0 ? (
+          <p className="rounded-2xl bg-surface-50 px-3 py-6 text-center text-sm text-ink-500">
+            {"Hozircha tasdiqlangan sharh yo'q."}
+          </p>
+        ) : (
         <div className="flex flex-col gap-3">
           {reviews.map((review) => (
             <article key={review.id} className="rounded-2xl bg-surface-50 p-3">
@@ -137,15 +142,18 @@ export function DoctorDetailView({
                   />
                 ))}
               </span>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{review.text}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{review.text}</p>
             </article>
           ))}
         </div>
+        )}
 
         {canWriteReview ? (
           <form className="flex flex-col gap-3" onSubmit={submitReview}>
-            <div className="flex gap-1.5" aria-label="Reyting tanlash">
-              {Array.from({ length: 5 }, (_, index) => {
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-700">Baho</span>
+              <div className="flex gap-1.5" aria-label="Reyting tanlash">
+                {Array.from({ length: 5 }, (_, index) => {
                 const value = index + 1;
 
                 return (
@@ -165,9 +173,11 @@ export function DoctorDetailView({
                     <Star size={22} className={cn(value <= rating && "fill-warning")} />
                   </button>
                 );
-              })}
+                })}
+              </div>
             </div>
             <TextareaField
+              label="Sharhingiz"
               value={text}
               onChange={(event) => {
                 setText(event.target.value);

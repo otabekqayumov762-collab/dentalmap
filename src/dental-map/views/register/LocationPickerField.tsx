@@ -6,22 +6,15 @@ import { Check, MapPin, Search, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import type { CircleMarker, Map as LeafletMap } from "leaflet";
-import { cn } from "../../ui";
-
-type Coords = { lat: number; lng: number };
-
-const TASHKENT: Coords = { lat: 41.3111, lng: 69.2797 };
-const YANDEX_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || "";
-// Tashkent bounding box for biased geocoding [[south,west],[north,east]].
-const TASHKENT_BOUNDS: [[number, number], [number, number]] = [
-  [40.9, 68.9],
-  [41.6, 69.6]
-];
-
-function locationUrl({ lat, lng }: Coords) {
-  const ll = `${lng.toFixed(6)},${lat.toFixed(6)}`;
-  return `https://yandex.uz/maps/?ll=${ll}&z=17&pt=${ll}`;
-}
+import {
+  TASHKENT,
+  TASHKENT_BOUNDS,
+  isYandexEnabled,
+  loadYandex,
+  yandexMapsUrl,
+  type Coords
+} from "../../lib/yandex";
+import { Button, cn } from "../../ui";
 
 type ModalProps = {
   initial: Coords | null;
@@ -43,15 +36,14 @@ function PickerFooter({
       <p className="min-w-0 flex-1 text-sm text-ink-500">
         {note ? note : coords ? `Tanlangan: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Xaritani bosing yoki qidiring"}
       </p>
-      <button
+      <Button
         type="button"
         disabled={!coords}
         onClick={() => coords && onConfirm(coords)}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-brand-500 px-5 font-semibold text-white shadow-card transition-colors hover:bg-brand-600 disabled:opacity-55"
       >
         <Check size={18} />
         Tasdiqlash
-      </button>
+      </Button>
     </div>
   );
 }
@@ -99,32 +91,6 @@ function PickerHeader({
 
 /* ── Yandex Maps (preferred for Uzbekistan; needs NEXT_PUBLIC_YANDEX_MAPS_API_KEY) ── */
 
-function loadYandex(key: string): Promise<any> {
-  const w = window as any;
-  if (w.ymaps?.Map) {
-    return Promise.resolve(w.ymaps);
-  }
-  return new Promise((resolve, reject) => {
-    const ready = () => w.ymaps.ready(() => resolve(w.ymaps));
-    const existing = document.getElementById("ymaps-script") as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener("load", ready);
-      existing.addEventListener("error", reject);
-      if (w.ymaps) {
-        ready();
-      }
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "ymaps-script";
-    script.async = true;
-    script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(key)}&lang=ru_RU`;
-    script.onload = ready;
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
 function YandexPickerModal({ initial, onClose, onConfirm }: ModalProps) {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -138,7 +104,7 @@ function YandexPickerModal({ initial, onClose, onConfirm }: ModalProps) {
     let cancelled = false;
     document.body.style.overflow = "hidden";
 
-    loadYandex(YANDEX_KEY)
+    loadYandex()
       .then((ymaps) => {
         if (cancelled || !nodeRef.current) {
           return;
@@ -324,7 +290,7 @@ export function LocationPickerField({
   const [coords, setCoords] = useState<Coords | null>(null);
   const [value, setValue] = useState(defaultValue);
 
-  const PickerModal = YANDEX_KEY ? YandexPickerModal : OsmPickerModal;
+  const PickerModal = isYandexEnabled() ? YandexPickerModal : OsmPickerModal;
 
   return (
     <div className="block">
@@ -364,7 +330,7 @@ export function LocationPickerField({
           onClose={() => setOpen(false)}
           onConfirm={(next) => {
             setCoords(next);
-            setValue(locationUrl(next));
+            setValue(yandexMapsUrl(next));
             setOpen(false);
           }}
         />

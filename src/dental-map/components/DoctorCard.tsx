@@ -66,7 +66,7 @@ export function DoctorCard({
         </button>
         <button
           className={cn(
-            "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full shadow-card transition-colors active:scale-95",
+            "absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-card transition-colors active:scale-95",
             isSaved
               ? "bg-danger text-white"
               : "bg-surface-0/90 text-ink-500 backdrop-blur hover:text-danger"
@@ -91,26 +91,26 @@ export function DoctorCard({
         </span>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <button
           type="button"
-          className="text-left"
+          className="min-w-0 text-left"
           onClick={(event) => {
             event.stopPropagation();
             onOpen();
           }}
         >
-          <strong className="text-[0.95rem] font-semibold text-ink-900">{doctor.name}</strong>
+          <strong className="block truncate text-[0.95rem] font-semibold text-ink-900">{doctor.name}</strong>
         </button>
-        <small className="text-xs text-ink-500">{doctor.specialty}</small>
+        <small className="block truncate text-xs text-ink-500">{doctor.specialty}</small>
         <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-900">
-          <Star size={14} className="text-warning" fill="currentColor" />
+          <Star size={14} className="shrink-0 text-warning" fill="currentColor" />
           {doctor.rating}
-          <em className="font-normal not-italic text-ink-400">{doctor.reviews} sharh</em>
+          <em className="truncate font-normal not-italic text-ink-400">{doctor.reviews} sharh</em>
         </span>
-        <span className="inline-flex items-center gap-1 text-xs text-ink-500">
-          <MapPin size={14} className="text-ink-400" />
-          {doctor.district}
+        <span className="inline-flex min-w-0 items-center gap-1 text-xs text-ink-500">
+          <MapPin size={14} className="shrink-0 text-ink-400" />
+          <span className="truncate">{doctor.district}</span>
         </span>
       </div>
 

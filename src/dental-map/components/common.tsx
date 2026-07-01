@@ -116,18 +116,18 @@ export function DistrictFilter({
   return (
     <section className="min-w-0 rounded-card bg-surface-0 p-4 shadow-card" aria-label="Hudud tanlash">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2.5">
+        <span className="flex min-w-0 items-center gap-2.5">
           <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
             <MapPin size={15} />
           </span>
-          <span className="flex flex-col">
+          <span className="flex min-w-0 flex-col">
             <strong className="text-sm font-semibold text-ink-900">Tuman</strong>
-            <em className="text-xs not-italic text-ink-500">
+            <em className="truncate text-xs not-italic text-ink-500">
               {value === "Barchasi" ? "Barcha hududlar" : value}
             </em>
           </span>
         </span>
-        <small className="text-xs font-medium text-ink-400">{districts.length - 1} ta</small>
+        <small className="shrink-0 text-xs font-medium text-ink-400">{districts.length - 1} ta</small>
       </div>
       <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1" role="list">
         {districts.map((item) => (

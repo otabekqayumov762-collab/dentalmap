@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, CreditCard, type LucideIcon } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, XCircle, type LucideIcon } from "lucide-react";
 import type { FormEvent } from "react";
 import { paymentMethods } from "../../catalog";
 import { SectionTitle } from "../../components/common";
@@ -84,11 +84,11 @@ export function DoctorSubscriptionFlow({
           </span>
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-ink-600">1 oylik obuna</span>
+          <span className="text-ink-500">1 oylik obuna</span>
           <b className="font-semibold text-ink-900">50 000 so&apos;m</b>
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-ink-600">Administrator sozlamasi</span>
+          <span className="text-ink-500">Administrator sozlamasi</span>
           <b className="text-right font-semibold text-ink-900">
             Narx administrator panelidan o&apos;zgaradi
           </b>
@@ -160,7 +160,7 @@ export function DoctorSubscriptionFlow({
             role="alert"
             className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger"
           >
-            <Clock size={18} className="shrink-0" />
+            <XCircle size={18} className="shrink-0" />
             <span>
               <strong className="block text-sm font-semibold">To&apos;lov yuborilmadi</strong>
               <small className="block text-xs opacity-90">{paymentError}</small>

@@ -27,7 +27,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
-import { Badge, Card } from "@/src/dental-map/ui";
+import { Badge, Button, Card, Field } from "@/src/dental-map/ui";
 
 export const metadata: Metadata = {
   title: "SUPERSTAT | Dental Map",
@@ -152,11 +152,11 @@ const topPayers = [
 ] as const;
 
 const metricTone: Record<Tone, { iconWrap: string; badge: BadgeTone }> = {
-  blue: { iconWrap: "bg-accent-50 text-accent-600", badge: "brand" },
-  green: { iconWrap: "bg-emerald-50 text-emerald-600", badge: "success" },
-  amber: { iconWrap: "bg-amber-50 text-amber-600", badge: "warning" },
-  rose: { iconWrap: "bg-rose-50 text-rose-600", badge: "danger" },
-  indigo: { iconWrap: "bg-indigo-50 text-indigo-600", badge: "neutral" },
+  blue: { iconWrap: "bg-accent-500/10 text-accent-600", badge: "brand" },
+  green: { iconWrap: "bg-success/10 text-success", badge: "success" },
+  amber: { iconWrap: "bg-warning/10 text-warning", badge: "warning" },
+  rose: { iconWrap: "bg-danger/10 text-danger", badge: "danger" },
+  indigo: { iconWrap: "bg-accent-violet/10 text-accent-violet", badge: "neutral" },
   slate: { iconWrap: "bg-surface-100 text-ink-500", badge: "neutral" }
 };
 
@@ -387,34 +387,13 @@ export default function SuperstatPage() {
 
           <Panel title="Promokod yaratish" eyebrow="Admin action" Icon={Plus}>
             <form className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-ink-500">Kod</span>
-                <input
-                  placeholder="DENTAL50"
-                  className="rounded-xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-ink-500">Chegirma</span>
-                <input
-                  placeholder="50 000 so'm yoki 20%"
-                  className="rounded-xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-ink-500">Limit</span>
-                <input
-                  placeholder="100"
-                  className="rounded-xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                />
-              </label>
-              <button
-                type="button"
-                className="mt-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-surface-0 transition-colors hover:bg-brand-600"
-              >
+              <Field label="Kod" name="code" placeholder="DENTAL50" />
+              <Field label="Chegirma" name="discount" placeholder="50 000 so'm yoki 20%" />
+              <Field label="Limit" name="limit" placeholder="100" inputMode="numeric" />
+              <Button type="button" className="mt-1">
                 <Plus size={17} />
                 Yaratish
-              </button>
+              </Button>
             </form>
           </Panel>
 

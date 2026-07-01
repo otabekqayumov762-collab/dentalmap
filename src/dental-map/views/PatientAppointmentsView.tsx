@@ -71,7 +71,12 @@ export function PatientAppointmentsView({
         </div>
       )}
 
-      {appointments.length === 0 ? (
+      {loading && appointments.length === 0 ? (
+        <Card className="flex flex-col items-center gap-2 py-10 text-center">
+          <Loader2 size={22} className="animate-spin text-brand-500" />
+          <span className="text-sm text-ink-500">Qabullar yuklanmoqda...</span>
+        </Card>
+      ) : appointments.length === 0 ? (
         <EmptyState
           Icon={CalendarDays}
           title="Hozircha qabul yo'q"

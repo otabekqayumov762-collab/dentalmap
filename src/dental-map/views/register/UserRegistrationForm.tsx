@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, genderOptions } from "../../catalog";
 import { Button, Field, OptionGrid, PhoneField, Select } from "../../ui";
@@ -56,7 +56,7 @@ export function UserRegistrationForm({
       />
       {registrationError && (
         <div role="alert" className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger">
-          <Clock size={18} className="shrink-0" />
+          <XCircle size={18} className="shrink-0" />
           <span>
             <strong className="block text-sm font-semibold">Yuborilmadi</strong>
             <small className="block text-xs opacity-90">{registrationError}</small>

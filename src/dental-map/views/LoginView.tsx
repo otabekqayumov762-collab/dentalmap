@@ -1,4 +1,4 @@
-import { LogIn } from "lucide-react";
+import { LogIn, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ViewId } from "../types";
 import { Button, Field } from "../ui";
@@ -40,8 +40,12 @@ export function LoginView({
         <Field label="Parol" name="password" type="password" autoComplete="current-password" placeholder="••••••••" />
 
         {error && (
-          <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-danger" role="alert">
-            {error}
+          <div
+            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-danger"
+            role="alert"
+          >
+            <XCircle size={17} className="shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
