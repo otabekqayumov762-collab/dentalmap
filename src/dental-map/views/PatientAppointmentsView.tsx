@@ -42,7 +42,7 @@ export function PatientAppointmentsView({
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold text-ink-900">Mening qabullarim</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Mening qabullarim</h1>
           <span className="mt-0.5 block text-sm text-ink-500">Sizning bron qilingan qabullaringiz.</span>
         </div>
         {onRefresh && (

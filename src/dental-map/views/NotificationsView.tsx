@@ -23,7 +23,7 @@ export function NotificationsView({ sent, onOpenAppointment }: { sent: boolean; 
           <Bell size={20} />
         </span>
         <div>
-          <h1 className="text-lg font-bold text-ink-900">Bildirishnomalar</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Bildirishnomalar</h1>
           <p className="text-sm text-ink-500">Qabul holati va eslatmalar</p>
         </div>
       </header>
