@@ -45,10 +45,7 @@ export function UserRegistrationForm({
           options={genderOptions.map((item) => ({ value: item, label: item }))}
         />
       </fieldset>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Yoshi" name="age" type="number" min="1" max="100" placeholder="Yosh" />
-        <Field label="Shahar" name="city" placeholder="Shahar" />
-      </div>
+      <Field label="Yoshi" name="age" type="number" min="1" max="100" placeholder="Yosh" />
       <Select
         label="Tuman"
         name="district"
