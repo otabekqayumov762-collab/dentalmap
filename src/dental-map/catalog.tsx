@@ -1,13 +1,4 @@
-import {
-  Building2,
-  CalendarDays,
-  Home,
-  MapPin,
-  MoreHorizontal,
-  SlidersHorizontal,
-  Stethoscope,
-  User
-} from "lucide-react";
+import { Building2, CalendarDays, Home, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
 import type { Clinic, Doctor, DoctorReview, Shortcut } from "./types";
 
 export const districts = [
@@ -161,15 +152,7 @@ export const tabs: Shortcut[] = [
   { id: "home", label: "Bosh", Icon: Home },
   { id: "map", label: "Xarita", Icon: MapPin },
   { id: "doctors", label: "Shifokor", Icon: Stethoscope },
-  { id: "profile", label: "Profil", Icon: User },
-  { id: "more", label: "Yana", Icon: MoreHorizontal }
-];
-
-// Doctors get a focused nav — their whole workspace lives in the Kabinet
-// (dashboard); no patient browse/booking tabs.
-export const doctorTabs: Shortcut[] = [
-  { id: "profile", label: "Kabinet", Icon: Stethoscope },
-  { id: "more", label: "Yana", Icon: MoreHorizontal }
+  { id: "profile", label: "Profil", Icon: User }
 ];
 
 export const serviceItems = [

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, ChevronRight, Clock, Home, MapPin, Save, User } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, Clock, Home, LogOut, MapPin, MessageCircle, Save, User } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { districts } from "../catalog";
 import type { ViewId } from "../types";
@@ -55,11 +55,13 @@ function formatSavedTime(value: string) {
 export function ProfileView({
   doctorRegistrationSent,
   doctorSubscriptionPaid,
-  onNavigate
+  onNavigate,
+  onLogout
 }: {
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
   onNavigate: (view: ViewId) => void;
+  onLogout: () => void;
 }) {
   const [profile, setProfile] = useState<ProfileForm>(defaultProfile);
   const [savedAt, setSavedAt] = useState("");
@@ -273,6 +275,31 @@ export function ProfileView({
           </span>
         </Card>
       )}
+
+      <button
+        type="button"
+        onClick={() => onNavigate("feedback")}
+        className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.99]"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <MessageCircle size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <strong className="block font-semibold text-ink-900">Taklif va shikoyat</strong>
+          <small className="mt-0.5 block text-xs text-ink-500">Administratorga xabar yuborish</small>
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-ink-400" />
+      </button>
+
+      <button
+        type="button"
+        onClick={onLogout}
+        className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
+      >
+        <LogOut size={18} />
+        Chiqish
+      </button>
     </div>
   );
 }
+

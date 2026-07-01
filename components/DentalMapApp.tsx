@@ -3,7 +3,7 @@
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getApiUrl, isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
-import { doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
+import { shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { createIdempotencyKey, createTemporaryPassword } from "@/src/dental-map/lib/secure";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
@@ -23,7 +23,6 @@ import { AuthGate, type AuthMode } from "@/src/dental-map/views/AuthGate";
 import { HomeView } from "@/src/dental-map/views/HomeView";
 import { LoginView } from "@/src/dental-map/views/LoginView";
 import { MapView } from "@/src/dental-map/views/MapView";
-import { MoreView } from "@/src/dental-map/views/MoreView";
 import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
 import { PatientAppointmentsView } from "@/src/dental-map/views/PatientAppointmentsView";
 import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
@@ -112,33 +111,26 @@ export default function DentalMapApp() {
   }, [apiClinics, district, query]);
 
   const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
-  const navTabs = isDoctorAccount ? doctorTabs : tabs;
   const homeView: ViewId = isDoctorAccount ? "profile" : "home";
+  const isMapView = activeView === "map";
+  const isAppointmentSuccess = activeView === "appointment" && consultationSent;
+  // Doctors work entirely inside the Kabinet (dashboard), so no bottom nav.
+  const showBottomNav = !isMapView && !isAppointmentSuccess && !isDoctorAccount;
 
-  const activeTabId: ViewId | null = isDoctorAccount
-    ? activeView === "more"
-      ? "more"
-      : "profile"
-    : activeView === "home" ||
-        activeView === "map" ||
-        activeView === "doctors" ||
-        activeView === "profile" ||
-        activeView === "more"
+  const activeTabId: ViewId | null =
+    activeView === "home" || activeView === "map" || activeView === "doctors" || activeView === "profile"
       ? activeView
       : activeView === "doctorDetail" || activeView === "appointment"
         ? "doctors"
         : activeView === "services" || activeView === "clinics"
           ? "home"
-          : activeView === "feedback"
-            ? "more"
+          : activeView === "feedback" || activeView === "myAppointments" || activeView === "notifications"
+            ? "profile"
             : null;
-  const isMapView = activeView === "map";
-  const isAppointmentSuccess = activeView === "appointment" && consultationSent;
   const showAppHeader = !isMapView && !isAppointmentSuccess;
   const showDiscoveryControls = !isDoctorAccount && activeView === "home";
   const showSearch = !isDoctorAccount && (activeView === "home" || activeView === "doctors" || activeView === "clinics");
-  const showPageBack =
-    !isMapView && activeView !== "home" && !(isDoctorAccount && (activeView === "profile" || activeView === "more"));
+  const showPageBack = !isMapView && activeView !== "home" && !(isDoctorAccount && activeView === "profile");
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);
@@ -455,7 +447,11 @@ export default function DentalMapApp() {
           ref={scrollRef}
           className={cn(
             "h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5",
-            isAppointmentSuccess ? "pb-0 overflow-hidden" : "pb-[calc(158px+env(safe-area-inset-bottom))]"
+            isAppointmentSuccess
+              ? "pb-0 overflow-hidden"
+              : showBottomNav
+                ? "pb-[calc(158px+env(safe-area-inset-bottom))]"
+                : "pb-8"
           )}
         >
           {showAppHeader && (
@@ -685,19 +681,19 @@ export default function DentalMapApp() {
                 onScheduleSubmit={submitDoctorSchedule}
                 onAppointmentAction={runDoctorAppointmentAction}
                 onScheduleDelete={(item) => void deleteAvailability(item)}
+                onNavigate={navigate}
+                onLogout={handleLogout}
               />
             ) : (
               <ProfileView
                 doctorRegistrationSent={doctorRegistrationSent}
                 doctorSubscriptionPaid={doctorSubscriptionPaid}
                 onNavigate={navigate}
+                onLogout={handleLogout}
               />
             )
           )}
 
-          {activeView === "more" && (
-            <MoreView onNavigate={navigate} sent={consultationSent} isDoctor={isDoctorAccount} onLogout={handleLogout} />
-          )}
 
           {activeView === "feedback" && (
             <FeedbackView />
@@ -731,12 +727,12 @@ export default function DentalMapApp() {
           </div>
         )}
 
-        {!isMapView && (
+        {showBottomNav && (
           <nav
-            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
+            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
             aria-label="Pastki navigatsiya"
           >
-            {navTabs.map(({ id, label, Icon }) => (
+            {tabs.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 type="button"

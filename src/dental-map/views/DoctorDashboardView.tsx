@@ -5,6 +5,8 @@ import {
   CreditCard,
   ImageUp,
   Loader2,
+  LogOut,
+  MessageCircle,
   RefreshCcw,
   Save,
   Stethoscope,
@@ -15,7 +17,7 @@ import { useState, type FormEvent } from "react";
 import { appointmentStatusLabel, weekdayLabel } from "../api/dentalMapApi";
 import { districts, specialtyOptions } from "../catalog";
 import { DoctorAvatar } from "../components/common";
-import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability } from "../types";
+import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
 import { Badge, Button, Card, Field, IconButton, PhoneField, TextareaField } from "../ui";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-ink-700";
@@ -83,7 +85,9 @@ export function DoctorDashboardView({
   onProfileSubmit,
   onScheduleSubmit,
   onAppointmentAction,
-  onScheduleDelete
+  onScheduleDelete,
+  onNavigate,
+  onLogout
 }: {
   user: ApiUser | null;
   profile: ApiDoctor | null;
@@ -96,6 +100,8 @@ export function DoctorDashboardView({
   onScheduleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onAppointmentAction: (appointment: ApiAppointment, action: "confirm" | "reject" | "complete" | "mark_no_show", reason?: string) => Promise<void>;
   onScheduleDelete?: (item: ApiWeeklyAvailability) => Promise<void> | void;
+  onNavigate: (view: ViewId) => void;
+  onLogout: () => void;
 }) {
   const [photoFileName, setPhotoFileName] = useState("");
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
@@ -424,6 +430,29 @@ export function DoctorDashboardView({
           )}
         </div>
       </Card>
+
+      <button
+        type="button"
+        onClick={() => onNavigate("feedback")}
+        className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.99]"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <MessageCircle size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <strong className="block font-semibold text-ink-900">Taklif va shikoyat</strong>
+          <small className="mt-0.5 block text-xs text-ink-500">Administratorga xabar yuborish</small>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={onLogout}
+        className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
+      >
+        <LogOut size={18} />
+        Chiqish
+      </button>
     </div>
   );
 }
