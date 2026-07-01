@@ -22,7 +22,7 @@ import {
   useState
 } from "react";
 import { districts } from "../catalog";
-import { isYandexEnabled, loadYandex } from "../lib/yandex";
+import { TASHKENT_BOUNDS, isYandexEnabled, loadYandex } from "../lib/yandex";
 import type { Clinic, Doctor } from "../types";
 import { Button, Card, Chip } from "../ui";
 
@@ -46,7 +46,7 @@ const TONE_COLORS: Record<string, string> = {
 const USER_COLOR = "#43a82d";
 
 type MapClinicMarker = { clinic: Clinic; position: LatLng; tone: string };
-type MapCanvasHandle = { recenter: () => void };
+type MapCanvasHandle = { recenter: () => void; searchTo: (query: string) => Promise<boolean> };
 type MapCanvasProps = {
   userPosition: LatLng;
   clinics: MapClinicMarker[];
@@ -70,6 +70,7 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
 ) {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const searchMarkerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -79,6 +80,33 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
     () => ({
       recenter() {
         mapRef.current?.setCenter(user, 15, { duration: 300 });
+      },
+      async searchTo(query: string) {
+        const map = mapRef.current;
+        const ymaps = (window as any).ymaps;
+        const term = query.trim();
+        if (!map || !ymaps || !term) {
+          return false;
+        }
+        try {
+          const result = await ymaps.geocode(term, { results: 1, boundedBy: TASHKENT_BOUNDS });
+          const first = result.geoObjects.get(0);
+          if (!first) {
+            return false;
+          }
+          const point = first.geometry.getCoordinates();
+          map.setCenter(point, 16, { duration: 300 });
+          if (searchMarkerRef.current) {
+            searchMarkerRef.current.geometry.setCoordinates(point);
+          } else {
+            const mark = new ymaps.Placemark(point, { iconCaption: term }, { preset: "islands#redDotIconWithCaption" });
+            map.geoObjects.add(mark);
+            searchMarkerRef.current = mark;
+          }
+          return true;
+        } catch {
+          return false;
+        }
       }
     }),
     [user]
@@ -124,6 +152,7 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
     }
 
     map.geoObjects.removeAll();
+    searchMarkerRef.current = null;
 
     const userMark = new ymaps.Placemark(
       user,
@@ -176,6 +205,27 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
     () => ({
       recenter() {
         mapRef.current?.setView(user, 15, { animate: true });
+      },
+      async searchTo(query: string) {
+        const map = mapRef.current;
+        const term = query.trim();
+        if (!map || !term) {
+          return false;
+        }
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(term)}`,
+            { headers: { Accept: "application/json" } }
+          );
+          const data = await response.json();
+          if (Array.isArray(data) && data[0]) {
+            map.setView([Number(data[0].lat), Number(data[0].lon)], 16, { animate: true });
+            return true;
+          }
+        } catch {
+          // best-effort search
+        }
+        return false;
       }
     }),
     [user]
@@ -277,24 +327,22 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
 export function MapView({
   doctors,
   clinics,
-  query,
   district,
-  onQueryChange,
   onDistrictChange,
   onBack,
   onAppointment
 }: {
   doctors: Doctor[];
   clinics: Clinic[];
-  query: string;
   district: string;
-  onQueryChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
   onBack: () => void;
   onAppointment: (doctor: Doctor) => void;
 }) {
   const canvasRef = useRef<MapCanvasHandle | null>(null);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [mapQuery, setMapQuery] = useState("");
+  const [searching, setSearching] = useState(false);
 
   const featuredClinics = useMemo(() => clinics.slice(0, 3), [clinics]);
   const featuredDoctors = useMemo(() => doctors.slice(0, 2), [doctors]);
@@ -351,16 +399,29 @@ export function MapView({
         >
           <ArrowLeft size={22} />
         </button>
-        <label className="pointer-events-auto flex h-11 flex-1 items-center gap-2 rounded-pill bg-surface-0 px-4 text-ink-900 shadow-float focus-within:ring-2 focus-within:ring-brand-400">
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!mapQuery.trim()) {
+              return;
+            }
+            setSearching(true);
+            await canvasRef.current?.searchTo(mapQuery);
+            setSearching(false);
+          }}
+          className="pointer-events-auto flex h-11 flex-1 items-center gap-2 rounded-pill bg-surface-0 px-4 text-ink-900 shadow-float focus-within:ring-2 focus-within:ring-brand-400"
+        >
           <Search size={19} className="shrink-0 text-ink-400" />
           <input
             type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Qidirish"
+            enterKeyHint="search"
+            value={mapQuery}
+            onChange={(event) => setMapQuery(event.target.value)}
+            placeholder="Manzil yoki joyni qidirish"
             className="w-full bg-transparent text-[0.95rem] text-ink-900 placeholder:text-ink-400 focus:outline-none"
           />
-        </label>
+          {searching && <span className="shrink-0 text-xs text-ink-400">...</span>}
+        </form>
         <button
           type="button"
           aria-label="Xarita filtrlari"

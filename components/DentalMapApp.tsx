@@ -603,9 +603,7 @@ export default function DentalMapApp() {
             <MapView
               doctors={filteredDoctors}
               clinics={filteredClinics}
-              query={query}
               district={district}
-              onQueryChange={setQuery}
               onDistrictChange={setDistrict}
               onBack={() => navigate("home")}
               onAppointment={openAppointment}
