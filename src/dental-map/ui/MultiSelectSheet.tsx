@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "./cn";
 import type { Option } from "./OptionGrid";
@@ -49,7 +49,7 @@ export function MultiSelectSheet({
         className="flex w-full items-center justify-between gap-2 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-left transition-colors hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
       >
         <span className={cn("truncate", summary ? "text-ink-900" : "text-ink-400")}>{summary || placeholder}</span>
-        <ChevronDown size={18} className="shrink-0 text-ink-400" />
+        <ChevronRight size={18} className={cn("shrink-0 text-ink-400 transition-transform", open && "rotate-90")} />
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title={title || label}>

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getApiUrl, isBackendConfigured, isStaticPreviewHost } from "@/src/dental-map/api/dentalMapApi";
+import { getApiUrl, isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
 import { shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { createIdempotencyKey, createTemporaryPassword } from "@/src/dental-map/lib/secure";
@@ -290,6 +290,12 @@ export default function DentalMapApp() {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (paymentSubmittingRef.current || doctorSubscriptionPaid) {
+        return;
+      }
+      if (isOfflineMode()) {
+        // Local mode: accept the subscription without a backend charge.
+        setDoctorSubscriptionPaid(true);
+        webApp?.HapticFeedback?.notificationOccurred("success");
         return;
       }
       const token = getAccessToken();

@@ -7,13 +7,16 @@ import {
   getApiUrl,
   isBackendConfigured,
   isStaticPreviewHost,
+  isLocalMode,
   mapDoctor,
   mapReview,
   normalizeApiList,
-  normalizeSchedule
+  normalizeSchedule,
+  isOfflineMode
 } from "../api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
+import { buildLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -70,7 +73,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   }, [appointments, doctorReviews]);
 
   const refreshPrivateData = useCallback(async (token = getAccessToken()) => {
-    if (!token || !isBackendConfigured() || isStaticPreviewHost()) {
+    if (!token || isOfflineMode()) {
       return;
     }
 
@@ -121,6 +124,13 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setAuthStatus("authenticated");
         setAuthMessage("Avvalgi sessiya tiklandi.");
         void refreshPrivateData(restoredToken);
+        return;
+      }
+      const local = getLocalAccount();
+      if (local && isOfflineMode()) {
+        setCurrentUser(local);
+        setAuthStatus("authenticated");
+        setAuthMessage("Local akkaunt tiklandi.");
       } else {
         setAuthStatus("guest");
         setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
@@ -196,10 +206,10 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     const controller = new AbortController();
 
     async function loadBackendData() {
-      if (isStaticPreviewHost() || !isBackendConfigured()) {
+      if (isOfflineMode()) {
         setApiDoctors(fallbackDoctors);
         setApiClinics(fallbackClinics);
-        setDataError(isStaticPreviewHost() ? "" : "Backend URL sozlanmagan. 24/7 ko'rish rejimi ishlayapti.");
+        setDataError(isStaticPreviewHost() || isLocalMode() ? "" : "Backend URL sozlanmagan. 24/7 ko'rish rejimi ishlayapti.");
         setDataLoading(false);
         return;
       }
@@ -241,8 +251,16 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
   const loginWithPassword = useCallback(
     async (login: string, password: string) => {
-      if (!isBackendConfigured() || isStaticPreviewHost()) {
-        return "Backend ulanmagan. Kirish hozircha ishlamaydi.";
+      if (isOfflineMode()) {
+        // Local (no-backend) mode: restore a previously created local account.
+        const local = getLocalAccount();
+        if (local) {
+          setCurrentUser(local);
+          setAuthStatus("authenticated");
+          setAuthMessage("Local akkaunt bilan kirildi.");
+          return "";
+        }
+        return "Avval ro'yxatdan o'ting (local rejim).";
       }
       try {
         const response = await fetch(getApiUrl("/api/auth/login/"), {
@@ -281,6 +299,13 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
   const registerUser = useCallback(
     async (formData: FormData) => {
+      if (isOfflineMode()) {
+        const local = buildLocalAccount(formData, "user");
+        saveLocalAccount(local);
+        setCurrentUser(local);
+        setAuthStatus("authenticated");
+        return;
+      }
       const response = await fetch(getApiUrl("/api/auth/register/"), {
         method: "POST",
         body: formData
@@ -298,6 +323,13 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
   const registerDoctor = useCallback(
     async (formData: FormData) => {
+      if (isOfflineMode()) {
+        const local = buildLocalAccount(formData, "doctor");
+        saveLocalAccount(local);
+        setCurrentUser(local);
+        setAuthStatus("authenticated");
+        return;
+      }
       const response = await fetch(getApiUrl("/api/auth/register/"), {
         method: "POST",
         body: formData
