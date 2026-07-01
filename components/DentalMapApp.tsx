@@ -380,6 +380,8 @@ export default function DentalMapApp() {
     userRegistered,
     doctorRegistrationSent,
     doctorSubscriptionPaid,
+    showBack: showPageBack,
+    onBack: () => navigate(homeView),
     changeView,
     submitConsultation
   });
@@ -553,7 +555,7 @@ export default function DentalMapApp() {
             </>
           )}
 
-          {showPageBack && (
+          {showPageBack && !webApp?.BackButton && (
             <button
               className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"
               type="button"

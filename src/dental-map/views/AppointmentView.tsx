@@ -14,7 +14,17 @@ type AppointmentDraft = {
 };
 
 const draftKey = "dentalmap_appointment_draft";
+const profileKey = "dental-map-user-profile";
 const defaultDraft: AppointmentDraft = { fullName: "", phone: "", age: "", gender: "" };
+
+function readSaved<T>(key: string): Partial<T> {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as Partial<T>) : {};
+  } catch {
+    return {};
+  }
+}
 
 export function AppointmentView({
   doctor,
@@ -46,16 +56,17 @@ export function AppointmentView({
   const daySlots = useMemo(() => currentDay?.slots ?? [], [currentDay]);
 
   useEffect(() => {
-    try {
-      const rawDraft = window.localStorage.getItem(draftKey);
-      if (rawDraft) {
-        setDraft({ ...defaultDraft, ...(JSON.parse(rawDraft) as Partial<AppointmentDraft>) });
-      }
-    } catch {
-      setDraft(defaultDraft);
-    } finally {
-      setHydrated(true);
-    }
+    // Prefill from the saved profile first (so the user's details auto-appear),
+    // then fall back to any half-finished appointment draft.
+    const profile = readSaved<{ name: string; phone: string }>(profileKey);
+    const saved = readSaved<AppointmentDraft>(draftKey);
+    setDraft({
+      fullName: profile.name || saved.fullName || "",
+      phone: profile.phone || saved.phone || "",
+      age: saved.age || "",
+      gender: saved.gender || ""
+    });
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -121,7 +132,7 @@ export function AppointmentView({
 
   if (sent) {
     return (
-      <div className="flex flex-col items-center px-2 py-10 text-center">
+      <div className="flex min-h-[72vh] flex-col items-center justify-center px-2 text-center">
         <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-brand-500 shadow-card">
           <CheckCircle2 size={40} />
         </span>

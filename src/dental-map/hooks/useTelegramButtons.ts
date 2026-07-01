@@ -11,6 +11,8 @@ type UseTelegramButtonsArgs = {
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
+  showBack: boolean;
+  onBack: () => void;
   changeView: (view: ViewId) => void;
   submitConsultation: () => void;
 };
@@ -27,6 +29,8 @@ export function useTelegramButtons({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
+  showBack,
+  onBack,
   changeView,
   submitConsultation
 }: UseTelegramButtonsArgs) {
@@ -35,21 +39,19 @@ export function useTelegramButtons({
       return;
     }
 
-    const handleBack = () => {
-      changeView("home");
-    };
+    const handleBack = () => onBack();
 
-    if (activeView === "home") {
-      webApp.BackButton.hide();
-    } else {
+    if (showBack) {
       webApp.BackButton.show();
       webApp.BackButton.onClick(handleBack);
+    } else {
+      webApp.BackButton.hide();
     }
 
     return () => {
       webApp.BackButton?.offClick(handleBack);
     };
-  }, [activeView, changeView, webApp]);
+  }, [showBack, onBack, webApp]);
 
   useEffect(() => {
     const mainButton = webApp?.MainButton;

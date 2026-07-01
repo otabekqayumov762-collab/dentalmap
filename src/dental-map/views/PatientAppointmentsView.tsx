@@ -79,23 +79,17 @@ export function PatientAppointmentsView({
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Mening qabullarim</h1>
-          <span className="mt-0.5 block text-sm text-ink-500">Sizning bron qilingan qabullaringiz.</span>
-        </div>
+        <h1 className="text-xl font-extrabold tracking-tight text-ink-900">Mening qabullarim</h1>
         {onRefresh && (
-          <Button
-            variant="secondary"
-            size="sm"
+          <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="shrink-0"
             aria-label="Yangilash"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-200 bg-surface-0 text-ink-500 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95 disabled:opacity-60"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
-            Yangilash
-          </Button>
+          </button>
         )}
       </header>
 
@@ -138,11 +132,15 @@ export function PatientAppointmentsView({
                       <strong className="block truncate font-semibold text-ink-900">
                         {appointment.doctor_name || "Shifokor"}
                       </strong>
-                      <small className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
-                        <CalendarDays size={13} className="shrink-0" />
-                        {appointment.appointment_date}
-                        <Clock size={13} className="ml-1 shrink-0" />
-                        {appointment.appointment_time.slice(0, 5)}
+                      <small className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-500">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                          <CalendarDays size={13} className="shrink-0" />
+                          {appointment.appointment_date}
+                        </span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                          <Clock size={13} className="shrink-0" />
+                          {appointment.appointment_time.slice(0, 5)}
+                        </span>
                       </small>
                     </div>
                   </div>
