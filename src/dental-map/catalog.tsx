@@ -84,6 +84,11 @@ export const fallbackDoctors: Doctor[] = [
   }
 ];
 
+// ── Hamkor (shartnoma qilingan) klinikalar ────────────────────────────────
+// Ilova bilan shartnoma qilgan klinikalarni SHU YERGA qo'shing. `lat`/`lng`
+// xaritada joyni belgilaydi (Yandex Kartada klinika manzilini toping →
+// URL'dagi koordinatani oling, masalan 41.2896, 69.2530). `partner: true`
+// klinikaga "Hamkor" belgisini beradi.
 export const fallbackClinics: Clinic[] = [
   {
     id: "demo-smile-dent",
@@ -91,7 +96,10 @@ export const fallbackClinics: Clinic[] = [
     district: "Yakkasaroy",
     address: "Bobur ko'chasi 18",
     workTime: "08:00 - 21:00",
-    rating: 4.9
+    rating: 4.9,
+    lat: 41.2896,
+    lng: 69.253,
+    partner: true
   },
   {
     id: "demo-denta-pro",
@@ -99,7 +107,10 @@ export const fallbackClinics: Clinic[] = [
     district: "Mirobod",
     address: "Nukus ko'chasi 44",
     workTime: "24/7 navbatchi",
-    rating: 4.8
+    rating: 4.8,
+    lat: 41.282,
+    lng: 69.265,
+    partner: true
   },
   {
     id: "demo-neo-dental",
@@ -107,7 +118,10 @@ export const fallbackClinics: Clinic[] = [
     district: "Yunusobod",
     address: "Amir Temur 77",
     workTime: "08:30 - 18:00",
-    rating: 5.0
+    rating: 5.0,
+    lat: 41.348,
+    lng: 69.287,
+    partner: true
   }
 ];
 

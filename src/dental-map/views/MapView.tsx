@@ -22,6 +22,7 @@ import {
   useState
 } from "react";
 import { districts } from "../catalog";
+import { requestUserLocation } from "../lib/location";
 import { TASHKENT_BOUNDS, isYandexEnabled, loadYandex } from "../lib/yandex";
 import type { Clinic, Doctor } from "../types";
 import { Button, Card, Chip } from "../ui";
@@ -46,7 +47,7 @@ const TONE_COLORS: Record<string, string> = {
 const USER_COLOR = "#43a82d";
 
 type MapClinicMarker = { clinic: Clinic; position: LatLng; tone: string };
-type MapCanvasHandle = { recenter: () => void; searchTo: (query: string) => Promise<boolean> };
+type MapCanvasHandle = { recenter: (target?: LatLng) => void; searchTo: (query: string) => Promise<boolean> };
 type MapCanvasProps = {
   userPosition: LatLng;
   clinics: MapClinicMarker[];
@@ -78,8 +79,8 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
   useImperativeHandle(
     ref,
     () => ({
-      recenter() {
-        mapRef.current?.setCenter(user, 15, { duration: 300 });
+      recenter(target?: LatLng) {
+        mapRef.current?.setCenter(target ?? user, 15, { duration: 300 });
       },
       async searchTo(query: string) {
         const map = mapRef.current;
@@ -203,8 +204,8 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
   useImperativeHandle(
     ref,
     () => ({
-      recenter() {
-        mapRef.current?.setView(user, 15, { animate: true });
+      recenter(target?: LatLng) {
+        mapRef.current?.setView(target ?? user, 15, { animate: true });
       },
       async searchTo(query: string) {
         const map = mapRef.current;
@@ -343,6 +344,8 @@ export function MapView({
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
   const [mapQuery, setMapQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [userLoc, setUserLoc] = useState<LatLng>(userPosition);
+  const [locating, setLocating] = useState(false);
 
   const featuredClinics = useMemo(() => clinics.slice(0, 3), [clinics]);
   const featuredDoctors = useMemo(() => doctors.slice(0, 2), [doctors]);
@@ -351,7 +354,10 @@ export function MapView({
     () =>
       featuredClinics.map((clinic, index) => ({
         clinic,
-        position: clinicPositions[index] ?? clinicPositions[0],
+        position:
+          typeof clinic.lat === "number" && typeof clinic.lng === "number"
+            ? ([clinic.lat, clinic.lng] as LatLng)
+            : clinicPositions[index] ?? clinicPositions[0],
         tone: index === 1 ? "teal" : index === 2 ? "amber" : "blue"
       })),
     [featuredClinics]
@@ -373,8 +379,17 @@ export function MapView({
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery)}`, "_blank");
   }, []);
 
-  const centerNearby = useCallback(() => {
-    canvasRef.current?.recenter();
+  const centerNearby = useCallback(async () => {
+    setLocating(true);
+    const coords = await requestUserLocation();
+    setLocating(false);
+    if (coords) {
+      const point: LatLng = [coords.lat, coords.lng];
+      setUserLoc(point);
+      canvasRef.current?.recenter(point);
+    } else {
+      canvasRef.current?.recenter();
+    }
   }, []);
 
   const handleSelect = useCallback((clinic: Clinic) => {
@@ -388,7 +403,7 @@ export function MapView({
       className="relative isolate h-[var(--tg-viewport-height)] min-h-[var(--tg-viewport-height)] w-full overflow-hidden bg-surface-100"
       aria-label="Toshkent xaritasi"
     >
-      <MapCanvas ref={canvasRef} userPosition={userPosition} clinics={mapClinics} onSelect={handleSelect} />
+      <MapCanvas ref={canvasRef} userPosition={userLoc} clinics={mapClinics} onSelect={handleSelect} />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2.5 px-4 pt-4">
         <button
@@ -450,11 +465,12 @@ export function MapView({
       <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-end">
         <button
           type="button"
-          onClick={centerNearby}
-          className="mb-3 mr-4 inline-flex items-center gap-2 rounded-pill bg-surface-0 px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-float transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
+          onClick={() => void centerNearby()}
+          disabled={locating}
+          className="mb-3 mr-4 inline-flex items-center gap-2 rounded-pill bg-surface-0 px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-float transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95 disabled:opacity-70"
         >
-          <Navigation size={20} />
-          <span>Yaqinimda</span>
+          <Navigation size={20} className={locating ? "animate-pulse" : undefined} />
+          <span>{locating ? "Aniqlanmoqda..." : "Yaqinimda"}</span>
         </button>
 
         <section
@@ -485,7 +501,14 @@ export function MapView({
                   <Building2 size={18} />
                 </span>
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
+                    {activeClinic.partner && (
+                      <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[0.65rem] font-bold text-brand-600">
+                        Hamkor
+                      </span>
+                    )}
+                  </span>
                   <small className="flex items-center gap-1 text-xs text-ink-500">
                     <MapPin size={13} className="shrink-0" />
                     <span className="truncate">

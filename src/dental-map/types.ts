@@ -119,6 +119,11 @@ export type Clinic = {
   workTime: string;
   rating: number;
   image?: string;
+  /** Map coordinates (for partner clinics we place on the map). */
+  lat?: number;
+  lng?: number;
+  /** Marks a clinic we have a contract with. */
+  partner?: boolean;
 };
 
 export type Shortcut = {
