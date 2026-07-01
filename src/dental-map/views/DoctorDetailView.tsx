@@ -1,58 +1,22 @@
-import { Building2, CalendarDays, Clock, Heart, LockKeyhole, MapPin, Phone, Send, Star } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Building2, CalendarDays, Clock, Heart, MapPin, Phone, Star } from "lucide-react";
 import { DoctorAvatar } from "../components/common";
 import { isSafeHttpUrl, openExternal } from "../lib/url";
 import type { Doctor, DoctorReview } from "../types";
-import { Button, Card, TextareaField, cn } from "../ui";
+import { Button, Card, cn } from "../ui";
 
 export function DoctorDetailView({
   doctor,
   reviews,
-  canWriteReview,
   isSaved,
   onAppointment,
-  onToggleSaved,
-  onReviewSubmit
+  onToggleSaved
 }: {
   doctor: Doctor;
   reviews: DoctorReview[];
-  canWriteReview: boolean;
   isSaved: boolean;
   onAppointment: (doctor: Doctor) => void;
   onToggleSaved: () => void;
-  onReviewSubmit: (rating: number, text: string) => Promise<string | void>;
 }) {
-  const [rating, setRating] = useState(5);
-  const [text, setText] = useState("");
-  const [reviewError, setReviewError] = useState("");
-  const [reviewSent, setReviewSent] = useState(false);
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-
-  async function submitReview(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const cleanText = text.trim();
-
-    if (!canWriteReview) {
-      setReviewError("Sharh qoldirish qabuldan keyin ochiladi.");
-      return;
-    }
-    if (!cleanText) {
-      setReviewError("Izoh matnini yozing.");
-      return;
-    }
-
-    setReviewSubmitting(true);
-    const error = await onReviewSubmit(rating, cleanText);
-    setReviewSubmitting(false);
-    if (error) {
-      setReviewError(error);
-      return;
-    }
-    setText("");
-    setReviewError("");
-    setReviewSent(true);
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <Card as="section" className="flex items-start gap-3">
@@ -117,86 +81,34 @@ export function DoctorDetailView({
         <div className="flex items-baseline justify-between gap-2">
           <strong className="text-ink-900">Sharhlar</strong>
           <small className="text-xs text-ink-400">
-            {reviews.length ? `${reviews.length} ta tasdiqlangan sharh` : "Hali tasdiqlangan sharh yo'q"}
+            {reviews.length ? `${reviews.length} ta tasdiqlangan sharh` : "Hali sharh yo'q"}
           </small>
         </div>
 
         {reviews.length === 0 ? (
           <p className="rounded-2xl bg-surface-50 px-3 py-6 text-center text-sm text-ink-500">
-            {"Hozircha tasdiqlangan sharh yo'q."}
+            Hozircha tasdiqlangan sharh yo&apos;q. Qabuldan keyin bemorlar shifokorni baholaydi.
           </p>
         ) : (
-        <div className="flex flex-col gap-3">
-          {reviews.map((review) => (
-            <article key={review.id} className="rounded-2xl bg-surface-50 p-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <strong className="text-sm text-ink-900">{review.author}</strong>
-                <small className="text-xs text-ink-400">{review.date}</small>
-              </div>
-              <span className="mt-1 flex gap-0.5" aria-label={`${review.rating} yulduz`}>
-                {Array.from({ length: 5 }, (_, index) => (
-                  <Star
-                    key={index}
-                    size={14}
-                    className={index < review.rating ? "fill-warning text-warning" : "text-surface-200"}
-                  />
-                ))}
-              </span>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{review.text}</p>
-            </article>
-          ))}
-        </div>
-        )}
-
-        {canWriteReview ? (
-          <form className="flex flex-col gap-3" onSubmit={submitReview}>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-ink-700">Baho</span>
-              <div className="flex gap-1.5" aria-label="Reyting tanlash">
-                {Array.from({ length: 5 }, (_, index) => {
-                const value = index + 1;
-
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={value <= rating}
-                    className={cn(
-                      "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95",
-                      value <= rating ? "text-warning" : "text-surface-200 hover:text-ink-400"
-                    )}
-                    onClick={() => {
-                      setRating(value);
-                      setReviewError("");
-                    }}
-                  >
-                    <Star size={22} className={cn(value <= rating && "fill-warning")} />
-                  </button>
-                );
-                })}
-              </div>
-            </div>
-            <TextareaField
-              label="Sharhingiz"
-              value={text}
-              onChange={(event) => {
-                setText(event.target.value);
-                setReviewError("");
-                setReviewSent(false);
-              }}
-              placeholder="Ko'rikdan keyingi fikringiz"
-            />
-            {reviewError && <small className="text-xs font-medium text-danger">{reviewError}</small>}
-            {reviewSent && <small className="text-xs font-medium text-success">Sharh moderatsiyaga yuborildi.</small>}
-            <Button type="submit" size="lg" disabled={reviewSubmitting}>
-              <Send size={17} />
-              {reviewSubmitting ? "Yuborilmoqda" : "Sharh yuborish"}
-            </Button>
-          </form>
-        ) : (
-          <div className="flex items-center gap-2.5 rounded-2xl bg-surface-50 px-3 py-3 text-sm text-ink-500">
-            <LockKeyhole size={17} className="shrink-0 text-ink-400" />
-            <span>Sharh yozish faqat qabuldan keyin ochiladi. Hozircha faqat o&apos;qish mumkin.</span>
+          <div className="flex flex-col gap-3">
+            {reviews.map((review) => (
+              <article key={review.id} className="rounded-2xl bg-surface-50 p-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <strong className="text-sm text-ink-900">{review.author}</strong>
+                  <small className="text-xs text-ink-400">{review.date}</small>
+                </div>
+                <span className="mt-1 flex gap-0.5" aria-label={`${review.rating} yulduz`}>
+                  {Array.from({ length: 5 }, (_, index) => (
+                    <Star
+                      key={index}
+                      size={14}
+                      className={index < review.rating ? "fill-warning text-warning" : "text-surface-200"}
+                    />
+                  ))}
+                </span>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{review.text}</p>
+              </article>
+            ))}
           </div>
         )}
       </Card>

@@ -32,7 +32,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 90 112 45 67",
     nextSlot: "Bugun, 14:30",
     image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=420&q=85",
-    accent: "#22b8ad"
+    accent: "#22b8ad",
+    slots: ["09:00", "09:30", "10:00", "11:30", "14:00", "15:30", "16:00"]
   },
   {
     id: "demo-jamshid",
@@ -48,7 +49,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 93 771 20 30",
     nextSlot: "Ertaga, 11:00",
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=420&q=85",
-    accent: "#1d7eea"
+    accent: "#1d7eea",
+    slots: ["10:00", "11:00", "12:00", "15:00", "16:00", "17:00"]
   },
   {
     id: "demo-malika",
@@ -64,7 +66,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 95 440 19 19",
     nextSlot: "Bugun, 16:00",
     image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=420&q=85",
-    accent: "#ef476f"
+    accent: "#ef476f",
+    slots: ["09:00", "09:30", "10:30", "13:30", "14:00", "16:30", "17:30"]
   },
   {
     id: "demo-sardor",
@@ -80,7 +83,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 91 230 78 00",
     nextSlot: "Ertaga, 09:30",
     image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=420&q=85",
-    accent: "#7c3aed"
+    accent: "#7c3aed",
+    slots: ["09:30", "10:30", "11:30", "14:30", "15:30", "16:30"]
   }
 ];
 

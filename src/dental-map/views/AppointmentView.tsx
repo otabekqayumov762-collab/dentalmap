@@ -1,78 +1,20 @@
-import { AlertCircle, CalendarDays, CheckCircle2, Clock, Minus, Plus } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
-import { genderOptions, slots } from "../catalog";
+import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { genderOptions } from "../catalog";
 import { DoctorAvatar, SectionTitle } from "../components/common";
+import { upcomingDays } from "../lib/schedule";
 import type { Doctor } from "../types";
-import { Button, Card, Chip, Field, IconButton, PhoneField, TextareaField } from "../ui";
-
-type DateParts = {
-  day: string;
-  month: string;
-  year: string;
-};
+import { Button, Card, Chip, Field, PhoneField } from "../ui";
 
 type AppointmentDraft = {
   fullName: string;
   phone: string;
   age: string;
-  note: string;
   gender: string;
-  dateParts: DateParts;
 };
 
 const draftKey = "dentalmap_appointment_draft";
-
-function defaultDateParts(): DateParts {
-  const today = new Date();
-  return {
-    day: String(today.getDate()).padStart(2, "0"),
-    month: String(today.getMonth() + 1).padStart(2, "0"),
-    year: String(today.getFullYear())
-  };
-}
-
-function createDefaultDraft(): AppointmentDraft {
-  return {
-    fullName: "",
-    phone: "",
-    age: "",
-    note: "",
-    gender: "",
-    dateParts: defaultDateParts()
-  };
-}
-
-const defaultDraft = createDefaultDraft();
-
-function buildDateValue(parts: DateParts) {
-  if (parts.day.length < 1 || parts.month.length < 1 || parts.year.length !== 4) {
-    return "";
-  }
-
-  const day = Number(parts.day);
-  const month = Number(parts.month);
-  const year = Number(parts.year);
-  const date = new Date(year, month - 1, day);
-
-  if (
-    !day ||
-    !month ||
-    !year ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return "";
-  }
-
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-const datePartLabels: Record<keyof DateParts, string> = {
-  day: "Kun",
-  month: "Oy",
-  year: "Yil"
-};
+const defaultDraft: AppointmentDraft = { fullName: "", phone: "", age: "", gender: "" };
 
 export function AppointmentView({
   doctor,
@@ -94,21 +36,20 @@ export function AppointmentView({
   const [draft, setDraft] = useState<AppointmentDraft>(defaultDraft);
   const [hydrated, setHydrated] = useState(false);
   const [formError, setFormError] = useState("");
-  const appointmentDate = buildDateValue(draft.dateParts);
+
+  const days = useMemo(() => upcomingDays(doctor.slots), [doctor.slots]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const currentDay = useMemo(
+    () => days.find((day) => day.iso === selectedDate) ?? days[0],
+    [days, selectedDate]
+  );
+  const daySlots = useMemo(() => currentDay?.slots ?? [], [currentDay]);
 
   useEffect(() => {
     try {
       const rawDraft = window.localStorage.getItem(draftKey);
       if (rawDraft) {
-        const parsedDraft = JSON.parse(rawDraft) as Partial<AppointmentDraft>;
-        setDraft({
-          ...defaultDraft,
-          ...parsedDraft,
-          dateParts: {
-            ...defaultDraft.dateParts,
-            ...(parsedDraft.dateParts ?? {})
-          }
-        });
+        setDraft({ ...defaultDraft, ...(JSON.parse(rawDraft) as Partial<AppointmentDraft>) });
       }
     } catch {
       setDraft(defaultDraft);
@@ -121,7 +62,6 @@ export function AppointmentView({
     if (!hydrated || sent) {
       return;
     }
-
     try {
       window.localStorage.setItem(draftKey, JSON.stringify(draft));
     } catch {
@@ -129,33 +69,26 @@ export function AppointmentView({
     }
   }, [draft, hydrated, sent]);
 
+  // Keep a valid day selected, and drop a stale time when the day has no such slot.
+  useEffect(() => {
+    if (days.length && !days.some((day) => day.iso === selectedDate)) {
+      setSelectedDate(days[0].iso);
+    }
+  }, [days, selectedDate]);
+
+  useEffect(() => {
+    if (selectedSlot && !daySlots.includes(selectedSlot)) {
+      onSelectSlot("");
+    }
+  }, [daySlots, selectedSlot, onSelectSlot]);
+
   function updateDraft<Key extends keyof AppointmentDraft>(key: Key, value: AppointmentDraft[Key]) {
     setDraft((current) => ({ ...current, [key]: value }));
     setFormError("");
   }
 
-  function updateDatePart(part: keyof DateParts, delta: number) {
-    setDraft((current) => {
-      const currentYear = new Date().getFullYear();
-      const rawValue = Number(current.dateParts[part]) || (part === "year" ? currentYear : 1);
-      const minValue = part === "year" ? currentYear : 1;
-      const maxValue = part === "day" ? 31 : part === "month" ? 12 : 2030;
-      const nextValue = Math.min(maxValue, Math.max(minValue, rawValue + delta));
-
-      return {
-        ...current,
-        dateParts: {
-          ...current.dateParts,
-          [part]: part === "year" ? String(nextValue) : String(nextValue).padStart(2, "0")
-        }
-      };
-    });
-    setFormError("");
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!draft.fullName.trim()) {
       setFormError("Ism familiyani kiriting.");
       return;
@@ -172,18 +105,19 @@ export function AppointmentView({
       setFormError("Yoshni kiriting.");
       return;
     }
-    if (!appointmentDate) {
-      setFormError("Qabul kunini to'g'ri kiriting.");
+    if (!selectedDate) {
+      setFormError("Qabul kunini tanlang.");
       return;
     }
-    if (!selectedSlot) {
+    if (!selectedSlot || !daySlots.includes(selectedSlot)) {
       setFormError("Qabul vaqtini tanlang.");
       return;
     }
-
     setFormError("");
     onSubmit(event);
   }
+
+  const selectedDayLabel = currentDay ? `${currentDay.weekdayLabel}, ${currentDay.dayNum}` : selectedDate;
 
   if (sent) {
     return (
@@ -193,13 +127,14 @@ export function AppointmentView({
         </span>
         <strong className="text-xl font-bold text-ink-900">So&apos;rov yuborildi</strong>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-          Administrator so&apos;rovni ko&apos;rib chiqadi. Shifokor tasdiqlagandan keyin xabar yuboriladi.
+          Shifokor tasdiqlagandan keyin xabar yuboriladi.
         </p>
-        <Card className="mt-6 flex w-full max-w-xs flex-col items-center gap-2">
+        <Card className="mt-6 flex w-full max-w-xs flex-col items-center gap-1">
           <span className="text-sm font-medium text-ink-700">{doctor.name}</span>
-          <b className="flex flex-col items-center gap-1 text-base font-bold text-ink-900">
-            {appointmentDate || "Kun tanlanmagan"}
-            <em className="not-italic text-sm font-semibold text-brand-600">{selectedSlot}</em>
+          <b className="flex items-center gap-2 text-base font-bold text-ink-900">
+            <CalendarDays size={16} className="text-brand-500" />
+            {selectedDayLabel}
+            <em className="not-italic font-semibold text-brand-600">{selectedSlot}</em>
           </b>
         </Card>
       </div>
@@ -219,36 +154,67 @@ export function AppointmentView({
         </div>
       </Card>
 
-      <SectionTitle title="Vaqt belgilash" />
-      {slots.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {slots.map((slot) => (
-            <Chip
-              key={slot}
-              active={selectedSlot === slot}
-              onClick={() => {
-                onSelectSlot(slot);
-                setFormError("");
-              }}
-            >
-              <Clock size={15} />
-              {slot}
-            </Chip>
-          ))}
-        </div>
+      <SectionTitle title="Qabul kunini tanlang" />
+      {days.length > 0 ? (
+        <>
+          <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1">
+            {days.map((day) => {
+              const active = selectedDate === day.iso;
+              return (
+                <button
+                  key={day.iso}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(day.iso);
+                    setFormError("");
+                  }}
+                  className={
+                    "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97] " +
+                    (active
+                      ? "border-brand-500 bg-brand-500 text-white shadow-card"
+                      : "border-surface-200 bg-surface-0 text-ink-700 hover:border-brand-300")
+                  }
+                >
+                  <span className={"text-[0.7rem] font-medium " + (active ? "text-white/80" : "text-ink-400")}>
+                    {day.weekdayLabel}
+                  </span>
+                  <strong className="text-lg font-bold tabular-nums leading-none">{day.dayNum}</strong>
+                </button>
+              );
+            })}
+          </div>
+
+          <span className="mt-1 flex items-center gap-2 text-sm font-medium text-ink-700">
+            <Clock size={16} className="text-brand-500" />
+            Bo&apos;sh vaqtlar
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {daySlots.map((slot) => (
+              <Chip
+                key={slot}
+                active={selectedSlot === slot}
+                onClick={() => {
+                  onSelectSlot(slot);
+                  setFormError("");
+                }}
+              >
+                {slot}
+              </Chip>
+            ))}
+          </div>
+        </>
       ) : (
         <Card className="flex items-center gap-3 text-ink-500">
           <Clock size={18} className="shrink-0 text-ink-400" />
           <span>
-            <strong className="block text-sm text-ink-700">Bo&apos;sh vaqtlar ulanmagan</strong>
-            <small className="block text-xs text-ink-400">
-              Jadval backend/admin paneldan kelganda shu yerda chiqadi.
-            </small>
+            <strong className="block text-sm text-ink-700">Bo&apos;sh vaqt yo&apos;q</strong>
+            <small className="block text-xs text-ink-400">Shifokor hozircha bo&apos;sh vaqt kiritmagan.</small>
           </span>
         </Card>
       )}
 
-      <form id="appointment-form" className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
+      <form id="appointment-form" className="mt-1 flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
+        <input type="hidden" name="appointmentDate" value={selectedDate} />
         <Field
           label="F.I.O."
           name="fullName"
@@ -261,7 +227,7 @@ export function AppointmentView({
           label="Telefon raqam"
           name="phone"
           value={draft.phone}
-          onValueChange={(v) => updateDraft("phone", v)}
+          onValueChange={(value) => updateDraft("phone", value)}
         />
         <div className="grid grid-cols-2 gap-3">
           <div className="min-w-0">
@@ -269,11 +235,7 @@ export function AppointmentView({
             <input type="hidden" name="gender" value={draft.gender} />
             <div className="flex flex-wrap gap-2">
               {genderOptions.map((option) => (
-                <Chip
-                  key={option}
-                  active={draft.gender === option}
-                  onClick={() => updateDraft("gender", option)}
-                >
+                <Chip key={option} active={draft.gender === option} onClick={() => updateDraft("gender", option)}>
                   {option}
                 </Chip>
               ))}
@@ -291,74 +253,22 @@ export function AppointmentView({
             onChange={(event) => updateDraft("age", event.target.value.replace(/\D/g, "").slice(0, 3))}
           />
         </div>
-        <div role="group" aria-labelledby="appointment-date-label">
-          <span id="appointment-date-label" className="mb-1.5 block text-sm font-medium text-ink-700">
-            Kun belgilash
-          </span>
-          <input type="hidden" name="appointmentDate" value={appointmentDate} />
-          <Card className="flex flex-col gap-3 p-4">
-            <span className="flex items-center gap-2">
-              <CalendarDays size={16} className="shrink-0 text-brand-500" />
-              <span className="text-sm font-medium text-ink-700">
-                {appointmentDate || "Sanani tanlang"}
-              </span>
-            </span>
-            <div className="grid grid-cols-3 gap-3">
-              {(Object.keys(datePartLabels) as Array<keyof DateParts>).map((part) => (
-                <div key={part} className="flex min-w-0 flex-col items-center gap-2">
-                  <span className="text-xs font-medium text-ink-400">{datePartLabels[part]}</span>
-                  <IconButton
-                    type="button"
-                    aria-label={`${datePartLabels[part]}ni oshirish`}
-                    className="h-9 w-9"
-                    onClick={() => updateDatePart(part, 1)}
-                  >
-                    <Plus size={15} />
-                  </IconButton>
-                  <strong className="text-lg font-bold tabular-nums text-ink-900">
-                    {draft.dateParts[part]}
-                  </strong>
-                  <IconButton
-                    type="button"
-                    aria-label={`${datePartLabels[part]}ni kamaytirish`}
-                    className="h-9 w-9"
-                    onClick={() => updateDatePart(part, -1)}
-                  >
-                    <Minus size={15} />
-                  </IconButton>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-        <TextareaField
-          label="Izoh"
-          name="note"
-          value={draft.note}
-          placeholder="Shikoyat yoki qo'shimcha izoh"
-          onChange={(event) => updateDraft("note", event.target.value)}
-        />
+
         {formError && (
-          <div
-            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger"
-            role="alert"
-          >
+          <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger" role="alert">
             <AlertCircle size={17} className="shrink-0" />
             <span>{formError}</span>
           </div>
         )}
         {submitError && (
-          <div
-            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger"
-            role="alert"
-          >
+          <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger" role="alert">
             <AlertCircle size={17} className="shrink-0" />
             <span>{submitError}</span>
           </div>
         )}
-        <Button type="submit" size="lg" disabled={sent || submitting}>
+        <Button type="submit" size="lg" disabled={sent || submitting || days.length === 0}>
           <CheckCircle2 size={18} />
-          {submitting ? "Yuborilmoqda" : sent ? "Yuborildi" : "Qabulga yozilish"}
+          {submitting ? "Yuborilmoqda" : "Qabulga yozilish"}
         </Button>
       </form>
     </div>

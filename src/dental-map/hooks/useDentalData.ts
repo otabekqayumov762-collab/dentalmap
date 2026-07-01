@@ -17,6 +17,13 @@ import {
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
 import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
+import {
+  addLocalAppointment,
+  addLocalReview,
+  getLocalAppointments,
+  getLocalReviews,
+  updateLocalAppointment
+} from "../lib/localAppointments";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -209,6 +216,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       if (isOfflineMode()) {
         setApiDoctors(fallbackDoctors);
         setApiClinics(fallbackClinics);
+        setAppointments(getLocalAppointments());
+        setDoctorReviews([...getLocalReviews().map(mapReview), ...fallbackReviews]);
         setDataError(isStaticPreviewHost() || isLocalMode() ? "" : "Backend URL sozlanmagan. 24/7 ko'rish rejimi ishlayapti.");
         setDataLoading(false);
         return;
@@ -248,6 +257,15 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
     return () => controller.abort();
   }, []);
+
+  // Offline: reload local appointments/reviews when the signed-in account changes
+  // (e.g. switching between the patient and doctor local accounts).
+  useEffect(() => {
+    if (isOfflineMode() && currentUser) {
+      setAppointments(getLocalAppointments());
+      setDoctorReviews([...getLocalReviews().map(mapReview), ...fallbackReviews]);
+    }
+  }, [currentUser]);
 
   const loginWithPassword = useCallback(
     async (login: string, password: string) => {
@@ -299,6 +317,24 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   }, []);
 
   const createAppointment = useCallback(async (body: Record<string, unknown>, token: string) => {
+    if (isOfflineMode()) {
+      const local: ApiAppointment = {
+        id: `local-appt-${Date.now()}`,
+        doctor: String(body.doctor ?? ""),
+        doctor_name: typeof body.doctor_name === "string" ? body.doctor_name : "",
+        full_name: String(body.full_name ?? ""),
+        phone: String(body.phone ?? ""),
+        gender: typeof body.gender === "string" ? body.gender : "",
+        age: typeof body.age === "number" ? body.age : null,
+        appointment_date: String(body.appointment_date ?? ""),
+        appointment_time: String(body.appointment_time ?? ""),
+        note: typeof body.note === "string" ? body.note : "",
+        status: "pending",
+        created_at: new Date().toISOString()
+      };
+      setAppointments(addLocalAppointment(local));
+      return local;
+    }
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
       token,
       method: "POST",
@@ -357,8 +393,27 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   );
 
   const submitDoctorReview = useCallback(
-    async (doctorId: string, rating: number, text: string) => {
-      const appointment = reviewableAppointmentByDoctor.get(doctorId);
+    async (doctorId: string, rating: number, text: string, appointmentId?: string) => {
+      if (isOfflineMode()) {
+        const apiReview: ApiReview = {
+          id: `local-review-${Date.now()}`,
+          appointment: appointmentId,
+          doctor: doctorId,
+          patient_name: currentUser?.full_name || "Bemor",
+          rating,
+          comment: text,
+          status: "approved",
+          created_at: new Date().toISOString()
+        };
+        addLocalReview(apiReview);
+        setDoctorReviews((current) => [mapReview(apiReview), ...current]);
+        webApp?.HapticFeedback?.notificationOccurred("success");
+        return "";
+      }
+
+      const appointment = appointmentId
+        ? { id: appointmentId }
+        : reviewableAppointmentByDoctor.get(doctorId);
       const token = getAccessToken();
 
       if (!appointment || !token || isStaticPreviewHost() || !isBackendConfigured()) {
@@ -383,7 +438,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return error instanceof Error ? error.message : "Sharh yuborilmadi.";
       }
     },
-    [reviewableAppointmentByDoctor, webApp]
+    [currentUser, reviewableAppointmentByDoctor, webApp]
   );
 
   const submitDoctorProfileUpdate = useCallback(
@@ -482,6 +537,23 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       action: "confirm" | "reject" | "complete" | "mark_no_show",
       reason = ""
     ) => {
+      if (isOfflineMode()) {
+        const statusByAction = {
+          confirm: "doctor_confirmed",
+          reject: "doctor_rejected",
+          complete: "completed",
+          mark_no_show: "no_show"
+        } as const;
+        setAppointments(
+          updateLocalAppointment(appointment.id, {
+            status: statusByAction[action],
+            reject_reason: action === "reject" ? reason : appointment.reject_reason
+          })
+        );
+        webApp?.HapticFeedback?.notificationOccurred("success");
+        return;
+      }
+
       const token = getAccessToken();
       if (!token) {
         setDoctorActionError("Qabulni boshqarish uchun avtorizatsiya kerak.");
@@ -515,6 +587,12 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
   const cancelAppointment = useCallback(
     async (appointment: ApiAppointment) => {
+      if (isOfflineMode()) {
+        setAppointments(updateLocalAppointment(appointment.id, { status: "user_cancelled" }));
+        webApp?.HapticFeedback?.notificationOccurred("success");
+        return;
+      }
+
       const token = getAccessToken();
       if (!token) {
         setDoctorActionError("Qabulni bekor qilish uchun avtorizatsiya kerak.");

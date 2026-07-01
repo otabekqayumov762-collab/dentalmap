@@ -98,6 +98,8 @@ export type Doctor = {
   nextSlot: string;
   image?: string;
   accent: string;
+  /** Daily time slots the doctor is free (HH:MM). Drives the booking picker. */
+  slots?: string[];
 };
 
 export type DoctorReview = {

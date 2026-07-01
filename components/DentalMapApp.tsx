@@ -50,7 +50,6 @@ export default function DentalMapApp() {
     currentUser,
     authStatus,
     authMessage,
-    reviewableAppointmentByDoctor,
     refreshPrivateData,
     loginWithPassword,
     logout,
@@ -211,23 +210,22 @@ export default function DentalMapApp() {
         note: String(formData.get("note") || "").trim()
       };
       const token = getAccessToken();
+      const appointmentBody = {
+        doctor: selectedDoctor.id,
+        doctor_name: selectedDoctor.name,
+        full_name: lead.fullName,
+        phone: lead.phone,
+        gender: normalizeGender(lead.gender),
+        age: lead.age ? Number(lead.age) : null,
+        appointment_date: lead.appointmentDate,
+        appointment_time: selectedSlot,
+        note: lead.note
+      };
 
-      if (token && isBackendConfigured() && !isStaticPreviewHost()) {
+      if (isOfflineMode() || (token && isBackendConfigured() && !isStaticPreviewHost())) {
         try {
           setAppointmentSubmitting(true);
-          await createAppointment(
-            {
-              doctor: selectedDoctor.id,
-              full_name: lead.fullName,
-              phone: lead.phone,
-              gender: normalizeGender(lead.gender),
-              age: lead.age ? Number(lead.age) : null,
-              appointment_date: lead.appointmentDate,
-              appointment_time: selectedSlot,
-              note: lead.note
-            },
-            token
-          );
+          await createAppointment(appointmentBody, token);
           persistAppointmentLead(lead);
           submitConsultation();
           return;
@@ -618,11 +616,9 @@ export default function DentalMapApp() {
               reviews={doctorReviews.filter(
                 (review) => review.doctorId === selectedDoctor.id && review.status === "approved"
               )}
-              canWriteReview={reviewableAppointmentByDoctor.has(selectedDoctor.id)}
               isSaved={savedDoctorIds.includes(selectedDoctor.id)}
               onAppointment={openAppointment}
               onToggleSaved={() => toggleSavedDoctor(selectedDoctor.id)}
-              onReviewSubmit={(rating, text) => submitDoctorReview(selectedDoctor.id, rating, text)}
             />
           )}
 
@@ -710,8 +706,14 @@ export default function DentalMapApp() {
               appointments={appointments}
               loading={privateLoading}
               error={doctorActionError}
+              reviewedAppointmentIds={doctorReviews
+                .map((review) => review.appointmentId)
+                .filter((id): id is string => Boolean(id))}
               onRefresh={() => void refreshPrivateData()}
               onCancel={(appointment) => void cancelAppointment(appointment)}
+              onSubmitReview={(appointment, rating, text) =>
+                submitDoctorReview(appointment.doctor, rating, text, appointment.id)
+              }
             />
           )}
         </div>
