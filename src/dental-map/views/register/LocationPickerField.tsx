@@ -6,14 +6,8 @@ import { Check, MapPin, Search, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import type { CircleMarker, Map as LeafletMap } from "leaflet";
-import {
-  TASHKENT,
-  TASHKENT_BOUNDS,
-  isYandexEnabled,
-  loadYandex,
-  yandexMapsUrl,
-  type Coords
-} from "../../lib/yandex";
+import { geocodePlace } from "../../lib/geocode";
+import { TASHKENT, isYandexEnabled, loadYandex, yandexMapsUrl, type Coords } from "../../lib/yandex";
 import { Button, cn } from "../../ui";
 
 type ModalProps = {
@@ -150,25 +144,17 @@ function YandexPickerModal({ initial, onClose, onConfirm }: ModalProps) {
 
   async function runSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const term = query.trim();
-    if (!term || !mapRef.current) {
+    if (!mapRef.current) {
       return;
     }
     setSearching(true);
-    try {
-      const ymaps = (window as any).ymaps;
-      const result = await ymaps.geocode(term, { results: 1, boundedBy: TASHKENT_BOUNDS });
-      const first = result.geoObjects.get(0);
-      if (first) {
-        const point = first.geometry.getCoordinates();
-        mapRef.current.setCenter(point, 16);
-        markerRef.current.geometry.setCoordinates(point);
-        setCoords({ lat: point[0], lng: point[1] });
-      }
-    } catch {
-      // best-effort search
-    } finally {
-      setSearching(false);
+    const found = await geocodePlace(query);
+    setSearching(false);
+    if (found) {
+      const point: [number, number] = [found.lat, found.lng];
+      mapRef.current.setCenter(point, 16);
+      markerRef.current?.geometry.setCoordinates(point);
+      setCoords(found);
     }
   }
 

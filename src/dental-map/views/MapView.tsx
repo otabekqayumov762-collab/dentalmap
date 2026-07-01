@@ -22,8 +22,9 @@ import {
   useState
 } from "react";
 import { districts } from "../catalog";
+import { geocodePlace } from "../lib/geocode";
 import { requestUserLocation } from "../lib/location";
-import { TASHKENT_BOUNDS, isYandexEnabled, loadYandex } from "../lib/yandex";
+import { isYandexEnabled, loadYandex } from "../lib/yandex";
 import type { Clinic, Doctor } from "../types";
 import { Button, Card, Chip } from "../ui";
 
@@ -85,29 +86,27 @@ const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Yandex
       async searchTo(query: string) {
         const map = mapRef.current;
         const ymaps = (window as any).ymaps;
-        const term = query.trim();
-        if (!map || !ymaps || !term) {
+        if (!map || !ymaps) {
           return false;
         }
-        try {
-          const result = await ymaps.geocode(term, { results: 1, boundedBy: TASHKENT_BOUNDS });
-          const first = result.geoObjects.get(0);
-          if (!first) {
-            return false;
-          }
-          const point = first.geometry.getCoordinates();
-          map.setCenter(point, 16, { duration: 300 });
-          if (searchMarkerRef.current) {
-            searchMarkerRef.current.geometry.setCoordinates(point);
-          } else {
-            const mark = new ymaps.Placemark(point, { iconCaption: term }, { preset: "islands#redDotIconWithCaption" });
-            map.geoObjects.add(mark);
-            searchMarkerRef.current = mark;
-          }
-          return true;
-        } catch {
+        const coords = await geocodePlace(query);
+        if (!coords) {
           return false;
         }
+        const point: [number, number] = [coords.lat, coords.lng];
+        map.setCenter(point, 16, { duration: 300 });
+        if (searchMarkerRef.current) {
+          searchMarkerRef.current.geometry.setCoordinates(point);
+        } else {
+          const mark = new ymaps.Placemark(
+            point,
+            { iconCaption: query.trim() },
+            { preset: "islands#redDotIconWithCaption" }
+          );
+          map.geoObjects.add(mark);
+          searchMarkerRef.current = mark;
+        }
+        return true;
       }
     }),
     [user]
@@ -209,24 +208,15 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
       },
       async searchTo(query: string) {
         const map = mapRef.current;
-        const term = query.trim();
-        if (!map || !term) {
+        if (!map) {
           return false;
         }
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(term)}`,
-            { headers: { Accept: "application/json" } }
-          );
-          const data = await response.json();
-          if (Array.isArray(data) && data[0]) {
-            map.setView([Number(data[0].lat), Number(data[0].lon)], 16, { animate: true });
-            return true;
-          }
-        } catch {
-          // best-effort search
+        const coords = await geocodePlace(query);
+        if (!coords) {
+          return false;
         }
-        return false;
+        map.setView([coords.lat, coords.lng], 16, { animate: true });
+        return true;
       }
     }),
     [user]
