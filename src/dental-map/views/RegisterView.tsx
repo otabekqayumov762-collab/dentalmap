@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { paymentMethods } from "../catalog";
 import type { RegisterRole, ViewId } from "../types";
 import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
-import { DoctorSubscriptionFlow } from "./register/DoctorSubscriptionFlow";
+import { DoctorPaymentView } from "./payment/DoctorPaymentView";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
@@ -12,27 +11,24 @@ export function RegisterView({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
-  paymentSubmitting,
   registrationError,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
-  onDoctorPay,
+  onDoctorPaid,
   onNavigate
 }: {
   role: RegisterRole;
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
-  paymentSubmitting: boolean;
   registrationError: string;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPay: (event: FormEvent<HTMLFormElement>) => void;
+  onDoctorPaid: () => void;
   onNavigate: (view: ViewId) => void;
 }) {
-  const [method, setMethod] = useState<(typeof paymentMethods)[number][0]>("click");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
   const [photoFileName, setPhotoFileName] = useState("");
   const [userGender, setUserGender] = useState("");
@@ -80,14 +76,7 @@ export function RegisterView({
           )}
 
           {doctorRegistrationSent && (
-            <DoctorSubscriptionFlow
-              method={method}
-              doctorSubscriptionPaid={doctorSubscriptionPaid}
-              paymentSubmitting={paymentSubmitting}
-              paymentError={registrationError}
-              onMethodChange={setMethod}
-              onDoctorPay={onDoctorPay}
-            />
+            <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={onDoctorPaid} />
           )}
         </>
       )}

@@ -2,10 +2,10 @@
 
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getApiUrl, isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
+import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
 import { shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
-import { createIdempotencyKey, createTemporaryPassword } from "@/src/dental-map/lib/secure";
+import { createTemporaryPassword } from "@/src/dental-map/lib/secure";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
 import { cn } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
@@ -64,8 +64,6 @@ export default function DentalMapApp() {
     deleteAvailability
   } = useDentalData({ webApp, telegramUser, telegramInitialized });
 
-  const paymentIdempotencyKeyRef = useRef<string | null>(null);
-  const paymentSubmittingRef = useRef(false);
   const [query, setQuery] = useState("");
   const [district, setDistrict] = useState("Barchasi");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -78,7 +76,6 @@ export default function DentalMapApp() {
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const landedRef = useRef(false);
@@ -297,64 +294,13 @@ export default function DentalMapApp() {
     }
   }
 
-  const submitDoctorPayment = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (paymentSubmittingRef.current || doctorSubscriptionPaid) {
-        return;
-      }
-      if (isOfflineMode()) {
-        // Local mode: accept the subscription without a backend charge.
-        setDoctorSubscriptionPaid(true);
-        webApp?.HapticFeedback?.notificationOccurred("success");
-        return;
-      }
-      const token = getAccessToken();
-      if (!token) {
-        setRegistrationError("To'lov yuborilmadi. Avval shifokor anketasini qayta yuboring.");
-        webApp?.HapticFeedback?.notificationOccurred("error");
-        return;
-      }
-
-      const formData = new FormData(event.currentTarget);
-      const method = String(formData.get("method") || "manual");
-      const paymentPhone = String(formData.get("payment_phone") || "").trim();
-      const receiptNumber = String(formData.get("receipt_number") || "").trim();
-
-      try {
-        setRegistrationError("");
-        paymentSubmittingRef.current = true;
-        setPaymentSubmitting(true);
-        paymentIdempotencyKeyRef.current ??= createIdempotencyKey();
-        const response = await fetch(getApiUrl("/api/billing/payments/initiate/"), {
-          method: "POST",
-          cache: "no-store",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            method,
-            payment_phone: paymentPhone,
-            receipt_number: receiptNumber,
-            idempotency_key: paymentIdempotencyKeyRef.current
-          })
-        });
-        if (!response.ok) {
-          throw new Error(`Payment initiate ${response.status}`);
-        }
-        setDoctorSubscriptionPaid(true);
-        webApp?.HapticFeedback?.notificationOccurred("success");
-      } catch {
-        setRegistrationError("To'lov backendga yuborilmadi. Telefon yoki chek raqamini tekshiring.");
-        webApp?.HapticFeedback?.notificationOccurred("error");
-      } finally {
-        paymentSubmittingRef.current = false;
-        setPaymentSubmitting(false);
-      }
-    },
-    [doctorSubscriptionPaid, webApp]
-  );
+  // The receipt upload itself lives in DoctorPaymentView (see views/payment).
+  // Once a receipt is submitted (or the offline demo completes), this unlocks
+  // entry into the app while the admin reviews the receipt asynchronously.
+  const handleDoctorPaid = useCallback(() => {
+    setDoctorSubscriptionPaid(true);
+    webApp?.HapticFeedback?.notificationOccurred("success");
+  }, [webApp]);
 
   useEffect(() => {
     if (!selectedDoctor && apiDoctors.length > 0) {
@@ -426,7 +372,6 @@ export default function DentalMapApp() {
         userRegistered={userRegistered}
         doctorRegistrationSent={doctorRegistrationSent}
         doctorSubscriptionPaid={doctorSubscriptionPaid}
-        paymentSubmitting={paymentSubmitting}
         registrationError={registrationError}
         onRoleChange={(role) => {
           setRegistrationError("");
@@ -434,7 +379,7 @@ export default function DentalMapApp() {
         }}
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
-        onDoctorPay={submitDoctorPayment}
+        onDoctorPaid={handleDoctorPaid}
       />
     );
   }
@@ -650,7 +595,6 @@ export default function DentalMapApp() {
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
-              paymentSubmitting={paymentSubmitting}
               registrationError={registrationError}
               onRoleChange={(role) => {
                 setRegistrationError("");
@@ -658,7 +602,7 @@ export default function DentalMapApp() {
               }}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
-              onDoctorPay={submitDoctorPayment}
+              onDoctorPaid={handleDoctorPaid}
               onNavigate={navigate}
             />
           )}

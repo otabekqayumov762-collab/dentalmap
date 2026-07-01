@@ -15,12 +15,11 @@ export type AuthGateProps = {
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
-  paymentSubmitting: boolean;
   registrationError: string;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPay: (event: FormEvent<HTMLFormElement>) => void;
+  onDoctorPaid: () => void;
 };
 
 /**
@@ -35,12 +34,11 @@ export function AuthGate({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
-  paymentSubmitting,
   registrationError,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
-  onDoctorPay
+  onDoctorPaid
 }: AuthGateProps) {
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
@@ -80,12 +78,11 @@ export function AuthGate({
             userRegistered={userRegistered}
             doctorRegistrationSent={doctorRegistrationSent}
             doctorSubscriptionPaid={doctorSubscriptionPaid}
-            paymentSubmitting={paymentSubmitting}
             registrationError={registrationError}
             onRoleChange={onRoleChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}
-            onDoctorPay={onDoctorPay}
+            onDoctorPaid={onDoctorPaid}
             onNavigate={() => onModeChange("login")}
           />
         )}
