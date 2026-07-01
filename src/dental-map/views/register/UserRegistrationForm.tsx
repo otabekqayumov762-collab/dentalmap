@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, genderOptions } from "../../catalog";
-import { Button, Field, OptionGrid, PhoneField, Select, TextareaField } from "../../ui";
+import { Button, Field, OptionGrid, PhoneField, Select } from "../../ui";
 
 export function UserRegistrationForm({
   userGender,
@@ -54,7 +54,6 @@ export function UserRegistrationForm({
         onChange={onDistrictChange}
         placeholder="Tumanni tanlang"
       />
-      <TextareaField label="Yashash joyi" name="address" placeholder="Manzil" />
       {registrationError && (
         <div role="alert" className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger">
           <Clock size={18} className="shrink-0" />
