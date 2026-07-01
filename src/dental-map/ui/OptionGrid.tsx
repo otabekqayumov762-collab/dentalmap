@@ -25,8 +25,9 @@ type MultiProps = BaseProps & {
 export type OptionGridProps = SingleProps | MultiProps;
 
 /**
- * Neat, uniform 2-column grid of selectable options — replaces ragged chip wraps
- * for specialty / service pickers on mobile. Single- or multi-select.
+ * Compact 2-column grid of selectable options. The selection indicator sits in
+ * the corner (absolute) so the label keeps the full card width — readable even
+ * for long labels on narrow phones, without the list getting too tall.
  */
 export function OptionGrid(props: OptionGridProps) {
   const { options, name, className } = props;
@@ -46,22 +47,15 @@ export function OptionGrid(props: OptionGridProps) {
             aria-pressed={active}
             onClick={() => props.onChange(option.value)}
             className={cn(
-              "flex min-h-12 items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 text-left text-sm font-medium transition-colors",
+              "relative flex min-h-12 items-center justify-center rounded-2xl border px-3 py-2.5 text-center text-sm font-medium leading-tight transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]",
               active
                 ? "border-brand-500 bg-brand-50 text-brand-700"
                 : "border-surface-200 bg-surface-0 text-ink-600 hover:border-brand-300"
             )}
           >
-            <span className="min-w-0 leading-tight">{option.label}</span>
-            <span
-              className={cn(
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
-                active ? "border-brand-500 bg-brand-500 text-white" : "border-surface-200 text-transparent"
-              )}
-            >
-              <Check size={13} />
-            </span>
+            <span className="px-1">{option.label}</span>
+            {active && <Check size={14} className="absolute right-2 top-2 text-brand-500" />}
           </button>
         );
       })}
