@@ -130,7 +130,9 @@ export default function DentalMapApp() {
   const showAppHeader = !isMapView && !isAppointmentSuccess;
   const showDiscoveryControls = !isDoctorAccount && activeView === "home";
   const showSearch = !isDoctorAccount && (activeView === "home" || activeView === "doctors" || activeView === "clinics");
-  const showPageBack = !isMapView && activeView !== "home" && !(isDoctorAccount && activeView === "profile");
+  // Top-level tab screens don't get a back button — only genuine sub-pages do.
+  const tabViews: ViewId[] = ["home", "map", "doctors", "profile"];
+  const showPageBack = !isMapView && !tabViews.includes(activeView);
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);

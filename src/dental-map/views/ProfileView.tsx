@@ -7,10 +7,11 @@ import {
   LogOut,
   MessageCircle,
   Save,
+  ShieldCheck,
   User,
   type LucideIcon
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { districts } from "../catalog";
 import type { ViewId } from "../types";
 import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../ui";
@@ -52,7 +53,25 @@ function formatSavedTime(value: string) {
   );
 }
 
-function ActionRow({
+function initialsOf(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || ""
+  );
+}
+
+/** Small muted uppercase label above a grouped card (iOS-settings style). */
+function GroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="mb-2 ml-1 block text-[0.7rem] font-semibold uppercase tracking-wide text-ink-400">{children}</span>
+  );
+}
+
+function MenuRow({
   Icon,
   title,
   subtitle,
@@ -70,7 +89,7 @@ function ActionRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:bg-surface-50",
+        "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-50 focus-visible:bg-surface-50 focus-visible:outline-none active:bg-surface-100",
         !first && "border-t border-surface-100"
       )}
     >
@@ -79,7 +98,7 @@ function ActionRow({
       </span>
       <span className="min-w-0 flex-1">
         <strong className="block text-sm font-semibold text-ink-900">{title}</strong>
-        <small className="text-xs text-ink-500">{subtitle}</small>
+        <small className="truncate text-xs text-ink-500">{subtitle}</small>
       </span>
       <ChevronRight size={18} className="shrink-0 text-ink-400" />
     </button>
@@ -121,6 +140,7 @@ export function ProfileView({
   ).length;
   const completionPercent = Math.round((completedFields / 4) * 100);
   const savedTime = savedAt ? formatSavedTime(savedAt) : "Hali saqlanmagan";
+  const initials = useMemo(() => initialsOf(profile.name), [profile.name]);
 
   function updateProfile(field: keyof ProfileForm, value: string) {
     setProfile((currentProfile) => ({ ...currentProfile, [field]: value }));
@@ -136,103 +156,127 @@ export function ProfileView({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      {/* Hero — avatar, name, role + progressive-profiling completion */}
       <Card className="border-0 bg-gradient-to-br from-brand-500 to-brand-600 text-white">
-        <div className="flex items-center gap-3.5">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-            <User size={30} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <strong className="block truncate text-lg font-bold">{profile.name.trim() || "Foydalanuvchi profili"}</strong>
-            <span className="mt-0.5 block text-sm text-white/80">Profil ma&apos;lumotlaringiz</span>
-          </div>
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1 rounded-pill px-2.5 py-1 text-xs font-semibold",
-              isSaved ? "bg-white text-brand-700" : "bg-white/20 text-white"
-            )}
-          >
-            {isSaved ? <CheckCircle2 size={15} /> : <Clock size={15} />}
-            {isSaved ? "Saqlangan" : "Tahrir"}
+        <div className="flex items-center gap-4">
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl font-extrabold ring-1 ring-white/25">
+            {initials ? initials : <User size={30} />}
           </span>
+          <div className="min-w-0 flex-1">
+            <strong className="block truncate text-lg font-bold leading-tight">
+              {profile.name.trim() || "Foydalanuvchi"}
+            </strong>
+            <span className="mt-1.5 inline-flex items-center gap-1 rounded-pill bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+              <ShieldCheck size={13} />
+              Bemor
+            </span>
+          </div>
+          {isSaved && completionPercent === 100 && (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/20" aria-hidden="true">
+              <CheckCircle2 size={18} />
+            </span>
+          )}
         </div>
-        <div className="mt-4">
-          <div className="mb-1.5 flex items-center justify-between text-sm">
-            <b className="font-semibold text-white/90">To&apos;ldirilgan</b>
-            <em className="font-bold not-italic">{completionPercent}%</em>
+
+        <div className="mt-4 rounded-2xl bg-white/10 p-3.5">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="font-medium text-white/90">Profil to&apos;ldirilgan</span>
+            <span className="font-bold tabular-nums">{completionPercent}%</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-pill bg-white/20">
-            <i className={cn("block h-full rounded-pill bg-white transition-all", progressWidth[completedFields])} />
+            <i
+              className={cn(
+                "block h-full rounded-pill bg-white transition-all duration-500",
+                progressWidth[completedFields]
+              )}
+            />
           </div>
+          {completionPercent < 100 && (
+            <small className="mt-2 block text-xs text-white/80">
+              Ma&apos;lumotlaringizni to&apos;ldiring — qabulga tezroq yoziling.
+            </small>
+          )}
         </div>
       </Card>
 
-      <div className="overflow-hidden rounded-card border border-surface-100 bg-surface-0 shadow-card">
-        <ActionRow
-          first
-          Icon={CalendarDays}
-          title="Mening qabullarim"
-          subtitle="Yozilgan qabullar va holati"
-          onClick={() => onNavigate("myAppointments")}
-        />
-        <ActionRow
-          Icon={CalendarCheck2}
-          title="Qabulga yozilish"
-          subtitle="Shifokor uchun kun va vaqt"
-          onClick={() => onNavigate("appointment")}
-        />
-        <ActionRow
-          Icon={MessageCircle}
-          title="Taklif va shikoyat"
-          subtitle="Administratorga xabar"
-          onClick={() => onNavigate("feedback")}
-        />
-      </div>
+      {/* Account */}
+      <section>
+        <GroupLabel>Hisob</GroupLabel>
+        <div className="overflow-hidden rounded-card border border-surface-100 bg-surface-0 shadow-card">
+          <MenuRow
+            first
+            Icon={CalendarDays}
+            title="Mening qabullarim"
+            subtitle="Yozilgan qabullar va holati"
+            onClick={() => onNavigate("myAppointments")}
+          />
+          <MenuRow
+            Icon={CalendarCheck2}
+            title="Qabulga yozilish"
+            subtitle="Shifokor uchun kun va vaqt tanlash"
+            onClick={() => onNavigate("appointment")}
+          />
+        </div>
+      </section>
 
-      <Card as="section">
-        <form onSubmit={saveProfile} className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <strong className="text-base font-bold text-ink-900">Shaxsiy ma&apos;lumotlar</strong>
-            <span className="shrink-0 text-xs text-ink-400">{savedTime}</span>
-          </div>
+      {/* Personal info */}
+      <section>
+        <GroupLabel>Shaxsiy ma&apos;lumotlar</GroupLabel>
+        <Card as="section">
+          <form onSubmit={saveProfile} className="flex flex-col gap-4">
+            <Field
+              label="Ism familiya"
+              autoComplete="name"
+              placeholder="Ism familiya"
+              value={profile.name}
+              onChange={(event) => updateProfile("name", event.target.value)}
+            />
+            <PhoneField
+              label="Telefon raqam"
+              value={profile.phone}
+              onValueChange={(value) => updateProfile("phone", value)}
+            />
+            <Select
+              label="Tuman"
+              value={profile.district}
+              options={districts.slice(1).map((district) => ({ value: district, label: district }))}
+              onChange={(value) => updateProfile("district", value)}
+              placeholder="Tumanni tanlang"
+            />
+            <TextareaField
+              label="Manzil"
+              placeholder="Ko'cha, uy yoki mo'ljal"
+              value={profile.address}
+              onChange={(event) => updateProfile("address", event.target.value)}
+            />
 
-          <Field
-            label="Ism familiya"
-            autoComplete="name"
-            placeholder="Ism familiya"
-            value={profile.name}
-            onChange={(event) => updateProfile("name", event.target.value)}
-          />
-          <PhoneField
-            label="Telefon raqam"
-            value={profile.phone}
-            onValueChange={(value) => updateProfile("phone", value)}
-          />
-          <Select
-            label="Tuman"
-            value={profile.district}
-            options={districts.slice(1).map((district) => ({ value: district, label: district }))}
-            onChange={(value) => updateProfile("district", value)}
-            placeholder="Tumanni tanlang"
-          />
-          <TextareaField
-            label="Manzil"
-            placeholder="Ko'cha, uy yoki mo'ljal"
-            value={profile.address}
-            onChange={(event) => updateProfile("address", event.target.value)}
-          />
+            <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
+              <span className={cn("text-xs", isSaved ? "text-success" : "text-ink-400")}>
+                {isSaved ? `Saqlandi · ${savedTime}` : "O'zgarishlarni saqlang."}
+              </span>
+              <Button type="submit" size="sm" disabled={isSaved}>
+                {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
+                {isSaved ? "Saqlangan" : "Saqlash"}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </section>
 
-          <div className="flex items-center justify-between gap-3">
-            <span className={cn("text-xs", isSaved ? "text-success" : "text-ink-500")}>
-              {isSaved ? "Saqlandi." : "O'zgarishlarni saqlang."}
-            </span>
-            <Button type="submit" size="sm" disabled={isSaved}>
-              {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
-              {isSaved ? "Saqlangan" : "Saqlash"}
-            </Button>
-          </div>
-        </form>
-      </Card>
+      {/* Support */}
+      <section>
+        <GroupLabel>Yordam</GroupLabel>
+        <div className="overflow-hidden rounded-card border border-surface-100 bg-surface-0 shadow-card">
+          <MenuRow
+            first
+            Icon={MessageCircle}
+            title="Taklif va shikoyat"
+            subtitle="Administratorga xabar yuborish"
+            onClick={() => onNavigate("feedback")}
+          />
+        </div>
+      </section>
 
       {doctorRegistrationSent && (
         <Card
@@ -260,7 +304,7 @@ export function ProfileView({
       <button
         type="button"
         onClick={onLogout}
-        className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
+        className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100 active:scale-[0.99]"
       >
         <LogOut size={18} />
         Chiqish
