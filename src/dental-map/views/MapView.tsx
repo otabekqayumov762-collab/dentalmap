@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 
 import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import { ArrowLeft, Building2, Clock3, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
@@ -468,36 +469,42 @@ export function MapView({
           </div>
 
           {activeClinic && (
-            <Card className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-                  <Building2 size={18} />
+            <Card className="mb-3 flex gap-3">
+              {activeClinic.image ? (
+                <img
+                  src={activeClinic.image}
+                  alt={activeClinic.name}
+                  className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                  <Building2 size={22} />
                 </span>
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
-                    {activeClinic.partner && (
-                      <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[0.65rem] font-bold text-brand-600">
-                        Hamkor
-                      </span>
-                    )}
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    <Star size={13} />
+                    {activeClinic.rating.toFixed(1)}
                   </span>
-                  <small className="flex items-center gap-1 text-xs text-ink-500">
-                    <MapPin size={13} className="shrink-0" />
-                    <span className="truncate">
-                      {activeClinic.district}, {activeClinic.address}
-                    </span>
-                  </small>
-                  <small className="flex items-center gap-1 text-xs text-ink-500">
-                    <Clock3 size={13} className="shrink-0" />
-                    {activeClinic.workTime}
-                  </small>
-                </span>
+                </div>
+                {activeClinic.partner && (
+                  <span className="w-fit rounded-pill bg-brand-50 px-2 py-0.5 text-[0.65rem] font-bold text-brand-600">
+                    Hamkor
+                  </span>
+                )}
+                <small className="flex items-center gap-1 text-xs text-ink-500">
+                  <MapPin size={13} className="shrink-0" />
+                  <span className="truncate">
+                    {activeClinic.district}, {activeClinic.address}
+                  </span>
+                </small>
+                <small className="flex items-center gap-1 text-xs text-ink-500">
+                  <Clock3 size={13} className="shrink-0" />
+                  {activeClinic.workTime}
+                </small>
               </div>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                <Star size={13} />
-                {activeClinic.rating.toFixed(1)}
-              </span>
             </Card>
           )}
 
@@ -511,9 +518,13 @@ export function MapView({
                   onClick={() => handleSelect(clinic)}
                   className="flex min-w-44 shrink-0 items-center gap-2 rounded-2xl bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]"
                 >
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                    <Building2 size={15} />
-                  </span>
+                  {clinic.image ? (
+                    <img src={clinic.image} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+                  ) : (
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                      <Building2 size={15} />
+                    </span>
+                  )}
                   <span className="flex min-w-0 flex-1 flex-col">
                     <strong className="truncate text-sm font-semibold text-ink-900">{clinic.name}</strong>
                     <small className="truncate text-xs text-ink-500">{clinic.district}</small>
@@ -527,17 +538,18 @@ export function MapView({
           </div>
 
           {featuredDoctors.length > 0 && (
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2">
               {featuredDoctors.map((doctor) => (
                 <Button
                   key={doctor.id}
                   variant="secondary"
                   size="sm"
                   onClick={() => onAppointment(doctor)}
-                  className="flex-1"
+                  className="w-full justify-start"
                 >
-                  <Stethoscope size={15} />
-                  <span className="truncate">{doctor.name}</span>
+                  <Stethoscope size={15} className="shrink-0" />
+                  <span className="min-w-0 truncate">{doctor.name}</span>
+                  <span className="ml-auto shrink-0 text-xs font-semibold text-brand-600">Qabul</span>
                 </Button>
               ))}
             </div>

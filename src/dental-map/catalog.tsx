@@ -103,7 +103,8 @@ export const fallbackClinics: Clinic[] = [
     rating: 4.9,
     lat: 41.2896,
     lng: 69.253,
-    partner: true
+    partner: true,
+    image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=240&q=80"
   },
   {
     id: "demo-denta-pro",
@@ -114,7 +115,8 @@ export const fallbackClinics: Clinic[] = [
     rating: 4.8,
     lat: 41.282,
     lng: 69.265,
-    partner: true
+    partner: true,
+    image: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=240&q=80"
   },
   {
     id: "demo-neo-dental",
@@ -125,7 +127,8 @@ export const fallbackClinics: Clinic[] = [
     rating: 5.0,
     lat: 41.348,
     lng: 69.287,
-    partner: true
+    partner: true,
+    image: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=240&q=80"
   }
 ];
 
