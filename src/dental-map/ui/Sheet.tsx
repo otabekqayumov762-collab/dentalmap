@@ -72,7 +72,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
       <div
         ref={sheetRef}
         className={cn(
-          "relative z-10 w-full max-w-md rounded-t-sheet bg-surface-0 p-5 pb-7 shadow-float animate-[sheet-in_0.22s_ease-out]",
+          "relative z-10 flex max-h-[92vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-t-sheet bg-surface-0 p-5 pb-7 shadow-float animate-[sheet-in_0.22s_ease-out] no-scrollbar",
           className
         )}
         onClick={(event) => event.stopPropagation()}

@@ -165,6 +165,13 @@ export const tabs: Shortcut[] = [
   { id: "more", label: "Yana", Icon: MoreHorizontal }
 ];
 
+// Doctors get a focused nav — their whole workspace lives in the Kabinet
+// (dashboard); no patient browse/booking tabs.
+export const doctorTabs: Shortcut[] = [
+  { id: "profile", label: "Kabinet", Icon: Stethoscope },
+  { id: "more", label: "Yana", Icon: MoreHorizontal }
+];
+
 export const serviceItems = [
   { id: "consultation", label: "Konsultatsiya" },
   { id: "treatment", label: "Tish davolash" },

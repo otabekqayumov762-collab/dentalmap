@@ -3,7 +3,7 @@
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getApiUrl, isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
-import { shortcuts, tabs } from "@/src/dental-map/catalog";
+import { doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { createIdempotencyKey, createTemporaryPassword } from "@/src/dental-map/lib/secure";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
@@ -54,6 +54,7 @@ export default function DentalMapApp() {
     reviewableAppointmentByDoctor,
     refreshPrivateData,
     loginWithPassword,
+    logout,
     createAppointment,
     registerUser,
     registerDoctor,
@@ -110,12 +111,19 @@ export default function DentalMapApp() {
     });
   }, [apiClinics, district, query]);
 
-  const activeTabId: ViewId | null =
-    activeView === "home" ||
-    activeView === "map" ||
-    activeView === "doctors" ||
-    activeView === "profile" ||
-    activeView === "more"
+  const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
+  const navTabs = isDoctorAccount ? doctorTabs : tabs;
+  const homeView: ViewId = isDoctorAccount ? "profile" : "home";
+
+  const activeTabId: ViewId | null = isDoctorAccount
+    ? activeView === "more"
+      ? "more"
+      : "profile"
+    : activeView === "home" ||
+        activeView === "map" ||
+        activeView === "doctors" ||
+        activeView === "profile" ||
+        activeView === "more"
       ? activeView
       : activeView === "doctorDetail" || activeView === "appointment"
         ? "doctors"
@@ -127,10 +135,10 @@ export default function DentalMapApp() {
   const isMapView = activeView === "map";
   const isAppointmentSuccess = activeView === "appointment" && consultationSent;
   const showAppHeader = !isMapView && !isAppointmentSuccess;
-  const showDiscoveryControls = activeView === "home";
-  const showSearch = activeView === "home" || activeView === "doctors" || activeView === "clinics";
-  const showPageBack = !isMapView && activeView !== "home";
-  const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
+  const showDiscoveryControls = !isDoctorAccount && activeView === "home";
+  const showSearch = !isDoctorAccount && (activeView === "home" || activeView === "doctors" || activeView === "clinics");
+  const showPageBack =
+    !isMapView && activeView !== "home" && !(isDoctorAccount && (activeView === "profile" || activeView === "more"));
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);
@@ -174,6 +182,17 @@ export default function DentalMapApp() {
 
   async function handleLogin(login: string, password: string) {
     return loginWithPassword(login, password);
+  }
+
+  function handleLogout() {
+    logout();
+    setUserRegistered(false);
+    setDoctorRegistrationSent(false);
+    setDoctorSubscriptionPaid(false);
+    setRegisterRole("user");
+    setAuthMode("login");
+    landedRef.current = false;
+    changeView("home");
   }
 
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
@@ -443,7 +462,7 @@ export default function DentalMapApp() {
             <>
               <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 py-4 shadow-[0_8px_18px_rgba(32,55,76,0.08)]">
                 <div className="flex items-center justify-between gap-3">
-                  <button className="flex items-center gap-2.5" type="button" onClick={() => navigate("home")}>
+                  <button className="flex items-center gap-2.5" type="button" onClick={() => navigate(homeView)}>
                     <span className="inline-flex">
                       <BrandLogo />
                     </span>
@@ -542,7 +561,7 @@ export default function DentalMapApp() {
             <button
               className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"
               type="button"
-              onClick={() => navigate("home")}
+              onClick={() => navigate(homeView)}
             >
               <ArrowLeft size={17} />
               <span>Ortga</span>
@@ -677,7 +696,7 @@ export default function DentalMapApp() {
           )}
 
           {activeView === "more" && (
-            <MoreView onNavigate={navigate} sent={consultationSent} />
+            <MoreView onNavigate={navigate} sent={consultationSent} isDoctor={isDoctorAccount} onLogout={handleLogout} />
           )}
 
           {activeView === "feedback" && (
@@ -717,7 +736,7 @@ export default function DentalMapApp() {
             className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
             aria-label="Pastki navigatsiya"
           >
-            {tabs.map(({ id, label, Icon }) => (
+            {navTabs.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 type="button"

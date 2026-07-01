@@ -16,7 +16,7 @@ import {
 } from "../api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
-import { buildLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
+import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -286,6 +286,17 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     },
     [refreshPrivateData]
   );
+
+  const logout = useCallback(() => {
+    clearLocalAccount();
+    storeAuthTokens({});
+    setCurrentUser(null);
+    setAppointments([]);
+    setDoctorProfile(null);
+    setDoctorSchedule([]);
+    setAuthStatus("guest");
+    setAuthMessage("Tizimdan chiqildi.");
+  }, []);
 
   const createAppointment = useCallback(async (body: Record<string, unknown>, token: string) => {
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
@@ -577,6 +588,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     reviewableAppointmentByDoctor,
     refreshPrivateData,
     loginWithPassword,
+    logout,
     createAppointment,
     registerUser,
     registerDoctor,
