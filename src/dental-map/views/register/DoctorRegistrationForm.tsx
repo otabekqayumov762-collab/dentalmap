@@ -1,7 +1,7 @@
 import { Camera, CheckCircle2, Clock, Upload } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { districts, serviceItems, specialtyOptions } from "../../catalog";
-import { Button, Field, OptionGrid, PhoneField, Select, TextareaField } from "../../ui";
+import { Button, Field, MultiSelectSheet, PhoneField, Select, TextareaField } from "../../ui";
 import { LocationPickerField } from "./LocationPickerField";
 import { WorkTimeField } from "./WorkTimeField";
 
@@ -16,15 +16,6 @@ function Section({ step, title, children }: { step: number; title: string; child
       </div>
       <div className="flex flex-col gap-4">{children}</div>
     </section>
-  );
-}
-
-function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <fieldset className="m-0 border-0 p-0">
-      <legend className="mb-1.5 block text-sm font-medium text-ink-700">{label}</legend>
-      {children}
-    </fieldset>
   );
 }
 
@@ -80,23 +71,22 @@ export function DoctorRegistrationForm({
       </Section>
 
       <Section step={2} title="Mutaxassislik">
-        <FieldGroup label="Asosiy yo'nalish">
-          <OptionGrid
-            name="specialty"
-            value={doctorSpecialty}
-            onChange={onSpecialtyChange}
-            options={specialtyOptions.map((item) => ({ value: item, label: item }))}
-          />
-        </FieldGroup>
-        <FieldGroup label="Ko'rsatadigan xizmatlar">
-          <OptionGrid
-            multiple
-            name="services"
-            value={selectedServiceIds}
-            onChange={onToggleService}
-            options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
-          />
-        </FieldGroup>
+        <Select
+          label="Asosiy yo'nalish"
+          name="specialty"
+          value={doctorSpecialty}
+          onChange={onSpecialtyChange}
+          options={specialtyOptions.map((item) => ({ value: item, label: item }))}
+          placeholder="Yo'nalishni tanlang"
+        />
+        <MultiSelectSheet
+          label="Ko'rsatadigan xizmatlar"
+          name="services"
+          value={selectedServiceIds}
+          onToggle={onToggleService}
+          options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
+          placeholder="Xizmatlarni tanlang"
+        />
         <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
         <WorkTimeField name="work_time" />
         <TextareaField label="Izoh" name="description" placeholder="Qisqa ma'lumot" />
