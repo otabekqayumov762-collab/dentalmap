@@ -281,22 +281,25 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return "Avval ro'yxatdan o'ting (local rejim).";
       }
       try {
-        const response = await fetch(getApiUrl("/api/auth/login/"), {
+        // Backend login = SimpleJWT: POST /api/auth/token/ {phone,password} -> flat {access,refresh}.
+        const response = await fetch(getApiUrl("/api/auth/token/"), {
           method: "POST",
           cache: "no-store",
           credentials: "omit",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login, password })
+          body: JSON.stringify({ phone: login, password })
         });
         if (!response.ok) {
-          return "Login yoki parol noto'g'ri.";
+          return "Telefon yoki parol noto'g'ri.";
         }
-        const payload = await response.json();
-        storeAuthTokens(payload);
-        setCurrentUser(payload.user || null);
+        const tokens = (await response.json()) as { access?: string; refresh?: string };
+        storeAuthTokens({ tokens: { access: tokens.access, refresh: tokens.refresh } });
+        // The token endpoint returns no user, so fetch the profile separately.
+        const me = await apiRequest<ApiUser>("/api/users/me/", { token: tokens.access || "" });
+        setCurrentUser(me);
         setAuthStatus("authenticated");
         setAuthMessage("Tizimga kirildi.");
-        void refreshPrivateData(payload.tokens?.access || "");
+        void refreshPrivateData(tokens.access || "");
         return "";
       } catch {
         return "Kirishda xatolik. Keyinroq urinib ko'ring.";
@@ -353,6 +356,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setAuthStatus("authenticated");
         return;
       }
+      formData.set("role", "user");
       const response = await fetch(getApiUrl("/api/auth/register/"), {
         method: "POST",
         body: formData
@@ -377,6 +381,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setAuthStatus("authenticated");
         return;
       }
+      formData.set("role", "doctor");
       const response = await fetch(getApiUrl("/api/auth/register/"), {
         method: "POST",
         body: formData

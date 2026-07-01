@@ -1,8 +1,9 @@
 import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { genderOptions } from "../catalog";
 import { DoctorAvatar, SectionTitle } from "../components/common";
-import { upcomingDays } from "../lib/schedule";
+import { upcomingDays, type DaySlots } from "../lib/schedule";
 import type { Doctor } from "../types";
 import { Button, Card, Chip, Field, PhoneField } from "../ui";
 
@@ -47,7 +48,25 @@ export function AppointmentView({
   const [hydrated, setHydrated] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const days = useMemo(() => upcomingDays(doctor.slots), [doctor.slots]);
+  // Backend: real bookable slots from the doctor's schedule. Offline: synthesized.
+  const [remoteDays, setRemoteDays] = useState<DaySlots[] | null>(null);
+  useEffect(() => {
+    if (isOfflineMode()) {
+      setRemoteDays(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchDoctorDaySlots(doctor.id).then((result) => {
+      if (!cancelled) {
+        setRemoteDays(result);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [doctor.id]);
+
+  const days = useMemo(() => remoteDays ?? upcomingDays(doctor.slots), [remoteDays, doctor.slots]);
   const [selectedDate, setSelectedDate] = useState("");
   const currentDay = useMemo(
     () => days.find((day) => day.iso === selectedDate) ?? days[0],

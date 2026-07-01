@@ -18,6 +18,27 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
+/** Groups raw backend slots ({date, start_time}) into per-day DaySlots. */
+export function groupSlots(raw: Array<{ date?: string; start_time?: string }>): DaySlots[] {
+  const byDate = new Map<string, string[]>();
+  for (const slot of raw) {
+    const time = slot.start_time?.slice(0, 5);
+    if (!slot.date || !time) {
+      continue;
+    }
+    const list = byDate.get(slot.date) ?? [];
+    list.push(time);
+    byDate.set(slot.date, list);
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([iso, slots]) => {
+      const [year, month, day] = iso.split("-").map(Number);
+      const weekday = new Date(year, month - 1, day).getDay();
+      return { iso, weekday, weekdayLabel: WEEKDAY_SHORT[weekday] ?? "", dayNum: day, slots: [...slots].sort() };
+    });
+}
+
 /** Upcoming working days (with their time slots), past slots on today filtered out. */
 export function upcomingDays(slots: string[] = DEFAULT_SLOTS, maxDays = 8, lookahead = 21): DaySlots[] {
   const now = new Date();

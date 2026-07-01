@@ -1,4 +1,5 @@
 import { formatUzDate } from "../lib/date";
+import { groupSlots, type DaySlots } from "../lib/schedule";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -157,6 +158,23 @@ export function normalizeSchedule(items: { results?: ApiWeeklyAvailability[] } |
   return normalizeApiList(items).sort((left, right) => left.weekday - right.weekday || left.start_time.localeCompare(right.start_time));
 }
 
+/** Public bookable slots for a doctor, grouped by day. Empty on any failure. */
+export async function fetchDoctorDaySlots(doctorId: string): Promise<DaySlots[]> {
+  try {
+    const response = await fetch(getApiUrl(`/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}`), {
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    const list = Array.isArray(data) ? data : (data?.results ?? []);
+    return groupSlots(list);
+  } catch {
+    return [];
+  }
+}
+
 export function flattenClinics(items: ApiClinic[]): Clinic[] {
   return items.flatMap((clinic) => {
     const branches = clinic.branches?.filter((branch) => branch.is_active !== false) ?? [];
@@ -179,7 +197,9 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       district: branch.district || "Tuman kiritilmagan",
       address: branch.address || "",
       workTime: branch.work_time || "",
-      rating: Number(clinic.rating ?? 0)
+      rating: Number(clinic.rating ?? 0),
+      lat: typeof branch.latitude === "number" ? branch.latitude : undefined,
+      lng: typeof branch.longitude === "number" ? branch.longitude : undefined
     }));
   });
 }

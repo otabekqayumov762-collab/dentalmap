@@ -1,7 +1,7 @@
 import { LogIn, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ViewId } from "../types";
-import { Button, Field } from "../ui";
+import { Button, Field, PhoneField } from "../ui";
 
 export function LoginView({
   onLogin,
@@ -10,23 +10,20 @@ export function LoginView({
   onLogin: (login: string, password: string) => Promise<string>;
   onNavigate: (view: ViewId) => void;
 }) {
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const login = String(formData.get("login") || "").trim();
-    const password = String(formData.get("password") || "");
-
-    if (!login || !password) {
-      setError("Login va parolni kiriting.");
+    if (!phone.trim() || !password) {
+      setError("Telefon va parolni kiriting.");
       return;
     }
-
     setSubmitting(true);
     setError("");
-    const message = await onLogin(login, password);
+    const message = await onLogin(phone, password);
     setSubmitting(false);
     if (message) {
       setError(message);
@@ -36,12 +33,20 @@ export function LoginView({
   return (
     <div className="flex flex-col gap-5">
       <form className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={handleSubmit}>
-        <Field label="Login" name="login" autoComplete="username" placeholder="Login" />
-        <Field label="Parol" name="password" type="password" autoComplete="current-password" placeholder="••••••••" />
+        <PhoneField label="Telefon raqam" name="phone" value={phone} onValueChange={setPhone} />
+        <Field
+          label="Parol"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
 
         {error && (
           <div
-            className="flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-danger"
+            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
             role="alert"
           >
             <XCircle size={17} className="shrink-0" />

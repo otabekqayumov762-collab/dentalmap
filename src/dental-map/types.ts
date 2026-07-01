@@ -224,6 +224,8 @@ export type ApiClinicBranch = {
   phone?: string;
   work_time?: string;
   is_active?: boolean;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type ApiClinic = {
