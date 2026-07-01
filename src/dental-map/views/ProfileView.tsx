@@ -12,8 +12,9 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { isOfflineMode } from "../api/dentalMapApi";
 import { districts } from "../catalog";
-import type { ViewId } from "../types";
+import type { ApiUser, ViewId } from "../types";
 import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../ui";
 
 type ProfileForm = {
@@ -96,20 +97,40 @@ function MenuRow({
 }
 
 export function ProfileView({
+  currentUser,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
   onNavigate,
-  onLogout
+  onLogout,
+  onSaveProfile
 }: {
+  currentUser?: ApiUser | null;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
   onNavigate: (view: ViewId) => void;
   onLogout: () => void;
+  /** Persist the profile. Returns "" on success, else a status/error message. */
+  onSaveProfile: (payload: ProfileForm) => Promise<string>;
 }) {
   const [profile, setProfile] = useState<ProfileForm>(defaultProfile);
   const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
+  // Seed: online → the signed-in backend user; offline → the localStorage draft.
   useEffect(() => {
+    if (currentUser && !isOfflineMode()) {
+      setProfile(
+        cleanProfile({
+          name: currentUser.full_name,
+          phone: currentUser.phone,
+          district: currentUser.profile?.district,
+          address: currentUser.profile?.address
+        })
+      );
+      setIsSaved(true);
+      return;
+    }
     try {
       const rawProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
       if (!rawProfile) {
@@ -120,7 +141,7 @@ export function ProfileView({
     } catch {
       setProfile(defaultProfile);
     }
-  }, []);
+  }, [currentUser]);
 
   const completedFields = [profile.name, profile.phone, profile.district, profile.address].filter((value) =>
     value.trim()
@@ -131,12 +152,27 @@ export function ProfileView({
   function updateProfile(field: keyof ProfileForm, value: string) {
     setProfile((currentProfile) => ({ ...currentProfile, [field]: value }));
     setIsSaved(false);
+    setSaveError("");
   }
 
-  function saveProfile(event: FormEvent<HTMLFormElement>) {
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-    setIsSaved(true);
+    setSaving(true);
+    setSaveError("");
+    try {
+      if (isOfflineMode()) {
+        // Offline: the localStorage draft is the source of truth for the seed.
+        window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+      }
+      const message = await onSaveProfile(profile);
+      if (message) {
+        setSaveError(message);
+        return;
+      }
+      setIsSaved(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -210,6 +246,8 @@ export function ProfileView({
         <Card as="section">
           <form onSubmit={saveProfile} className="flex flex-col gap-4">
             <Field
+              id="profile-name"
+              name="full_name"
               label="Ism familiya"
               autoComplete="name"
               placeholder="Ism familiya"
@@ -217,11 +255,13 @@ export function ProfileView({
               onChange={(event) => updateProfile("name", event.target.value)}
             />
             <PhoneField
+              name="phone"
               label="Telefon raqam"
               value={profile.phone}
               onValueChange={(value) => updateProfile("phone", value)}
             />
             <Select
+              name="district"
               label="Tuman"
               value={profile.district}
               options={districts.slice(1).map((district) => ({ value: district, label: district }))}
@@ -229,17 +269,23 @@ export function ProfileView({
               placeholder="Tumanni tanlang"
             />
             <TextareaField
+              id="profile-address"
+              name="address"
               label="Manzil"
               placeholder="Ko'cha, uy yoki mo'ljal"
               value={profile.address}
               onChange={(event) => updateProfile("address", event.target.value)}
             />
 
+            {saveError && <p className="text-xs text-danger">{saveError}</p>}
+
             <div className="flex items-center justify-end gap-3 border-t border-surface-100 pt-3">
-              {!isSaved && <span className="mr-auto text-xs text-ink-400">O&apos;zgarishlarni saqlang.</span>}
-              <Button type="submit" size="sm" disabled={isSaved}>
+              {!isSaved && !saveError && (
+                <span className="mr-auto text-xs text-ink-400">O&apos;zgarishlarni saqlang.</span>
+              )}
+              <Button type="submit" size="sm" disabled={isSaved || saving}>
                 {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
-                {isSaved ? "Saqlangan" : "Saqlash"}
+                {saving ? "Saqlanmoqda..." : isSaved ? "Saqlangan" : "Saqlash"}
               </Button>
             </div>
           </form>

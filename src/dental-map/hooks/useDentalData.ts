@@ -332,6 +332,60 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     setAuthMessage("Tizimdan chiqildi.");
   }, []);
 
+  /**
+   * Persist the patient's editable profile fields.
+   * - OFFLINE: reflect the edits into the in-memory session user (ProfileView owns
+   *   the localStorage seed used for offline restore).
+   * - ONLINE: PATCH `/api/users/me/` with exactly the fields UserSerializer exposes
+   *   (full_name, phone, nested profile.district/address).
+   *
+   * NOTE: the live backend's UserMeView is currently read-only (GET only), so this
+   * PATCH returns HTTP 405 until a write endpoint is added server-side. The client
+   * is wired correctly and will start persisting the moment the backend allows it.
+   * Returns "" on success, otherwise a human-readable error/status message.
+   */
+  const updateUserProfile = useCallback(
+    async (payload: { name: string; phone: string; district: string; address: string }) => {
+      if (isOfflineMode()) {
+        setCurrentUser((current) =>
+          current
+            ? {
+                ...current,
+                full_name: payload.name,
+                phone: payload.phone,
+                profile: { ...(current.profile ?? {}), district: payload.district, address: payload.address }
+              }
+            : current
+        );
+        return "";
+      }
+
+      const token = getAccessToken();
+      if (!token) {
+        return "Profilni saqlash uchun avtorizatsiya kerak.";
+      }
+
+      try {
+        const updated = await apiRequest<ApiUser>("/api/users/me/", {
+          token,
+          method: "PATCH",
+          body: JSON.stringify({
+            full_name: payload.name,
+            phone: payload.phone,
+            profile: { district: payload.district, address: payload.address }
+          })
+        });
+        setCurrentUser(updated);
+        webApp?.HapticFeedback?.notificationOccurred("success");
+        return "";
+      } catch (error) {
+        webApp?.HapticFeedback?.notificationOccurred("error");
+        return error instanceof Error ? error.message : "Profil saqlanmadi.";
+      }
+    },
+    [webApp]
+  );
+
   const createAppointment = useCallback(async (body: Record<string, unknown>, token: string) => {
     if (isOfflineMode()) {
       const local: ApiAppointment = {
@@ -686,6 +740,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     loginWithPassword,
     logout,
     createAppointment,
+    updateUserProfile,
     registerUser,
     registerDoctor,
     submitDoctorReview,

@@ -1,5 +1,6 @@
 import { formatUzDate } from "../lib/date";
 import { groupSlots, type DaySlots } from "../lib/schedule";
+import { getAccessToken, getRefreshToken, storeAuthTokens } from "../lib/tokenStore";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -55,18 +56,67 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
   return Array.isArray(payload.results) ? payload.results : [];
 }
 
+/**
+ * Exchanges the stored refresh token for a fresh access token via SimpleJWT
+ * (`POST /api/auth/token/refresh/` → `{access, refresh?}`). A single in-flight
+ * promise is shared so concurrent 401s trigger at most one refresh. On any
+ * failure the tokens are cleared so the app falls back to the auth wall.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refresh = getRefreshToken();
+  if (!refresh) {
+    return false;
+  }
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const response = await fetch(getApiUrl("/api/auth/token/refresh/"), {
+          method: "POST",
+          cache: "no-store",
+          credentials: "omit",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh })
+        });
+        if (!response.ok) {
+          storeAuthTokens({});
+          return false;
+        }
+        const data = (await response.json()) as { access?: string; refresh?: string };
+        if (!data.access) {
+          storeAuthTokens({});
+          return false;
+        }
+        // SimpleJWT may rotate the refresh token; keep the old one if it doesn't.
+        storeAuthTokens({ tokens: { access: data.access, refresh: data.refresh ?? refresh } });
+        return true;
+      } catch {
+        storeAuthTokens({});
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
+
 export async function apiRequest<T>(
   path: string,
   {
     token,
     method = "GET",
     body,
-    signal
+    signal,
+    // Internal: set once we've already retried after a refresh, to prevent loops.
+    retry = false
   }: {
     token?: string;
     method?: string;
     body?: BodyInit | null;
     signal?: AbortSignal;
+    retry?: boolean;
   } = {}
 ): Promise<T> {
   const headers = new Headers();
@@ -85,6 +135,14 @@ export async function apiRequest<T>(
     body,
     signal
   });
+
+  // Access token likely expired (30 min TTL): refresh once and replay the request.
+  if (response.status === 401 && token && !retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return apiRequest<T>(path, { token: getAccessToken(), method, body, signal, retry: true });
+    }
+  }
 
   if (!response.ok) {
     let message = `API request failed: ${response.status}`;

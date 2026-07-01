@@ -54,6 +54,7 @@ export default function DentalMapApp() {
     loginWithPassword,
     logout,
     createAppointment,
+    updateUserProfile,
     registerUser,
     registerDoctor,
     submitDoctorReview,
@@ -628,10 +629,12 @@ export default function DentalMapApp() {
               />
             ) : (
               <ProfileView
+                currentUser={currentUser}
                 doctorRegistrationSent={doctorRegistrationSent}
                 doctorSubscriptionPaid={doctorSubscriptionPaid}
                 onNavigate={navigate}
                 onLogout={handleLogout}
+                onSaveProfile={updateUserProfile}
               />
             )
           )}

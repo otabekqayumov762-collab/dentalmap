@@ -142,8 +142,17 @@ export type ApiUser = {
   id: string;
   full_name?: string;
   phone?: string;
+  email?: string;
   role?: "user" | "doctor" | "admin";
   telegram_username?: string;
+  /** Nested patient profile from `/api/users/me/` (read-only server-side today). */
+  profile?: {
+    gender?: string;
+    age?: number | null;
+    city?: string;
+    district?: string;
+    address?: string;
+  } | null;
   doctor_profile?: {
     id: string;
     approval_status: string;

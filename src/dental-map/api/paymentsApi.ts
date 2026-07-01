@@ -8,6 +8,9 @@ import { API_BASE_URL, normalizeApiList } from "./dentalMapApi";
  */
 
 const API_V1_PREFIX = "/api/v1";
+// FastAPI usually runs on its own origin/port in dev (Django 8010, FastAPI 8011).
+// NEXT_PUBLIC_API_V1_URL, when set, is the FULL v1 base (incl. /api/v1).
+const configuredV1Base = process.env.NEXT_PUBLIC_API_V1_URL?.trim().replace(/\/+$/, "") || "";
 
 export type BillingCard = {
   id: string | number;
@@ -34,10 +37,14 @@ export type ReceiptCreated = {
 
 /** Absolute URL for a v1 billing endpoint. Throws if the backend is unset. */
 export function getApiV1Url(path: string) {
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  if (configuredV1Base) {
+    return `${configuredV1Base}${suffix}`;
+  }
   if (!API_BASE_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is required before calling the billing API.");
   }
-  return `${API_BASE_URL}${API_V1_PREFIX}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${API_BASE_URL}${API_V1_PREFIX}${suffix}`;
 }
 
 async function requestV1<T>(

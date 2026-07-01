@@ -28,6 +28,10 @@ export function getAccessToken() {
   return authTokens.access || "";
 }
 
+export function getRefreshToken() {
+  return authTokens.refresh || "";
+}
+
 export function restoreAuthTokens() {
   try {
     const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY);
