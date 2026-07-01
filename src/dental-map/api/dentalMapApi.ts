@@ -1,3 +1,4 @@
+import { formatUzDate } from "../lib/date";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -131,9 +132,7 @@ export function mapReview(item: ApiReview): DoctorReview {
     author: item.patient_name || "Foydalanuvchi",
     rating: Number(item.rating || 0),
     text: item.comment || "",
-    date: item.created_at
-      ? new Intl.DateTimeFormat("uz-UZ", { day: "2-digit", month: "short" }).format(new Date(item.created_at))
-      : "Bugun",
+    date: item.created_at ? formatUzDate(item.created_at) : "Bugun",
     status: item.status
   };
 }

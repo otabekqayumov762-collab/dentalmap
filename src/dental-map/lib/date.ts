@@ -15,12 +15,12 @@ const UZ_MONTHS = [
   "dekabr"
 ];
 
-/** "2026-07-02" → "2-iyul". Falls back to the raw string if unparseable. */
+/** "2026-07-02" or an ISO datetime → "2-iyul". Falls back to the raw string. */
 export function formatUzDate(iso?: string | null): string {
   if (!iso) {
     return "";
   }
-  const [year, month, day] = iso.split("-").map(Number);
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
   if (!year || !month || !day) {
     return iso;
   }
