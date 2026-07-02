@@ -46,7 +46,9 @@ export function RegisterView({
 
   return (
     <div className="flex flex-col gap-4">
-      <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />
+      {!userRegistered && !doctorRegistrationSent && (
+        <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />
+      )}
 
       {role === "user" ? (
         <UserRegistrationForm
@@ -82,7 +84,7 @@ export function RegisterView({
       )}
 
       <Button variant="secondary" size="lg" type="button" onClick={() => onNavigate("profile")}>
-        Profilga qaytish
+        Kirishga qaytish
       </Button>
     </div>
   );

@@ -78,9 +78,9 @@ export function useTelegramButtons({
         return;
       }
       if (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid) {
-        const paymentForm = document.getElementById("doctor-payment-form");
-        if (paymentForm instanceof HTMLFormElement) {
-          paymentForm.requestSubmit();
+        const paymentButton = document.getElementById("doctor-payment-submit");
+        if (paymentButton instanceof HTMLButtonElement) {
+          paymentButton.click();
         }
         return;
       }
@@ -109,6 +109,7 @@ export function useTelegramButtons({
 
     if (
       activeView === "profile" ||
+      activeView === "login" ||
       activeView === "more" ||
       activeView === "feedback" ||
       activeView === "doctorDetail" ||

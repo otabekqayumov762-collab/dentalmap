@@ -328,6 +328,10 @@ export default function DentalMapApp() {
     webApp?.HapticFeedback?.notificationOccurred("success");
   }, [webApp]);
 
+  const doctorRegistrationPending = doctorRegistrationSent && !doctorSubscriptionPaid;
+  const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
+  const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
+
   useEffect(() => {
     if (apiDoctors.length === 0) {
       return;
@@ -354,7 +358,7 @@ export default function DentalMapApp() {
 
   useTelegramButtons({
     webApp,
-    activeView,
+    activeView: telegramButtonView,
     registerRole,
     selectedDoctor,
     userRegistered,
@@ -385,10 +389,6 @@ export default function DentalMapApp() {
 
   // Auth wall: no entry without logging in or registering (as patient/doctor).
   // A doctor mid-registration must finish the subscription payment before entry.
-  const doctorRegistrationPending =
-    authMode === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid;
-  const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
-
   if (!isAuthenticated) {
     if (authStatus === "loading") {
       return (

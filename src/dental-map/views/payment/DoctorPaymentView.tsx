@@ -44,32 +44,38 @@ export function DoctorPaymentView({
     submit
   } = useDoctorPayment({ defaultAmountUzs: subscriptionAmountUzs });
 
-  // A pending receipt loaded from the server (e.g. after a reload) counts as
-  // "already submitted" too — otherwise the doctor sees the upload form again
-  // and can pile up duplicate receipts while the first is still under review.
-  const done = submitted || paid || latestReceipt?.status === "pending";
+  const approved = paid || latestReceipt?.status === "approved";
+  const waitingForApproval = submitted || latestReceipt?.status === "pending";
 
-  if (done) {
+  if (approved || waitingForApproval) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3.5">
           <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
           <span>
             <strong className="block text-sm font-semibold text-ink-900">
-              Chek yuborildi — admin tasdig&apos;ini kuting
+              {approved ? "To'lov tasdiqlandi" : "Chek yuborildi — admin tasdig'ini kuting"}
             </strong>
             <small className="block text-xs text-ink-500">
-              Administrator chekni tekshiradi. Shu vaqt ichida ilovadan foydalanishingiz mumkin.
+              {approved
+                ? "Doktor kabinetidan foydalanishingiz mumkin."
+                : "Administrator chekni tekshirgandan keyin kabinet ochiladi."}
             </small>
           </span>
         </div>
 
         {latestReceipt && <ReceiptStatusCard receipt={latestReceipt} />}
 
-        <Button type="button" size="lg" onClick={onPaid}>
-          Ilovaga o&apos;tish
-          <ArrowRight size={18} />
-        </Button>
+        {approved ? (
+          <Button type="button" size="lg" onClick={onPaid}>
+            Ilovaga o&apos;tish
+            <ArrowRight size={18} />
+          </Button>
+        ) : (
+          <Button type="button" size="lg" disabled>
+            Admin tasdig&apos;i kutilmoqda
+          </Button>
+        )}
       </div>
     );
   }
@@ -172,6 +178,7 @@ export function DoctorPaymentView({
       )}
 
       <Button
+        id="doctor-payment-submit"
         type="button"
         size="lg"
         disabled={submitting || cardsLoading || cards.length === 0}
