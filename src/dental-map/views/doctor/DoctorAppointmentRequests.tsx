@@ -1,4 +1,13 @@
-import { CalendarCheck2, CalendarDays, CheckCircle2, Clock, Phone, UserRound, XCircle } from "lucide-react";
+import {
+  CalendarCheck2,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Phone,
+  UserRound,
+  XCircle,
+  type LucideIcon
+} from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/common";
 import { formatUzDate } from "../../lib/date";
@@ -16,10 +25,33 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "completed", label: "Yakunlangan" }
 ];
 
+const EMPTY: Record<FilterKey, { Icon: LucideIcon; title: string; text: string }> = {
+  all: {
+    Icon: CalendarDays,
+    title: "Hozircha qabul so'rovlari yo'q",
+    text: "Yangi so'rovlar kelganda shu yerda ko'rinadi."
+  },
+  pending: {
+    Icon: Clock,
+    title: "Kutilayotgan so'rov yo'q",
+    text: "Barcha so'rovlar ko'rib chiqilgan."
+  },
+  doctor_confirmed: {
+    Icon: CalendarCheck2,
+    title: "Tasdiqlangan qabul yo'q",
+    text: "Tasdiqlagan qabullaringiz shu yerda ko'rinadi."
+  },
+  completed: {
+    Icon: CheckCircle2,
+    title: "Yakunlangan qabul yo'q",
+    text: "Yakunlangan qabullar shu yerda ko'rinadi."
+  }
+};
+
 const DEFAULT_REJECT_REASON = "Doktor tomonidan rad etildi.";
 
 export function DoctorAppointmentRequests({
-  appointments,
+  appointments = [],
   onAppointmentAction
 }: {
   appointments: ApiAppointment[];
@@ -32,6 +64,7 @@ export function DoctorAppointmentRequests({
     key === "all" ? appointments.length : appointments.filter((item) => item.status === key).length;
 
   const filtered = filter === "all" ? appointments : appointments.filter((item) => item.status === filter);
+  const empty = EMPTY[filter];
 
   return (
     <section className="flex flex-col gap-4">
@@ -41,29 +74,32 @@ export function DoctorAppointmentRequests({
         subtitle="Bemorlarning qabul so'rovlarini boshqaring"
       />
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1" role="list">
-        {FILTERS.map((item) => (
-          <Chip
-            key={item.key}
-            active={filter === item.key}
-            onClick={() => setFilter(item.key)}
-            className="shrink-0"
-          >
-            {item.label}
-            <span
-              className={cn(
-                "inline-flex min-w-5 items-center justify-center rounded-pill px-1.5 text-xs font-bold",
-                filter === item.key ? "bg-white/25 text-white" : "bg-surface-100 text-ink-500"
-              )}
-            >
-              {countFor(item.key)}
-            </span>
-          </Chip>
-        ))}
+      <div
+        className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1.5"
+        role="group"
+        aria-label="So'rovlarni holat bo'yicha saralash"
+      >
+        {FILTERS.map((item) => {
+          const active = filter === item.key;
+          const count = countFor(item.key);
+          return (
+            <Chip key={item.key} active={active} onClick={() => setFilter(item.key)} className="shrink-0">
+              {item.label}
+              <span
+                className={cn(
+                  "inline-flex min-w-5 items-center justify-center rounded-pill px-1.5 text-xs font-bold tabular-nums",
+                  active ? "bg-white/25 text-white" : "bg-surface-100 text-ink-500"
+                )}
+              >
+                {count}
+              </span>
+            </Chip>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState Icon={CalendarDays} title="Hozircha qabul so'rovlari yo'q" text="Yangi so'rovlar shu yerda ko'rinadi." />
+        <EmptyState Icon={empty.Icon} title={empty.title} text={empty.text} />
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map((appointment) => {
@@ -72,7 +108,7 @@ export function DoctorAppointmentRequests({
             const reason = reasons[appointment.id] ?? "";
 
             return (
-              <Card key={appointment.id} as="article" className="flex flex-col gap-3">
+              <Card key={appointment.id} as="article" className="flex flex-col gap-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
@@ -81,7 +117,7 @@ export function DoctorAppointmentRequests({
                     <div className="min-w-0">
                       <strong className="block truncate font-semibold text-ink-900">{appointment.full_name}</strong>
                       {(appointment.age || appointment.gender) && (
-                        <small className="text-xs text-ink-400">
+                        <small className="block truncate text-xs text-ink-400">
                           {[appointment.age ? `${appointment.age} yosh` : null, appointment.gender]
                             .filter(Boolean)
                             .join(" · ")}
@@ -94,37 +130,44 @@ export function DoctorAppointmentRequests({
                   </Badge>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                    <CalendarDays size={15} className="shrink-0 text-brand-500" />
-                    {formatUzDate(appointment.appointment_date)}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                    <Clock size={15} className="shrink-0 text-brand-500" />
-                    {appointment.appointment_time.slice(0, 5)}
-                  </span>
-                  <a
-                    href={`tel:${appointment.phone}`}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-brand-600 transition-colors hover:text-brand-700"
-                  >
-                    <Phone size={15} className="shrink-0" />
-                    {appointment.phone}
-                  </a>
+                <div className="flex flex-col gap-2.5 rounded-2xl bg-surface-50 px-3.5 py-3 text-sm">
+                  <div className="flex items-center gap-3 font-medium text-ink-700">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <CalendarDays size={15} className="shrink-0 text-brand-500" />
+                      <span className="truncate">{formatUzDate(appointment.appointment_date)}</span>
+                    </span>
+                    <span className="h-4 w-px shrink-0 bg-surface-200" />
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <Clock size={15} className="shrink-0 text-brand-500" />
+                      {appointment.appointment_time.slice(0, 5)}
+                    </span>
+                  </div>
+                  {appointment.phone && (
+                    <a
+                      href={`tel:${appointment.phone}`}
+                      className="inline-flex w-fit max-w-full items-center gap-1.5 font-semibold text-brand-600 transition-colors hover:text-brand-700"
+                    >
+                      <Phone size={15} className="shrink-0" />
+                      <span className="truncate">{appointment.phone}</span>
+                    </a>
+                  )}
                 </div>
 
                 {appointment.note && (
-                  <p className="rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">{appointment.note}</p>
+                  <p className="rounded-2xl bg-surface-50 px-3.5 py-3 text-sm leading-relaxed text-ink-700">
+                    {appointment.note}
+                  </p>
                 )}
 
                 {appointment.status === "doctor_rejected" && appointment.reject_reason && (
-                  <p className="flex items-start gap-2 rounded-2xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+                  <p className="flex items-start gap-2 rounded-2xl bg-rose-50 px-3.5 py-3 text-sm leading-relaxed text-rose-600">
                     <XCircle size={16} className="mt-0.5 shrink-0" />
                     <span>{appointment.reject_reason}</span>
                   </p>
                 )}
 
                 {isPending && (
-                  <div className="flex flex-col gap-3 border-t border-surface-100 pt-3">
+                  <div className="flex flex-col gap-3 border-t border-surface-100 pt-3.5">
                     <Field
                       label="Rad etish sababi"
                       value={reason}
@@ -133,11 +176,11 @@ export function DoctorAppointmentRequests({
                       }
                       placeholder={DEFAULT_REJECT_REASON}
                     />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       <Button
                         type="button"
                         size="sm"
-                        className="flex-1"
+                        className="min-w-32 flex-1"
                         onClick={() => void onAppointmentAction(appointment, "confirm")}
                       >
                         <CheckCircle2 size={16} />
@@ -147,7 +190,7 @@ export function DoctorAppointmentRequests({
                         type="button"
                         variant="danger"
                         size="sm"
-                        className="flex-1"
+                        className="min-w-32 flex-1"
                         onClick={() =>
                           void onAppointmentAction(appointment, "reject", reason.trim() || DEFAULT_REJECT_REASON)
                         }
@@ -160,11 +203,11 @@ export function DoctorAppointmentRequests({
                 )}
 
                 {isConfirmed && (
-                  <div className="flex flex-wrap gap-2 border-t border-surface-100 pt-3">
+                  <div className="flex flex-wrap gap-2.5 border-t border-surface-100 pt-3.5">
                     <Button
                       type="button"
                       size="sm"
-                      className="flex-1"
+                      className="min-w-32 flex-1"
                       onClick={() => void onAppointmentAction(appointment, "complete")}
                     >
                       <CheckCircle2 size={16} />
@@ -174,7 +217,7 @@ export function DoctorAppointmentRequests({
                       type="button"
                       variant="danger"
                       size="sm"
-                      className="flex-1"
+                      className="min-w-32 flex-1"
                       onClick={() => void onAppointmentAction(appointment, "mark_no_show")}
                     >
                       <XCircle size={16} />

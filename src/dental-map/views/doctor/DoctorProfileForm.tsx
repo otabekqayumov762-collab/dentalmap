@@ -4,7 +4,7 @@ import { ImageUp, Save, Stethoscope } from "lucide-react";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { districts, specialtyOptions } from "../../catalog";
 import type { ApiDoctor, ApiUser } from "../../types";
-import { Button, Card, Field, PhoneField, TextareaField } from "../../ui";
+import { Button, Card, Field, PhoneField, TextareaField, cn } from "../../ui";
 import { GroupLabel, NativeSelect, SectionHeader } from "./common";
 
 export type DoctorProfileFormProps = {
@@ -67,19 +67,34 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
           {/* Rasm — dropzone (photo_file) + havola (photo) */}
           <div>
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Profil rasmi</span>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-surface-300 bg-surface-50 px-4 py-4 transition-colors hover:border-brand-400 hover:bg-brand-50">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <label
+              className={cn(
+                "flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed px-4 py-3.5 transition-colors",
+                "focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100",
+                fileName
+                  ? "border-brand-300 bg-brand-50"
+                  : "border-surface-300 bg-surface-50 hover:border-brand-400 hover:bg-brand-50"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  fileName ? "bg-brand-100 text-brand-600" : "bg-brand-50 text-brand-600"
+                )}
+              >
                 <ImageUp size={18} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-ink-700">{fileName || "Rasm tanlang"}</span>
-                <span className="block text-xs text-ink-400">JPG, PNG yoki WEBP</span>
+                <span className="block truncate text-sm font-medium text-ink-900">{fileName || "Rasm tanlang"}</span>
+                <span className="block truncate text-xs text-ink-400">
+                  {fileName ? "Boshqasini tanlash uchun bosing" : "JPG, PNG yoki WEBP"}
+                </span>
               </span>
               <input
                 type="file"
                 name="photo_file"
                 accept="image/jpeg,image/png,image/webp"
-                className="hidden"
+                className="sr-only"
                 onChange={onFileChange}
               />
             </label>
@@ -89,6 +104,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
             type="url"
             label="Rasm havolasi (ixtiyoriy)"
             placeholder="https://..."
+            hint="Fayl yuklamasangiz, rasm havolasini qoldiring."
             defaultValue={profile?.photo || ""}
           />
         </Card>

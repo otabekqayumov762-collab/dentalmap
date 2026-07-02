@@ -526,6 +526,10 @@ export default function DentalMapApp() {
             </>
           )}
 
+          {/* Breathing room between the sticky header and views that have no
+              discovery controls or back button (doctor tabs, profile, etc.). */}
+          {showAppHeader && !showDiscoveryControls && !showPageBack && <div className="h-4" aria-hidden="true" />}
+
           {showPageBack && !webApp?.BackButton && (
             <button
               className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"

@@ -1,10 +1,23 @@
-import { CheckCircle2, EyeOff, Loader2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  EyeOff,
+  Globe,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Stethoscope,
+  XCircle,
+  type LucideIcon
+} from "lucide-react";
 import { DoctorAvatar } from "../../components/common";
 import type { ApiDoctor, ApiUser, Doctor } from "../../types";
-import { Badge, Button, Card } from "../../ui";
-import { approvalLabel, approvalTone } from "./common";
+import { Button, Card, cn } from "../../ui";
+import { approvalLabel } from "./common";
 
 const AVATAR_ACCENT = "#0f8fe8";
+
+type StatusState = "ok" | "pending" | "bad";
 
 /** Builds a Doctor-shaped object so we can reuse <DoctorAvatar> for the profile photo. */
 function toAvatarDoctor(profile: ApiDoctor | null, user: ApiUser | null): Doctor {
@@ -23,6 +36,43 @@ function toAvatarDoctor(profile: ApiDoctor | null, user: ApiUser | null): Doctor
     image: profile?.photo,
     accent: AVATAR_ACCENT
   };
+}
+
+/** One status line on the gradient: leading category icon + label + trailing state pill. */
+function StatusRow({
+  Icon,
+  label,
+  state,
+  first
+}: {
+  Icon: LucideIcon;
+  label: string;
+  state: StatusState;
+  first?: boolean;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3 px-3 py-2.5", !first && "border-t border-white/10")}>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+        <Icon size={16} />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/90">{label}</span>
+      <span
+        className={cn(
+          "flex size-6 shrink-0 items-center justify-center rounded-full",
+          state === "ok" ? "bg-white/25 text-white" : "bg-white/10 text-white/70"
+        )}
+        aria-hidden="true"
+      >
+        {state === "ok" ? (
+          <CheckCircle2 size={14} />
+        ) : state === "pending" ? (
+          <Loader2 size={14} className="animate-spin" />
+        ) : (
+          <XCircle size={14} />
+        )}
+      </span>
+    </div>
+  );
 }
 
 export function DoctorHeaderCard({
@@ -47,6 +97,10 @@ export function DoctorHeaderCard({
   const name = profile?.full_name || user?.full_name || "Shifokor";
   const specialty = profile?.specialty?.trim() || "Mutaxassislik ko'rsatilmagan";
   const hasPhoto = Boolean(profile?.photo);
+
+  const approvalState: StatusState =
+    approvalStatus === "approved" ? "ok" : approvalStatus === "rejected" ? "bad" : "pending";
+  const ApprovalIcon = approvalState === "ok" ? CheckCircle2 : approvalState === "bad" ? XCircle : Loader2;
 
   return (
     <Card className="flex flex-col gap-4 border-0 bg-gradient-to-br from-brand-500 to-brand-600 text-white">
@@ -80,31 +134,25 @@ export function DoctorHeaderCard({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white/10 p-3">
-        <Badge tone={approvalTone(approvalStatus)}>
-          {approvalStatus === "approved" ? (
-            <CheckCircle2 size={13} />
-          ) : approvalStatus === "rejected" ? (
-            <XCircle size={13} />
-          ) : (
-            <Loader2 size={13} />
-          )}
-          {approvalLabel(approvalStatus)}
-        </Badge>
-
-        <Badge tone={isPublished ? "success" : "neutral"}>
-          {isPublished ? <CheckCircle2 size={13} /> : <EyeOff size={13} />}
-          {isPublished ? "Saytda ko'rinmoqda" : "Saytda yashirilgan"}
-        </Badge>
-
-        <Badge tone={isSubscriptionActive ? "success" : "danger"}>
-          {isSubscriptionActive ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
-          {isSubscriptionActive ? "Obuna faol" : "Obuna faol emas"}
-        </Badge>
+      <div className="overflow-hidden rounded-2xl bg-white/10 ring-1 ring-inset ring-white/10">
+        <StatusRow first Icon={ApprovalIcon} label={approvalLabel(approvalStatus)} state={approvalState} />
+        <StatusRow
+          Icon={isPublished ? Globe : EyeOff}
+          label={isPublished ? "Saytda ko'rinmoqda" : "Saytda yashirilgan"}
+          state={isPublished ? "ok" : "bad"}
+        />
+        <StatusRow
+          Icon={Sparkles}
+          label={isSubscriptionActive ? "Obuna faol" : "Obuna faol emas"}
+          state={isSubscriptionActive ? "ok" : "bad"}
+        />
       </div>
 
       {subscriptionExpiry && (
-        <small className="-mt-1 block text-xs text-white/80">Obuna: {subscriptionExpiry} gacha</small>
+        <div className="flex items-center gap-1.5 text-xs text-white/80">
+          <CalendarClock size={13} className="shrink-0" />
+          <span className="truncate">Obuna: {subscriptionExpiry} gacha</span>
+        </div>
       )}
     </Card>
   );
