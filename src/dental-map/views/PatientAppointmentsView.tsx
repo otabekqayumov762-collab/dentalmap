@@ -237,7 +237,7 @@ export function PatientAppointmentsView({
               onClick={() => void submitReview()}
             >
               <Star size={17} />
-              {submitting ? "Yuborilmoqda" : "Yuborish"}
+              {submitting ? "Yuborilmoqda…" : "Yuborish"}
             </Button>
           </div>
         </div>

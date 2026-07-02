@@ -27,6 +27,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
+import { SuperstatAccessGate } from "@/src/dental-map/views/superstat/SuperstatAccessGate";
 import { Badge, Button, Card, Field } from "@/src/dental-map/ui";
 
 export const metadata: Metadata = {
@@ -234,7 +235,7 @@ function StatList({ items, Icon }: { items: readonly StatItem[]; Icon: LucideIco
   );
 }
 
-export default function SuperstatPage() {
+function SuperstatDashboard() {
   return (
     <main className="min-h-screen bg-surface-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -473,5 +474,13 @@ export default function SuperstatPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SuperstatPage() {
+  return (
+    <SuperstatAccessGate>
+      <SuperstatDashboard />
+    </SuperstatAccessGate>
   );
 }

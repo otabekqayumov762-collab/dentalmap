@@ -73,7 +73,9 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   }, [offline]);
 
   const submit = useCallback(async () => {
-    if (submittingRef.current || submitted) {
+    // A pending receipt (already submitted, awaiting admin review) blocks
+    // resubmission the same way a fresh "submitted" flag does.
+    if (submittingRef.current || submitted || latestReceipt?.status === "pending") {
       return;
     }
     const amountValue = Number(amount);
@@ -140,7 +142,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [amount, cards, file, note, offline, selectedCardId, submitted]);
+  }, [amount, cards, file, latestReceipt, note, offline, selectedCardId, submitted]);
 
   return {
     cards,

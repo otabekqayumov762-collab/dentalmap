@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, CreditCard } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { BillingCard } from "../../api/paymentsApi";
 import { Badge, cn } from "../../ui";
 
@@ -18,12 +18,24 @@ export function PaymentCardTile({
   onSelect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function copyNumber() {
     try {
       await navigator.clipboard.writeText(card.masked_number.replace(/\s+/g, ""));
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 1600);
     } catch {
       // Clipboard may be blocked — the number stays visible for manual copy.
     }

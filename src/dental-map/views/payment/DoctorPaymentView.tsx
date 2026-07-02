@@ -44,7 +44,10 @@ export function DoctorPaymentView({
     submit
   } = useDoctorPayment({ defaultAmountUzs: subscriptionAmountUzs });
 
-  const done = submitted || paid;
+  // A pending receipt loaded from the server (e.g. after a reload) counts as
+  // "already submitted" too — otherwise the doctor sees the upload form again
+  // and can pile up duplicate receipts while the first is still under review.
+  const done = submitted || paid || latestReceipt?.status === "pending";
 
   if (done) {
     return (
@@ -175,7 +178,7 @@ export function DoctorPaymentView({
         onClick={() => void submit()}
       >
         {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-        {submitting ? "Yuborilmoqda" : "Chekni yuborish"}
+        {submitting ? "Yuborilmoqda…" : "Chekni yuborish"}
       </Button>
     </div>
   );

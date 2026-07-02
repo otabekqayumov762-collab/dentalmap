@@ -37,7 +37,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
           <Field
             name="full_name"
             label="Ism familiya"
-            placeholder="Ism familiya"
+            placeholder="Masalan, Anvar Karimov"
             defaultValue={profile?.full_name || user?.full_name || ""}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -61,6 +61,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
             name="work_time"
             label="Ish vaqti"
             placeholder="09:00 - 18:00"
+            hint="Profilda ko'rsatiladi; qabul vaqtlarini 'Jadval' bo'limida belgilaysiz."
             defaultValue={profile?.work_time || ""}
           />
 
@@ -177,7 +178,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
 
       <Button type="submit" size="lg" disabled={loading}>
         <Save size={18} />
-        {loading ? "Saqlanmoqda..." : "Profilni saqlash"}
+        {loading ? "Saqlanmoqda…" : "Profilni saqlash"}
       </Button>
     </form>
   );

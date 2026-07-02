@@ -251,7 +251,7 @@ export function ProfileView({
               name="full_name"
               label="Ism familiya"
               autoComplete="name"
-              placeholder="Ism familiya"
+              placeholder="Masalan, Anvar Karimov"
               value={profile.name}
               onChange={(event) => updateProfile("name", event.target.value)}
             />
@@ -286,7 +286,7 @@ export function ProfileView({
               )}
               <Button type="submit" size="sm" disabled={isSaved || saving}>
                 {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
-                {saving ? "Saqlanmoqda..." : isSaved ? "Saqlangan" : "Saqlash"}
+                {saving ? "Saqlanmoqda…" : isSaved ? "Saqlangan" : "Saqlash"}
               </Button>
             </div>
           </form>
