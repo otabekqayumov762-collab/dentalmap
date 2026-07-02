@@ -3,7 +3,7 @@
 import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
-import { shortcuts, tabs } from "@/src/dental-map/catalog";
+import { doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { createTemporaryPassword } from "@/src/dental-map/lib/secure";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
@@ -27,7 +27,7 @@ import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
 import { PatientAppointmentsView } from "@/src/dental-map/views/PatientAppointmentsView";
 import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
-import { DoctorDashboardView } from "@/src/dental-map/views/DoctorDashboardView";
+import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
@@ -111,11 +111,15 @@ export default function DentalMapApp() {
   const homeView: ViewId = isDoctorAccount ? "profile" : "home";
   const isMapView = activeView === "map";
   const isAppointmentSuccess = activeView === "appointment" && consultationSent;
-  // Doctors work entirely inside the Kabinet (dashboard), so no bottom nav.
-  const showBottomNav = !isMapView && !isAppointmentSuccess && !isDoctorAccount;
+  const showBottomNav = !isMapView && !isAppointmentSuccess;
+  const navTabs = isDoctorAccount ? doctorTabs : tabs;
+  const doctorViews: ViewId[] = ["profile", "doctorRequests", "doctorSchedule", "doctorEdit"];
 
-  const activeTabId: ViewId | null =
-    activeView === "home" || activeView === "map" || activeView === "doctors" || activeView === "profile"
+  const activeTabId: ViewId | null = isDoctorAccount
+    ? doctorViews.includes(activeView)
+      ? activeView
+      : "profile"
+    : activeView === "home" || activeView === "map" || activeView === "doctors" || activeView === "profile"
       ? activeView
       : activeView === "doctorDetail" || activeView === "appointment"
         ? "doctors"
@@ -128,8 +132,29 @@ export default function DentalMapApp() {
   const showDiscoveryControls = !isDoctorAccount && activeView === "home";
   const showSearch = !isDoctorAccount && (activeView === "home" || activeView === "doctors" || activeView === "clinics");
   // Top-level tab screens don't get a back button — only genuine sub-pages do.
-  const tabViews: ViewId[] = ["home", "map", "doctors", "profile"];
+  const tabViews: ViewId[] = ["home", "map", "doctors", "profile", ...doctorViews];
   const showPageBack = !isMapView && !tabViews.includes(activeView);
+
+  function renderDoctorDashboard(section: DoctorSection) {
+    return (
+      <DoctorDashboardView
+        section={section}
+        user={currentUser}
+        profile={doctorProfile}
+        appointments={appointments}
+        schedule={doctorSchedule}
+        loading={privateLoading}
+        error={doctorActionError}
+        onRefresh={() => void refreshPrivateData()}
+        onProfileSubmit={submitDoctorProfileUpdate}
+        onScheduleSubmit={submitDoctorSchedule}
+        onAppointmentAction={runDoctorAppointmentAction}
+        onScheduleDelete={(item) => void deleteAvailability(item)}
+        onNavigate={navigate}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);
@@ -612,21 +637,7 @@ export default function DentalMapApp() {
             !currentUser && !isDoctorAccount ? (
               <LoginView onLogin={handleLogin} onNavigate={navigate} />
             ) : isDoctorAccount ? (
-              <DoctorDashboardView
-                user={currentUser}
-                profile={doctorProfile}
-                appointments={appointments}
-                schedule={doctorSchedule}
-                loading={privateLoading}
-                error={doctorActionError}
-                onRefresh={() => void refreshPrivateData()}
-                onProfileSubmit={submitDoctorProfileUpdate}
-                onScheduleSubmit={submitDoctorSchedule}
-                onAppointmentAction={runDoctorAppointmentAction}
-                onScheduleDelete={(item) => void deleteAvailability(item)}
-                onNavigate={navigate}
-                onLogout={handleLogout}
-              />
+              renderDoctorDashboard("kabinet")
             ) : (
               <ProfileView
                 currentUser={currentUser}
@@ -639,13 +650,23 @@ export default function DentalMapApp() {
             )
           )}
 
+          {activeView === "doctorRequests" && isDoctorAccount && renderDoctorDashboard("appointments")}
+          {activeView === "doctorSchedule" && isDoctorAccount && renderDoctorDashboard("schedule")}
+          {activeView === "doctorEdit" && isDoctorAccount && renderDoctorDashboard("profile")}
+
 
           {activeView === "feedback" && (
             <FeedbackView />
           )}
 
           {activeView === "notifications" && (
-            <NotificationsView sent={consultationSent} onOpenAppointment={() => navigate("appointment")} />
+            <NotificationsView
+              sent={consultationSent}
+              isDoctor={isDoctorAccount}
+              pendingCount={appointments.filter((a) => a.status === "pending").length}
+              onOpenAppointment={() => navigate("appointment")}
+              onOpenRequests={() => navigate("doctorRequests")}
+            />
           )}
 
           {activeView === "login" && <LoginView onLogin={handleLogin} onNavigate={navigate} />}
@@ -683,7 +704,7 @@ export default function DentalMapApp() {
             className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
             aria-label="Pastki navigatsiya"
           >
-            {tabs.map(({ id, label, Icon }) => (
+            {navTabs.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 type="button"

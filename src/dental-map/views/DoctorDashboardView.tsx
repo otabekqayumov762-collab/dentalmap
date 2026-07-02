@@ -1,4 +1,4 @@
-import { LogOut, MessageCircle, XCircle } from "lucide-react";
+import { CalendarCheck2, ChevronRight, LogOut, MessageCircle, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
 import { formatDate } from "./doctor/common";
@@ -8,7 +8,10 @@ import { DoctorProfileForm } from "./doctor/DoctorProfileForm";
 import { DoctorScheduleManager } from "./doctor/DoctorScheduleManager";
 import { DoctorStatsRow } from "./doctor/DoctorStatsRow";
 
+export type DoctorSection = "kabinet" | "appointments" | "schedule" | "profile";
+
 export function DoctorDashboardView({
+  section = "kabinet",
   user,
   profile,
   appointments,
@@ -23,6 +26,7 @@ export function DoctorDashboardView({
   onNavigate,
   onLogout
 }: {
+  section?: DoctorSection;
   user: ApiUser | null;
   profile: ApiDoctor | null;
   appointments: ApiAppointment[];
@@ -46,6 +50,67 @@ export function DoctorDashboardView({
   const completedCount = appointments.filter((a) => a.status === "completed").length;
   const approvalStatus = profile?.approval_status || user?.doctor_profile?.approval_status;
 
+  const errorBanner = error ? (
+    <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
+      <XCircle size={17} className="shrink-0" />
+      <span>{error}</span>
+    </div>
+  ) : null;
+
+  if (section === "appointments") {
+    return (
+      <div className="flex flex-col gap-4">
+        {errorBanner}
+        <DoctorAppointmentRequests appointments={appointments} onAppointmentAction={onAppointmentAction} />
+      </div>
+    );
+  }
+
+  if (section === "schedule") {
+    return (
+      <div className="flex flex-col gap-4">
+        {errorBanner}
+        <DoctorScheduleManager
+          schedule={schedule}
+          loading={loading}
+          onScheduleSubmit={onScheduleSubmit}
+          onScheduleDelete={onScheduleDelete}
+        />
+      </div>
+    );
+  }
+
+  if (section === "profile") {
+    return (
+      <div className="flex flex-col gap-4">
+        {errorBanner}
+        <DoctorProfileForm user={user} profile={profile} loading={loading} onProfileSubmit={onProfileSubmit} />
+        <button
+          type="button"
+          onClick={() => onNavigate("feedback")}
+          className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.99]"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <MessageCircle size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block font-semibold text-ink-900">Taklif va shikoyat</strong>
+            <small className="mt-0.5 block text-xs text-ink-500">Administratorga xabar yuborish</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
+        >
+          <LogOut size={18} />
+          Chiqish
+        </button>
+      </div>
+    );
+  }
+
+  // Kabinet (overview)
   return (
     <div className="flex flex-col gap-5">
       <DoctorHeaderCard
@@ -58,14 +123,7 @@ export function DoctorDashboardView({
         loading={loading}
         onRefresh={onRefresh}
       />
-
-      {error && (
-        <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
-          <XCircle size={17} className="shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
+      {errorBanner}
       <DoctorStatsRow
         pendingCount={pendingCount}
         confirmedCount={confirmedCount}
@@ -74,38 +132,21 @@ export function DoctorDashboardView({
         reviewsCount={profile?.reviews_count || 0}
       />
 
-      <DoctorAppointmentRequests appointments={appointments} onAppointmentAction={onAppointmentAction} />
-
-      <DoctorScheduleManager
-        schedule={schedule}
-        loading={loading}
-        onScheduleSubmit={onScheduleSubmit}
-        onScheduleDelete={onScheduleDelete}
-      />
-
-      <DoctorProfileForm user={user} profile={profile} loading={loading} onProfileSubmit={onProfileSubmit} />
-
       <button
         type="button"
-        onClick={() => onNavigate("feedback")}
+        onClick={() => onNavigate("doctorRequests")}
         className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.99]"
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-          <MessageCircle size={18} />
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+          <CalendarCheck2 size={20} />
         </span>
         <span className="min-w-0 flex-1">
-          <strong className="block font-semibold text-ink-900">Taklif va shikoyat</strong>
-          <small className="mt-0.5 block text-xs text-ink-500">Administratorga xabar yuborish</small>
+          <strong className="block font-semibold text-ink-900">Qabul so&apos;rovlari</strong>
+          <small className="text-xs text-ink-500">
+            {pendingCount > 0 ? `${pendingCount} ta yangi so'rov kutilmoqda` : "Yangi so'rov yo'q"}
+          </small>
         </span>
-      </button>
-
-      <button
-        type="button"
-        onClick={onLogout}
-        className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
-      >
-        <LogOut size={18} />
-        Chiqish
+        <ChevronRight size={18} className="shrink-0 text-ink-400" />
       </button>
     </div>
   );

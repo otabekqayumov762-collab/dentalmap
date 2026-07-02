@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Home, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
+import { Building2, CalendarCheck2, CalendarDays, Home, LayoutGrid, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
 import type { Clinic, Doctor, DoctorReview, Shortcut } from "./types";
 
 export const districts = [
@@ -174,6 +174,14 @@ export const tabs: Shortcut[] = [
   { id: "map", label: "Xarita", Icon: MapPin },
   { id: "doctors", label: "Shifokor", Icon: Stethoscope },
   { id: "profile", label: "Profil", Icon: User }
+];
+
+// Doctor Kabinet split into sections (like the patient bottom-nav).
+export const doctorTabs: Shortcut[] = [
+  { id: "profile", label: "Kabinet", Icon: LayoutGrid },
+  { id: "doctorRequests", label: "Qabullar", Icon: CalendarCheck2 },
+  { id: "doctorSchedule", label: "Jadval", Icon: CalendarDays },
+  { id: "doctorEdit", label: "Profil", Icon: User }
 ];
 
 export const serviceItems = [

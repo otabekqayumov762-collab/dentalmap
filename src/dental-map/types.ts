@@ -14,7 +14,10 @@ export type ViewId =
   | "myAppointments"
   | "feedback"
   | "notifications"
-  | "more";
+  | "more"
+  | "doctorRequests"
+  | "doctorSchedule"
+  | "doctorEdit";
 
 export type RegisterRole = "user" | "doctor";
 export type TelegramAuthStatus = "loading" | "authenticated" | "guest" | "error";
