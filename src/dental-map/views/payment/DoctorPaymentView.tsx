@@ -31,6 +31,7 @@ export function DoctorPaymentView({
     loadError,
     selectedCardId,
     setSelectedCardId,
+    subscriptionAmountUzs: currentSubscriptionAmountUzs,
     amount,
     setAmount,
     note,
@@ -102,13 +103,13 @@ export function DoctorPaymentView({
           <span>
             <strong className="block text-sm font-bold text-ink-900">Shifokor obunasi</strong>
             <small className="block text-xs text-ink-500">
-              Profil 1 oy davomida faol bo&apos;ladi. Minimal to&apos;lov: {formatUzs(subscriptionAmountUzs)}.
+              Profil 1 oy davomida faol bo&apos;ladi. Minimal to&apos;lov: {formatUzs(currentSubscriptionAmountUzs)}.
             </small>
           </span>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
           <span className="font-medium text-ink-700">1 oylik obuna</span>
-          <strong className="text-base font-bold text-brand-600">{formatUzs(subscriptionAmountUzs)}</strong>
+          <strong className="text-base font-bold text-brand-600">{formatUzs(currentSubscriptionAmountUzs)}</strong>
         </div>
       </Card>
 
@@ -152,7 +153,7 @@ export function DoctorPaymentView({
         name="amount_uzs"
         type="number"
         inputMode="numeric"
-        min={subscriptionAmountUzs}
+        min={currentSubscriptionAmountUzs}
         value={amount}
         disabled={submitting}
         onChange={(event) => setAmount(event.target.value)}

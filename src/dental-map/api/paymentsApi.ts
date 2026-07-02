@@ -35,6 +35,12 @@ export type ReceiptCreated = {
   status: ReceiptStatus;
 };
 
+export type BillingSubscription = {
+  amount_uzs: number;
+  currency: "UZS" | string;
+  display: string;
+};
+
 /** Absolute URL for a v1 billing endpoint. Throws if the backend is unset. */
 export function getApiV1Url(path: string) {
   const suffix = path.startsWith("/") ? path : `/${path}`;
@@ -100,6 +106,11 @@ async function requestV1<T>(
 export async function fetchCards(signal?: AbortSignal): Promise<BillingCard[]> {
   const payload = await requestV1<{ results?: BillingCard[] } | BillingCard[]>("/billing/cards/", { signal });
   return normalizeApiList(payload);
+}
+
+/** Current doctor subscription price configured in the admin panel. */
+export function fetchSubscription(signal?: AbortSignal): Promise<BillingSubscription> {
+  return requestV1<BillingSubscription>("/billing/subscription/", { signal });
 }
 
 /** Upload a payment receipt (multipart: card_id, amount_uzs, note?, file). */

@@ -5,6 +5,7 @@ import { isOfflineMode } from "../../api/dentalMapApi";
 import {
   fetchCards,
   fetchReceipts,
+  fetchSubscription,
   submitReceipt,
   type BillingCard,
   type Receipt
@@ -29,6 +30,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   const [cardsLoading, setCardsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | number | null>(null);
+  const [subscriptionAmountUzs, setSubscriptionAmountUzs] = useState(defaultAmountUzs);
 
   const [amount, setAmount] = useState(String(defaultAmountUzs));
   const [note, setNote] = useState("");
@@ -44,6 +46,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     if (offline) {
       setCards(DEMO_CARDS);
       setSelectedCardId(DEMO_CARDS[0].id);
+      setSubscriptionAmountUzs(defaultAmountUzs);
       setCardsLoading(false);
       return;
     }
@@ -53,11 +56,18 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     setLoadError("");
     (async () => {
       try {
-        const [cardList, receipts] = await Promise.all([
+        const [cardList, receipts, subscription] = await Promise.all([
           fetchCards(controller.signal),
-          fetchReceipts(controller.signal).catch(() => [] as Receipt[])
+          fetchReceipts(controller.signal).catch(() => [] as Receipt[]),
+          fetchSubscription(controller.signal).catch(() => ({
+            amount_uzs: defaultAmountUzs,
+            currency: "UZS",
+            display: formatUzs(defaultAmountUzs)
+          }))
         ]);
         setCards(cardList);
+        setSubscriptionAmountUzs(subscription.amount_uzs);
+        setAmount((current) => (current === String(defaultAmountUzs) ? String(subscription.amount_uzs) : current));
         setSelectedCardId((current) => current ?? cardList[0]?.id ?? null);
         if (receipts[0]) {
           setLatestReceipt(receipts[0]);
@@ -74,7 +84,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     })();
 
     return () => controller.abort();
-  }, [offline]);
+  }, [defaultAmountUzs, offline]);
 
   const submit = useCallback(async () => {
     // A pending receipt (already submitted, awaiting admin review) blocks
@@ -91,8 +101,8 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       setSubmitError("To'lov summasini to'g'ri kiriting.");
       return;
     }
-    if (amountValue < defaultAmountUzs) {
-      setSubmitError(`Minimal to'lov ${formatUzs(defaultAmountUzs)}. Kam summa qabul qilinmaydi.`);
+    if (amountValue < subscriptionAmountUzs) {
+      setSubmitError(`Minimal to'lov ${formatUzs(subscriptionAmountUzs)}. Kam summa qabul qilinmaydi.`);
       return;
     }
     if (!file) {
@@ -150,7 +160,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [amount, cards, defaultAmountUzs, file, latestReceipt, note, offline, selectedCardId, submitted]);
+  }, [amount, cards, file, latestReceipt, note, offline, selectedCardId, submitted, subscriptionAmountUzs]);
 
   return {
     cards,
@@ -158,6 +168,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     loadError,
     selectedCardId,
     setSelectedCardId,
+    subscriptionAmountUzs,
     amount,
     setAmount,
     note,
