@@ -60,8 +60,19 @@ function createContentSecurityPolicy() {
   const sheetsOrigin =
     getOptionalOrigin("NEXT_PUBLIC_SHEETS_WEBHOOK_URL") ||
     getOptionalOrigin("NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL");
-  const scriptSources = ["'self'", "https://telegram.org", ...collectInlineScriptHashes(outDir)];
-  const connectSources = ["'self'", apiOrigin].filter(Boolean);
+  // Yandex Maps (only relaxes CSP when a key is configured at build time).
+  const yandexEnabled = Boolean(process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY?.trim());
+  const yandex = yandexEnabled
+    ? {
+        script: ["https://api-maps.yandex.ru", "https://yastatic.net"],
+        connect: ["https://api-maps.yandex.ru", "https://*.maps.yandex.net", "https://geocode-maps.yandex.ru"],
+        img: ["https://api-maps.yandex.ru", "https://*.maps.yandex.net", "https://yastatic.net"],
+        font: ["https://yastatic.net"]
+      }
+    : { script: [], connect: [], img: [], font: [] };
+
+  const scriptSources = ["'self'", "https://telegram.org", ...yandex.script, ...collectInlineScriptHashes(outDir)];
+  const connectSources = ["'self'", apiOrigin, "https://nominatim.openstreetmap.org", ...yandex.connect].filter(Boolean);
   if (sheetsOrigin && !connectSources.includes(sheetsOrigin)) {
     connectSources.push(sheetsOrigin);
   }
@@ -70,16 +81,20 @@ function createContentSecurityPolicy() {
     "data:",
     apiOrigin,
     "https://images.unsplash.com",
-    "https://tile.openstreetmap.org"
+    "https://tile.openstreetmap.org",
+    ...yandex.img
   ].filter(Boolean);
+  // Yandex Maps injects inline styles, so it needs 'unsafe-inline' for styles.
+  const styleSrc = yandexEnabled ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'";
+  const fontSrc = `font-src 'self' data:${yandex.font.length ? ` ${yandex.font.join(" ")}` : ""}`;
 
   return [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,
     `img-src ${imageSources.join(" ")}`,
-    "style-src 'self'",
-    "font-src 'self' data:",
+    styleSrc,
+    fontSrc,
     "object-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

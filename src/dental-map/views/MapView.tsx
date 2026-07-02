@@ -1,18 +1,24 @@
-import type { LayerGroup, Map as LeafletMap } from "leaflet";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
+
+import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
+import { ArrowLeft, Building2, Clock3, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
 import {
-  ArrowLeft,
-  Building2,
-  Clock3,
-  MapPin,
-  Navigation,
-  Search,
-  SlidersHorizontal,
-  Star,
-  Stethoscope
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { districts } from "../catalog";
+import { geocodePlace } from "../lib/geocode";
+import { requestUserLocation } from "../lib/location";
+import { openExternal } from "../lib/url";
+import { isYandexEnabled, loadYandex } from "../lib/yandex";
 import type { Clinic, Doctor } from "../types";
+import { Button, Card, Chip } from "../ui";
 
 type LeafletModule = typeof import("leaflet");
 type LatLng = [number, number];
@@ -24,6 +30,23 @@ const clinicPositions: LatLng[] = [
   [41.2746, 69.2362]
 ];
 
+// Marker tone → colour. Kept as raw hex intentionally: these feed the map
+// engines' own vector/placemark options (allowed exception to the no-hex rule).
+const TONE_COLORS: Record<string, string> = {
+  blue: "#2d8fea",
+  teal: "#23a6a8",
+  amber: "#f3d349"
+};
+const USER_COLOR = "#43a82d";
+
+type MapClinicMarker = { clinic: Clinic; position: LatLng; tone: string };
+type MapCanvasHandle = { recenter: (target?: LatLng) => void; searchTo: (query: string) => Promise<boolean> };
+type MapCanvasProps = {
+  userPosition: LatLng;
+  clinics: MapClinicMarker[];
+  onSelect: (clinic: Clinic) => void;
+};
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -33,70 +56,193 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
-export function MapView({
-  doctors,
-  clinics,
-  query,
-  district,
-  onQueryChange,
-  onDistrictChange,
-  onBack,
-  onAppointment
-}: {
-  doctors: Doctor[];
-  clinics: Clinic[];
-  query: string;
-  district: string;
-  onQueryChange: (value: string) => void;
-  onDistrictChange: (value: string) => void;
-  onBack: () => void;
-  onAppointment: (doctor: Doctor) => void;
-}) {
-  const mapNodeRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<LeafletMap | null>(null);
-  const markerLayerRef = useRef<LayerGroup | null>(null);
-  const leafletRef = useRef<LeafletModule | null>(null);
-  const [mapReady, setMapReady] = useState(false);
+/* ── Yandex canvas (preferred for Uzbekistan; needs NEXT_PUBLIC_YANDEX_MAPS_API_KEY) ── */
 
-  const featuredClinics = useMemo(() => clinics.slice(0, 3), [clinics]);
-  const featuredDoctors = useMemo(() => doctors.slice(0, 2), [doctors]);
-  const primaryClinic = featuredClinics[0];
+const YandexCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function YandexCanvas(
+  { userPosition: user, clinics, onSelect },
+  ref
+) {
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const searchMarkerRef = useRef<any>(null);
+  const userMarkRef = useRef<any>(null);
+  const userRef = useRef<LatLng>(user);
+  userRef.current = user;
+  const [ready, setReady] = useState(false);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
-  const mapClinics = useMemo(
-    () =>
-      featuredClinics.map((clinic, index) => ({
-        clinic,
-        position: clinicPositions[index] ?? clinicPositions[0],
-        tone: index === 1 ? "teal" : index === 2 ? "amber" : "blue"
-      })),
-    [featuredClinics]
+  useImperativeHandle(
+    ref,
+    () => ({
+      recenter(target?: LatLng) {
+        mapRef.current?.setCenter(target ?? userRef.current, 15, { duration: 300 });
+      },
+      async searchTo(query: string) {
+        const map = mapRef.current;
+        const ymaps = (window as any).ymaps;
+        if (!map || !ymaps) {
+          return false;
+        }
+        const coords = await geocodePlace(query);
+        if (!coords) {
+          return false;
+        }
+        const point: [number, number] = [coords.lat, coords.lng];
+        map.setCenter(point, 16, { duration: 300 });
+        if (searchMarkerRef.current) {
+          searchMarkerRef.current.geometry.setCoordinates(point);
+        } else {
+          const mark = new ymaps.Placemark(
+            point,
+            { iconCaption: query.trim() },
+            { preset: "islands#redDotIconWithCaption" }
+          );
+          map.geoObjects.add(mark);
+          searchMarkerRef.current = mark;
+        }
+        return true;
+      }
+    }),
+    []
   );
 
-  const openRoute = useCallback((clinic?: Clinic) => {
-    const routeQuery = clinic
-      ? `${clinic.name} ${clinic.district} ${clinic.address}`
-      : "stomatologiya Toshkent";
+  // Mount the map exactly once (re-mounting on every location change caused a flash).
+  useEffect(() => {
+    let cancelled = false;
 
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery)}`, "_blank");
+    loadYandex()
+      .then((ymaps) => {
+        if (cancelled || !nodeRef.current || mapRef.current) {
+          return;
+        }
+        const map = new ymaps.Map(
+          nodeRef.current,
+          { center: userRef.current, zoom: 13, controls: ["geolocationControl"] },
+          { suppressMapOpenBlock: true }
+        );
+        mapRef.current = map;
+        setReady(true);
+      })
+      .catch(() => {
+        // API key missing/blocked — chrome still renders, map stays empty.
+      });
+
+    return () => {
+      cancelled = true;
+      try {
+        mapRef.current?.destroy();
+      } catch {
+        // map may not have finished initialising
+      }
+      mapRef.current = null;
+      userMarkRef.current = null;
+      setReady(false);
+    };
   }, []);
 
-  const centerNearby = useCallback(() => {
-    mapInstanceRef.current?.setView(userPosition, 15, { animate: true });
-  }, []);
+  // Draw user + clinic markers and fit bounds only when the clinic set changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    const ymaps = (window as any).ymaps;
+    if (!ready || !map || !ymaps) {
+      return;
+    }
 
+    map.geoObjects.removeAll();
+    searchMarkerRef.current = null;
+
+    const userMark = new ymaps.Placemark(
+      userRef.current,
+      { iconCaption: "Siz" },
+      { preset: "islands#circleDotIconWithCaption", iconColor: USER_COLOR }
+    );
+    map.geoObjects.add(userMark);
+    userMarkRef.current = userMark;
+
+    clinics.forEach(({ clinic, position, tone }) => {
+      const mark = new ymaps.Placemark(
+        position,
+        { iconCaption: clinic.name, hintContent: clinic.name },
+        { preset: "islands#circleDotIconWithCaption", iconColor: TONE_COLORS[tone] ?? TONE_COLORS.blue }
+      );
+      mark.events.add("click", () => onSelectRef.current(clinic));
+      map.geoObjects.add(mark);
+    });
+
+    const lats = [userRef.current[0], ...clinics.map(({ position }) => position[0])];
+    const lngs = [userRef.current[1], ...clinics.map(({ position }) => position[1])];
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...lats), Math.min(...lngs)],
+      [Math.max(...lats), Math.max(...lngs)]
+    ];
+    map.setBounds(bounds, {
+      checkZoomRange: true,
+      zoomMargin: [96, 42, 240, 42]
+    });
+  }, [clinics, ready]);
+
+  // Move only the user marker when the location changes (no re-fit / no flash).
+  useEffect(() => {
+    if (ready && userMarkRef.current) {
+      userMarkRef.current.geometry.setCoordinates(user);
+    }
+  }, [user, ready]);
+
+  return <div ref={nodeRef} className="absolute inset-0 z-0 bg-surface-100" aria-label="Interaktiv xarita" />;
+});
+
+/* ── Leaflet + OpenStreetMap fallback (no API key) ── */
+
+const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function LeafletCanvas(
+  { userPosition: user, clinics, onSelect },
+  ref
+) {
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const layerRef = useRef<LayerGroup | null>(null);
+  const leafletRef = useRef<LeafletModule | null>(null);
+  const userMarkerRef = useRef<LeafletMarker | null>(null);
+  const userRef = useRef<LatLng>(user);
+  userRef.current = user;
+  const [ready, setReady] = useState(false);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      recenter(target?: LatLng) {
+        mapRef.current?.setView(target ?? userRef.current, 15, { animate: true });
+      },
+      async searchTo(query: string) {
+        const map = mapRef.current;
+        if (!map) {
+          return false;
+        }
+        const coords = await geocodePlace(query);
+        if (!coords) {
+          return false;
+        }
+        map.setView([coords.lat, coords.lng], 16, { animate: true });
+        return true;
+      }
+    }),
+    []
+  );
+
+  // Mount once.
   useEffect(() => {
     let cancelled = false;
 
     async function mountMap() {
       const L = await import("leaflet");
-
-      if (cancelled || !mapNodeRef.current || mapInstanceRef.current) {
+      if (cancelled || !nodeRef.current || mapRef.current) {
         return;
       }
-
       leafletRef.current = L;
 
-      const map = L.map(mapNodeRef.current, {
+      const map = L.map(nodeRef.current, {
         attributionControl: false,
         boxZoom: false,
         doubleClickZoom: true,
@@ -105,7 +251,7 @@ export function MapView({
         scrollWheelZoom: true,
         touchZoom: true,
         zoomControl: false
-      }).setView(userPosition, 13);
+      }).setView(userRef.current, 13);
 
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         keepBuffer: 6,
@@ -116,10 +262,9 @@ export function MapView({
         updateWhenZooming: true
       }).addTo(map);
 
-      markerLayerRef.current = L.layerGroup().addTo(map);
-      mapInstanceRef.current = map;
-      setMapReady(true);
-
+      layerRef.current = L.layerGroup().addTo(map);
+      mapRef.current = map;
+      setReady(true);
       window.setTimeout(() => map.invalidateSize(), 120);
     }
 
@@ -127,26 +272,27 @@ export function MapView({
 
     return () => {
       cancelled = true;
-      markerLayerRef.current = null;
-      mapInstanceRef.current?.remove();
-      mapInstanceRef.current = null;
+      layerRef.current = null;
+      userMarkerRef.current = null;
+      mapRef.current?.remove();
+      mapRef.current = null;
       leafletRef.current = null;
-      setMapReady(false);
+      setReady(false);
     };
   }, []);
 
+  // Draw markers + fit bounds only when the clinic set changes.
   useEffect(() => {
     const L = leafletRef.current;
-    const map = mapInstanceRef.current;
-    const layer = markerLayerRef.current;
-
-    if (!mapReady || !L || !map || !layer) {
+    const map = mapRef.current;
+    const layer = layerRef.current;
+    if (!ready || !L || !map || !layer) {
       return;
     }
 
     layer.clearLayers();
 
-    L.marker(userPosition, {
+    userMarkerRef.current = L.marker(userRef.current, {
       icon: L.divIcon({
         className: "map-leaflet-user-marker",
         html: "<span><b>Siz</b></span>",
@@ -156,139 +302,288 @@ export function MapView({
       interactive: false
     }).addTo(layer);
 
-    mapClinics.forEach(({ clinic, position, tone }) => {
-      L.marker(position, {
-        icon: L.divIcon({
-          className: `map-leaflet-clinic-marker ${tone}`,
-          html: `<span>${escapeHtml(clinic.name)}</span>`,
-          iconAnchor: [74, 44],
-          iconSize: [148, 44]
-        })
-      })
-        .addTo(layer)
-        .on("click", () => openRoute(clinic));
+    clinics.forEach(({ clinic, position, tone }) => {
+      (
+        L.marker(position, {
+          icon: L.divIcon({
+            className: `map-leaflet-clinic-marker ${tone}`,
+            html: `<span>${escapeHtml(clinic.name)}</span>`,
+            iconAnchor: [74, 44],
+            iconSize: [148, 44]
+          })
+        }).addTo(layer) as LeafletMarker
+      ).on("click", () => onSelectRef.current(clinic));
     });
 
-    const bounds = L.latLngBounds([userPosition, ...mapClinics.map(({ position }) => position)]);
+    const bounds = L.latLngBounds([userRef.current, ...clinics.map(({ position }) => position)]);
     map.fitBounds(bounds, {
       animate: false,
       maxZoom: 14,
       paddingBottomRight: [42, 240],
       paddingTopLeft: [80, 144]
     });
-  }, [mapClinics, mapReady, openRoute]);
+  }, [clinics, ready]);
+
+  // Move only the user marker when the location changes.
+  useEffect(() => {
+    if (ready && userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(user);
+    }
+  }, [user, ready]);
+
+  return <div className="leaflet-map" ref={nodeRef} aria-label="Interaktiv xarita" />;
+});
+
+export function MapView({
+  doctors,
+  clinics,
+  district,
+  onDistrictChange,
+  onBack,
+  onAppointment
+}: {
+  doctors: Doctor[];
+  clinics: Clinic[];
+  district: string;
+  onDistrictChange: (value: string) => void;
+  onBack: () => void;
+  onAppointment: (doctor: Doctor) => void;
+}) {
+  const canvasRef = useRef<MapCanvasHandle | null>(null);
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [mapQuery, setMapQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [userLoc, setUserLoc] = useState<LatLng>(userPosition);
+  const [locating, setLocating] = useState(false);
+
+  const featuredClinics = useMemo(() => clinics.slice(0, 3), [clinics]);
+  const featuredDoctors = useMemo(() => doctors.slice(0, 2), [doctors]);
+
+  const mapClinics = useMemo<MapClinicMarker[]>(
+    () =>
+      featuredClinics.map((clinic, index) => ({
+        clinic,
+        position:
+          typeof clinic.lat === "number" && typeof clinic.lng === "number"
+            ? ([clinic.lat, clinic.lng] as LatLng)
+            : clinicPositions[index] ?? clinicPositions[0],
+        tone: index === 1 ? "teal" : index === 2 ? "amber" : "blue"
+      })),
+    [featuredClinics]
+  );
+
+  // Reset any placemark selection when the visible clinic set changes.
+  useEffect(() => {
+    setSelectedClinicId(null);
+  }, [featuredClinics]);
+
+  const activeClinic =
+    featuredClinics.find((clinic) => clinic.id === selectedClinicId) ?? featuredClinics[0];
+
+  const openRoute = useCallback((clinic?: Clinic) => {
+    const routeQuery = clinic
+      ? `${clinic.name} ${clinic.district} ${clinic.address}`
+      : "stomatologiya Toshkent";
+
+    openExternal(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(routeQuery)}`);
+  }, []);
+
+  const centerNearby = useCallback(async () => {
+    setLocating(true);
+    const coords = await requestUserLocation();
+    setLocating(false);
+    if (coords) {
+      const point: LatLng = [coords.lat, coords.lng];
+      setUserLoc(point);
+      canvasRef.current?.recenter(point);
+    } else {
+      canvasRef.current?.recenter();
+    }
+  }, []);
+
+  const handleSelect = useCallback((clinic: Clinic) => {
+    setSelectedClinicId(clinic.id);
+  }, []);
+
+  const MapCanvas = isYandexEnabled() ? YandexCanvas : LeafletCanvas;
 
   return (
-    <section className="map-screen" aria-label="Toshkent xaritasi">
-      <div className="leaflet-map" ref={mapNodeRef} aria-label="Interaktiv xarita" />
+    <section
+      className="relative isolate h-[var(--tg-viewport-height)] min-h-[var(--tg-viewport-height)] w-full overflow-hidden bg-surface-100"
+      aria-label="Toshkent xaritasi"
+    >
+      <MapCanvas ref={canvasRef} userPosition={userLoc} clinics={mapClinics} onSelect={handleSelect} />
 
-      <div className="map-top-controls">
-        <button className="map-circle-control" type="button" aria-label="Ortga qaytish" onClick={onBack}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2.5 px-4 pt-4">
+        <button
+          type="button"
+          aria-label="Ortga qaytish"
+          onClick={onBack}
+          className="pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
+        >
           <ArrowLeft size={22} />
         </button>
-        <label className="map-search-control">
-          <Search size={19} />
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!mapQuery.trim()) {
+              return;
+            }
+            setSearching(true);
+            await canvasRef.current?.searchTo(mapQuery);
+            setSearching(false);
+          }}
+          className="pointer-events-auto flex h-11 flex-1 items-center gap-2 rounded-pill bg-surface-0 px-4 text-ink-900 shadow-float focus-within:ring-2 focus-within:ring-brand-400"
+        >
+          <Search size={19} className="shrink-0 text-ink-400" />
           <input
             type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Qidirish"
+            enterKeyHint="search"
+            value={mapQuery}
+            onChange={(event) => setMapQuery(event.target.value)}
+            placeholder="Manzil yoki joyni qidirish"
+            className="w-full bg-transparent text-[0.95rem] text-ink-900 placeholder:text-ink-400 focus:outline-none"
           />
-        </label>
-        <button className="map-circle-control" type="button" aria-label="Xarita filtrlari">
-          <SlidersHorizontal size={21} />
+          {searching && <span className="shrink-0 text-xs text-ink-400">...</span>}
+        </form>
+      </div>
+
+      <div
+        className="absolute inset-x-0 top-[4.75rem] z-20 flex gap-2 overflow-x-auto no-scrollbar px-4 pb-1"
+        aria-label="Hududlar"
+      >
+        {districts.map((item) => (
+          <Chip
+            key={item}
+            active={district === item}
+            onClick={() => onDistrictChange(item)}
+            className="shrink-0 shadow-card"
+          >
+            {item}
+          </Chip>
+        ))}
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-end">
+        <button
+          type="button"
+          onClick={() => void centerNearby()}
+          disabled={locating}
+          className="mb-3 mr-4 inline-flex items-center gap-2 rounded-pill bg-surface-0 px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-float transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95 disabled:opacity-70"
+        >
+          <Navigation size={20} className={locating ? "animate-pulse" : undefined} />
+          <span>{locating ? "Aniqlanmoqda..." : "Yaqinimda"}</span>
         </button>
-      </div>
 
-      <div className="map-filter-rail" aria-label="Hududlar">
-        {districts.slice(0, 7).map((item) => {
-          const active = district === item;
+        <section
+          className="w-full rounded-t-sheet bg-surface-0 px-4 pb-6 pt-3 shadow-float"
+          aria-label="Yaqin klinikalar"
+        >
+          <span className="mx-auto mb-3 block h-1.5 w-10 rounded-pill bg-surface-200" aria-hidden="true" />
 
-          return (
-            <button
-              key={item}
-              className={active ? "map-filter-chip active" : "map-filter-chip"}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onDistrictChange(item)}
-            >
-              {item}
-            </button>
-          );
-        })}
-      </div>
-
-      <button className="map-nearby-control" type="button" onClick={centerNearby}>
-        <Navigation size={20} />
-        <span>Yaqinimda</span>
-      </button>
-
-      <section className="map-bottom-sheet" aria-label="Yaqin klinikalar">
-        <span className="map-sheet-handle" aria-hidden="true" />
-        <div className="map-sheet-head">
-          <span>
-            <strong>{district === "Barchasi" ? "Yaqin klinikalar" : district}</strong>
-            <small>{featuredClinics.length || clinics.length} ta klinika ko&apos;rinmoqda</small>
-          </span>
-          <button type="button" onClick={() => openRoute(primaryClinic)}>
-            <Navigation size={16} />
-            Marshrut
-          </button>
-        </div>
-
-        {primaryClinic && (
-          <article className="map-featured-clinic">
-            <div className="map-featured-main">
-              <span className="map-clinic-icon">
-                <Building2 size={18} />
-              </span>
-              <span className="map-clinic-copy">
-                <strong>{primaryClinic.name}</strong>
-                <small>
-                  <MapPin size={13} />
-                  {primaryClinic.district}, {primaryClinic.address}
-                </small>
-                <small>
-                  <Clock3 size={13} />
-                  {primaryClinic.workTime}
-                </small>
-              </span>
-            </div>
-            <div className="map-featured-meta">
-              <span className="map-rating">
-                <Star size={13} />
-                {primaryClinic.rating.toFixed(1)}
-              </span>
-            </div>
-          </article>
-        )}
-
-        <div className="map-clinic-strip">
-          {featuredClinics.slice(1).map((clinic) => (
-            <button key={clinic.id} className="map-clinic-card" type="button" onClick={() => openRoute(clinic)}>
-              <Building2 size={15} />
-              <span>
-                <strong>{clinic.name}</strong>
-                <small>{clinic.district}</small>
-              </span>
-              <span className="map-mini-rating">
-                <Star size={12} />
-                {clinic.rating.toFixed(1)}
-              </span>
-            </button>
-          ))}
-        </div>
-        {featuredDoctors.length > 0 && (
-          <div className="map-doctor-actions">
-            {featuredDoctors.map((doctor) => (
-              <button key={doctor.id} type="button" onClick={() => onAppointment(doctor)}>
-                <Stethoscope size={15} />
-                <span>{doctor.name}</span>
-              </button>
-            ))}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="flex min-w-0 flex-col">
+              <strong className="truncate text-base font-bold text-ink-900">
+                {district === "Barchasi" ? "Yaqin klinikalar" : district}
+              </strong>
+              <small className="text-xs text-ink-500">
+                {featuredClinics.length || clinics.length} ta klinika ko&apos;rinmoqda
+              </small>
+            </span>
+            <Button variant="primary" size="sm" onClick={() => openRoute(activeClinic)} className="shrink-0">
+              <Navigation size={16} />
+              Marshrut
+            </Button>
           </div>
-        )}
-      </section>
+
+          {activeClinic && (
+            <Card className="mb-3 flex gap-3">
+              {activeClinic.image ? (
+                <img
+                  src={activeClinic.image}
+                  alt={activeClinic.name}
+                  className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                  <Building2 size={22} />
+                </span>
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    <Star size={13} />
+                    {activeClinic.rating.toFixed(1)}
+                  </span>
+                </div>
+                {activeClinic.partner && (
+                  <span className="w-fit rounded-pill bg-brand-50 px-2 py-0.5 text-[0.65rem] font-bold text-brand-600">
+                    Hamkor
+                  </span>
+                )}
+                <small className="flex items-center gap-1 text-xs text-ink-500">
+                  <MapPin size={13} className="shrink-0" />
+                  <span className="truncate">
+                    {activeClinic.district}, {activeClinic.address}
+                  </span>
+                </small>
+                <small className="flex items-center gap-1 text-xs text-ink-500">
+                  <Clock3 size={13} className="shrink-0" />
+                  {activeClinic.workTime}
+                </small>
+              </div>
+            </Card>
+          )}
+
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {featuredClinics
+              .filter((clinic) => clinic.id !== activeClinic?.id)
+              .map((clinic) => (
+                <button
+                  key={clinic.id}
+                  type="button"
+                  onClick={() => handleSelect(clinic)}
+                  className="flex min-w-44 shrink-0 items-center gap-2 rounded-2xl bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]"
+                >
+                  {clinic.image ? (
+                    <img src={clinic.image} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+                  ) : (
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                      <Building2 size={15} />
+                    </span>
+                  )}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <strong className="truncate text-sm font-semibold text-ink-900">{clinic.name}</strong>
+                    <small className="truncate text-xs text-ink-500">{clinic.district}</small>
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-amber-600">
+                    <Star size={12} />
+                    {clinic.rating.toFixed(1)}
+                  </span>
+                </button>
+              ))}
+          </div>
+
+          {featuredDoctors.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {featuredDoctors.map((doctor) => (
+                <Button
+                  key={doctor.id}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onAppointment(doctor)}
+                  className="w-full justify-start"
+                >
+                  <Stethoscope size={15} className="shrink-0" />
+                  <span className="min-w-0 truncate">{doctor.name}</span>
+                  <span className="ml-auto shrink-0 text-xs font-semibold text-brand-600">Qabul</span>
+                </Button>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </section>
   );
 }

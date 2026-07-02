@@ -9,9 +9,15 @@ export type ViewId =
   | "doctors"
   | "doctorDetail"
   | "register"
+  | "login"
   | "profile"
+  | "myAppointments"
   | "feedback"
-  | "more";
+  | "notifications"
+  | "more"
+  | "doctorRequests"
+  | "doctorSchedule"
+  | "doctorEdit";
 
 export type RegisterRole = "user" | "doctor";
 export type TelegramAuthStatus = "loading" | "authenticated" | "guest" | "error";
@@ -95,6 +101,8 @@ export type Doctor = {
   nextSlot: string;
   image?: string;
   accent: string;
+  /** Daily time slots the doctor is free (HH:MM). Drives the booking picker. */
+  slots?: string[];
 };
 
 export type DoctorReview = {
@@ -116,6 +124,11 @@ export type Clinic = {
   workTime: string;
   rating: number;
   image?: string;
+  /** Map coordinates (for partner clinics we place on the map). */
+  lat?: number;
+  lng?: number;
+  /** Marks a clinic we have a contract with. */
+  partner?: boolean;
 };
 
 export type Shortcut = {
@@ -132,8 +145,17 @@ export type ApiUser = {
   id: string;
   full_name?: string;
   phone?: string;
+  email?: string;
   role?: "user" | "doctor" | "admin";
   telegram_username?: string;
+  /** Nested patient profile from `/api/users/me/` (read-only server-side today). */
+  profile?: {
+    gender?: string;
+    age?: number | null;
+    city?: string;
+    district?: string;
+    address?: string;
+  } | null;
   doctor_profile?: {
     id: string;
     approval_status: string;
@@ -214,6 +236,8 @@ export type ApiClinicBranch = {
   phone?: string;
   work_time?: string;
   is_active?: boolean;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type ApiClinic = {

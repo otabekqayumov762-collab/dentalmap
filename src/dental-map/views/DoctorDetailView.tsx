@@ -1,179 +1,163 @@
-import { Building2, CalendarDays, Clock, Heart, LockKeyhole, MapPin, Phone, Send, Star } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Building2, CalendarDays, Clock, Heart, MapPin, Phone, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { DoctorAvatar } from "../components/common";
+import { isSafeHttpUrl, openExternal } from "../lib/url";
 import type { Doctor, DoctorReview } from "../types";
+import { Button, Card, cn } from "../ui";
 
 export function DoctorDetailView({
   doctor,
   reviews,
-  canWriteReview,
   isSaved,
   onAppointment,
-  onToggleSaved,
-  onReviewSubmit
+  onToggleSaved
 }: {
   doctor: Doctor;
   reviews: DoctorReview[];
-  canWriteReview: boolean;
   isSaved: boolean;
   onAppointment: (doctor: Doctor) => void;
   onToggleSaved: () => void;
-  onReviewSubmit: (rating: number, text: string) => Promise<string | void>;
 }) {
-  const [rating, setRating] = useState(5);
-  const [text, setText] = useState("");
-  const [reviewError, setReviewError] = useState("");
-  const [reviewSent, setReviewSent] = useState(false);
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [activeReview, setActiveReview] = useState(0);
 
-  async function submitReview(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const cleanText = text.trim();
-
-    if (!canWriteReview) {
-      setReviewError("Sharh qoldirish qabuldan keyin ochiladi.");
+  // Auto-advancing, looping reviews carousel.
+  useEffect(() => {
+    if (reviews.length <= 1) {
       return;
     }
-    if (!cleanText) {
-      setReviewError("Izoh matnini yozing.");
-      return;
-    }
-
-    setReviewSubmitting(true);
-    const error = await onReviewSubmit(rating, cleanText);
-    setReviewSubmitting(false);
-    if (error) {
-      setReviewError(error);
-      return;
-    }
-    setText("");
-    setReviewError("");
-    setReviewSent(true);
-  }
-
+    const timer = window.setInterval(() => {
+      setActiveReview((current) => {
+        const next = (current + 1) % reviews.length;
+        const scroller = scrollerRef.current;
+        const card = scroller?.children[next] as HTMLElement | undefined;
+        if (scroller && card) {
+          scroller.scrollTo({ left: card.offsetLeft - scroller.offsetLeft, behavior: "smooth" });
+        }
+        return next;
+      });
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [reviews.length]);
   return (
-    <div className="view-stack">
-      <section className="doctor-detail">
+    <div className="flex flex-col gap-4">
+      <Card as="section" className="flex items-start gap-3">
         <DoctorAvatar doctor={doctor} size="lg" />
-        <div>
-          <h1>{doctor.name}</h1>
-          <p>{doctor.specialty}</p>
-          <span className="rating-line">
-            <Star size={15} /> {doctor.rating || "0.0"}
-            <em>{doctor.reviews} sharh</em>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-bold text-ink-900">{doctor.name}</h1>
+          <p className="text-sm text-ink-500">{doctor.specialty}</p>
+          <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-ink-700">
+            <Star size={15} className="fill-warning text-warning" /> {doctor.rating || "0.0"}
+            <em className="ml-1 not-italic text-xs font-normal text-ink-400">{doctor.reviews} sharh</em>
           </span>
         </div>
         <button
-          className={isSaved ? "detail-save active" : "detail-save"}
           type="button"
           aria-pressed={isSaved}
           onClick={onToggleSaved}
+          className={cn(
+            "inline-flex shrink-0 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95",
+            isSaved ? "bg-danger/10 text-danger" : "bg-surface-100 text-ink-500 hover:bg-surface-200"
+          )}
         >
-          <Heart size={18} />
+          <Heart size={18} className={cn(isSaved && "fill-danger")} />
           <span>{isSaved ? "Saqlangan" : "Saqlash"}</span>
         </button>
-      </section>
-      <section className="detail-list">
-        <span>
-          <Building2 size={17} />
-          <strong>{doctor.clinic}</strong>
+      </Card>
+
+      <Card as="section" className="flex flex-col gap-3">
+        <span className="flex items-center gap-2.5 text-ink-700">
+          <Building2 size={17} className="shrink-0 text-brand-500" />
+          <strong className="font-medium">{doctor.clinic}</strong>
         </span>
-        <span>
-          <MapPin size={17} />
-          <strong>{doctor.district}</strong>
-          <small>{doctor.address || "Manzil kiritilmagan"}</small>
+        <span className="flex flex-col gap-0.5">
+          <span className="flex items-center gap-2.5 text-ink-700">
+            <MapPin size={17} className="shrink-0 text-brand-500" />
+            <strong className="font-medium">{doctor.district}</strong>
+          </span>
+          <small className="pl-7 text-xs text-ink-400">{doctor.address || "Manzil kiritilmagan"}</small>
         </span>
-        <span>
-          <Phone size={17} />
-          <strong>{doctor.phone || "Telefon kiritilmagan"}</strong>
+        <span className="flex items-center gap-2.5 text-ink-700">
+          <Phone size={17} className="shrink-0 text-brand-500" />
+          <strong className="font-medium">{doctor.phone || "Telefon kiritilmagan"}</strong>
         </span>
-        <span>
-          <Clock size={17} />
-          <strong>{doctor.experience || "Tajriba kiritilmagan"}</strong>
+        <span className="flex items-center gap-2.5 text-ink-700">
+          <Clock size={17} className="shrink-0 text-brand-500" />
+          <strong className="font-medium">{doctor.experience || "Tajriba kiritilmagan"}</strong>
         </span>
-      </section>
-      {doctor.locationUrl && (
-        <button
-          className="secondary-btn"
-          type="button"
-          onClick={() => window.open(doctor.locationUrl, "_blank", "noopener,noreferrer")}
-        >
+      </Card>
+
+      {isSafeHttpUrl(doctor.locationUrl) && (
+        <Button variant="secondary" size="lg" type="button" onClick={() => openExternal(doctor.locationUrl)}>
           <MapPin size={17} />
           Lokatsiyani ochish
-        </button>
+        </Button>
       )}
-      <button className="primary-btn submit" type="button" onClick={() => onAppointment(doctor)}>
+      <Button size="lg" type="button" onClick={() => onAppointment(doctor)}>
         <CalendarDays size={18} />
         Qabulga yozilish
-      </button>
-      <section className="reviews-panel">
-        <div className="reviews-head">
-          <strong>Sharhlar</strong>
-          <small>{reviews.length ? `${reviews.length} ta tasdiqlangan sharh` : "Hali tasdiqlangan sharh yo'q"}</small>
+      </Button>
+
+      <Card as="section" className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <strong className="text-ink-900">Sharhlar</strong>
+          <small className="text-xs text-ink-400">
+            {reviews.length ? `${reviews.length} ta tasdiqlangan sharh` : "Hali sharh yo'q"}
+          </small>
         </div>
 
-        <div className="review-list">
-          {reviews.map((review) => (
-            <article key={review.id} className="review-card">
-              <div>
-                <strong>{review.author}</strong>
-                <small>{review.date}</small>
-              </div>
-              <span className="review-stars" aria-label={`${review.rating} yulduz`}>
-                {Array.from({ length: 5 }, (_, index) => (
-                  <Star key={index} size={14} className={index < review.rating ? "filled" : ""} />
-                ))}
-              </span>
-              <p>{review.text}</p>
-            </article>
-          ))}
-        </div>
-
-        {canWriteReview ? (
-          <form className="review-form" onSubmit={submitReview}>
-            <div className="rating-picker" aria-label="Reyting tanlash">
-              {Array.from({ length: 5 }, (_, index) => {
-                const value = index + 1;
-
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    className={value <= rating ? "active" : ""}
-                    aria-pressed={value <= rating}
-                    onClick={() => {
-                      setRating(value);
-                      setReviewError("");
-                    }}
-                  >
-                    <Star size={18} />
-                  </button>
-                );
-              })}
-            </div>
-            <textarea
-              value={text}
-              onChange={(event) => {
-                setText(event.target.value);
-                setReviewError("");
-                setReviewSent(false);
-              }}
-              placeholder="Ko'rikdan keyingi fikringiz"
-            />
-            {reviewError && <small className="review-error">{reviewError}</small>}
-            {reviewSent && <small className="review-success">Sharh moderatsiyaga yuborildi.</small>}
-            <button className="primary-btn submit" type="submit" disabled={reviewSubmitting}>
-              <Send size={17} />
-              {reviewSubmitting ? "Yuborilmoqda" : "Sharh yuborish"}
-            </button>
-          </form>
+        {reviews.length === 0 ? (
+          <p className="rounded-2xl bg-surface-50 px-3 py-6 text-center text-sm text-ink-500">
+            Hozircha tasdiqlangan sharh yo&apos;q. Qabuldan keyin bemorlar shifokorni baholaydi.
+          </p>
         ) : (
-          <div className="review-locked">
-            <LockKeyhole size={17} />
-            <span>Sharh yozish faqat qabuldan keyin ochiladi. Hozircha faqat o&apos;qish mumkin.</span>
+          <div className="flex flex-col gap-3">
+            <div
+              ref={scrollerRef}
+              className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar px-1"
+            >
+              {reviews.map((review) => (
+                <article
+                  key={review.id}
+                  className={cn(
+                    "shrink-0 snap-start rounded-2xl bg-surface-50 p-3.5",
+                    reviews.length > 1 ? "min-w-[85%]" : "w-full"
+                  )}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <strong className="text-sm text-ink-900">{review.author}</strong>
+                    <small className="text-xs text-ink-400">{review.date}</small>
+                  </div>
+                  <span className="mt-1 flex gap-0.5" aria-label={`${review.rating} yulduz`}>
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <Star
+                        key={index}
+                        size={14}
+                        className={index < review.rating ? "fill-warning text-warning" : "text-surface-200"}
+                      />
+                    ))}
+                  </span>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{review.text}</p>
+                </article>
+              ))}
+            </div>
+            {reviews.length > 1 && (
+              <div className="flex justify-center gap-1.5" aria-hidden="true">
+                {reviews.map((review, index) => (
+                  <span
+                    key={review.id}
+                    className={cn(
+                      "h-1.5 rounded-pill transition-all",
+                      index === activeReview ? "w-4 bg-brand-500" : "w-1.5 bg-surface-200"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

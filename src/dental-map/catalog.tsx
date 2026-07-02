@@ -1,21 +1,4 @@
-import {
-  Baby,
-  Bone,
-  Building2,
-  CalendarDays,
-  HeartPulse,
-  Home,
-  MapPin,
-  MessageCircle,
-  MoreHorizontal,
-  ScanLine,
-  ShieldPlus,
-  SlidersHorizontal,
-  SmilePlus,
-  Sparkles,
-  Stethoscope,
-  User
-} from "lucide-react";
+import { Building2, CalendarCheck2, CalendarDays, Home, LayoutGrid, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
 import type { Clinic, Doctor, DoctorReview, Shortcut } from "./types";
 
 export const districts = [
@@ -49,7 +32,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 90 112 45 67",
     nextSlot: "Bugun, 14:30",
     image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=420&q=85",
-    accent: "#22b8ad"
+    accent: "#22b8ad",
+    slots: ["09:00", "09:30", "10:00", "11:30", "14:00", "15:30", "16:00"]
   },
   {
     id: "demo-jamshid",
@@ -65,7 +49,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 93 771 20 30",
     nextSlot: "Ertaga, 11:00",
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=420&q=85",
-    accent: "#1d7eea"
+    accent: "#1d7eea",
+    slots: ["10:00", "11:00", "12:00", "15:00", "16:00", "17:00"]
   },
   {
     id: "demo-malika",
@@ -81,7 +66,8 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 95 440 19 19",
     nextSlot: "Bugun, 16:00",
     image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=420&q=85",
-    accent: "#ef476f"
+    accent: "#ef476f",
+    slots: ["09:00", "09:30", "10:30", "13:30", "14:00", "16:30", "17:30"]
   },
   {
     id: "demo-sardor",
@@ -97,10 +83,16 @@ export const fallbackDoctors: Doctor[] = [
     phone: "+998 91 230 78 00",
     nextSlot: "Ertaga, 09:30",
     image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=420&q=85",
-    accent: "#7c3aed"
+    accent: "#7c3aed",
+    slots: ["09:30", "10:30", "11:30", "14:30", "15:30", "16:30"]
   }
 ];
 
+// ── Hamkor (shartnoma qilingan) klinikalar ────────────────────────────────
+// Ilova bilan shartnoma qilgan klinikalarni SHU YERGA qo'shing. `lat`/`lng`
+// xaritada joyni belgilaydi (Yandex Kartada klinika manzilini toping →
+// URL'dagi koordinatani oling, masalan 41.2896, 69.2530). `partner: true`
+// klinikaga "Hamkor" belgisini beradi.
 export const fallbackClinics: Clinic[] = [
   {
     id: "demo-smile-dent",
@@ -108,7 +100,11 @@ export const fallbackClinics: Clinic[] = [
     district: "Yakkasaroy",
     address: "Bobur ko'chasi 18",
     workTime: "08:00 - 21:00",
-    rating: 4.9
+    rating: 4.9,
+    lat: 41.2896,
+    lng: 69.253,
+    partner: true,
+    image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=240&q=80"
   },
   {
     id: "demo-denta-pro",
@@ -116,7 +112,11 @@ export const fallbackClinics: Clinic[] = [
     district: "Mirobod",
     address: "Nukus ko'chasi 44",
     workTime: "24/7 navbatchi",
-    rating: 4.8
+    rating: 4.8,
+    lat: 41.282,
+    lng: 69.265,
+    partner: true,
+    image: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=240&q=80"
   },
   {
     id: "demo-neo-dental",
@@ -124,7 +124,11 @@ export const fallbackClinics: Clinic[] = [
     district: "Yunusobod",
     address: "Amir Temur 77",
     workTime: "08:30 - 18:00",
-    rating: 5.0
+    rating: 5.0,
+    lat: 41.348,
+    lng: 69.287,
+    partner: true,
+    image: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=240&q=80"
   }
 ];
 
@@ -169,19 +173,26 @@ export const tabs: Shortcut[] = [
   { id: "home", label: "Bosh", Icon: Home },
   { id: "map", label: "Xarita", Icon: MapPin },
   { id: "doctors", label: "Shifokor", Icon: Stethoscope },
-  { id: "profile", label: "Profil", Icon: User },
-  { id: "more", label: "Yana", Icon: MoreHorizontal }
+  { id: "profile", label: "Profil", Icon: User }
+];
+
+// Doctor Kabinet split into sections (like the patient bottom-nav).
+export const doctorTabs: Shortcut[] = [
+  { id: "profile", label: "Kabinet", Icon: LayoutGrid },
+  { id: "doctorRequests", label: "Qabullar", Icon: CalendarCheck2 },
+  { id: "doctorSchedule", label: "Jadval", Icon: CalendarDays },
+  { id: "doctorEdit", label: "Profil", Icon: User }
 ];
 
 export const serviceItems = [
-  { id: "consultation", label: "Konsultatsiya", Icon: MessageCircle },
-  { id: "treatment", label: "Tish davolash", Icon: HeartPulse },
-  { id: "extraction", label: "Tish olish", Icon: Bone },
-  { id: "implant", label: "Implant", Icon: ShieldPlus },
-  { id: "braces", label: "Breket", Icon: SmilePlus },
-  { id: "xray", label: "Rentgen", Icon: ScanLine },
-  { id: "whitening", label: "Oqartirish", Icon: Sparkles },
-  { id: "kids", label: "Bolalar stomatologiyasi", Icon: Baby }
+  { id: "consultation", label: "Konsultatsiya" },
+  { id: "treatment", label: "Tish davolash" },
+  { id: "extraction", label: "Tish olish" },
+  { id: "implant", label: "Implant" },
+  { id: "braces", label: "Breket" },
+  { id: "xray", label: "Rentgen" },
+  { id: "whitening", label: "Oqartirish" },
+  { id: "kids", label: "Bolalar stomatologiyasi" }
 ];
 
 export const genderOptions = ["Erkak", "Ayol"];

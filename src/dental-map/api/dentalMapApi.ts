@@ -1,3 +1,6 @@
+import { formatUzDate } from "../lib/date";
+import { groupSlots, type DaySlots } from "../lib/schedule";
+import { getAccessToken, getRefreshToken, storeAuthTokens } from "../lib/tokenStore";
 import type {
   ApiAppointment,
   ApiClinic,
@@ -16,6 +19,17 @@ export const API_BASE_URL =
 
 export function isBackendConfigured() {
   return Boolean(API_BASE_URL);
+}
+
+/** When true, the app creates/uses local accounts instead of calling the backend
+ *  (set NEXT_PUBLIC_LOCAL_MODE=true). Keeps backend code intact for later. */
+export function isLocalMode() {
+  return process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+}
+
+/** Single decision point for "use local/offline behaviour instead of the API". */
+export function isOfflineMode() {
+  return isLocalMode() || !isBackendConfigured() || isStaticPreviewHost();
 }
 
 export function getApiUrl(path: string) {
@@ -42,18 +56,91 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
   return Array.isArray(payload.results) ? payload.results : [];
 }
 
+/**
+ * Exchanges the stored refresh token for a fresh access token via SimpleJWT
+ * (`POST /api/auth/token/refresh/` → `{access, refresh?}`). A single in-flight
+ * promise is shared so concurrent 401s trigger at most one refresh. On any
+ * failure the tokens are cleared so the app falls back to the auth wall.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+/** Human-readable message from a DRF ({detail}/{field:[...]}) or FastAPI 422
+ *  ({detail:[{msg}]}) error body — avoids the "[object Object]" garble. */
+export function parseApiError(payload: unknown, fallback = "Xatolik yuz berdi."): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+  const detail = (payload as { detail?: unknown }).detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (typeof item === "string" ? item : (item as { msg?: string })?.msg))
+      .filter((value): value is string => Boolean(value));
+    if (messages.length) {
+      return messages.join(" ");
+    }
+  }
+  const values = Object.values(payload as Record<string, unknown>)
+    .flat()
+    .filter((value): value is string => typeof value === "string");
+  return values.length ? values.join(" ") : fallback;
+}
+
+export async function refreshAccessToken(): Promise<boolean> {
+  const refresh = getRefreshToken();
+  if (!refresh) {
+    return false;
+  }
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const response = await fetch(getApiUrl("/api/auth/token/refresh/"), {
+          method: "POST",
+          cache: "no-store",
+          credentials: "omit",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh })
+        });
+        if (!response.ok) {
+          storeAuthTokens({});
+          return false;
+        }
+        const data = (await response.json()) as { access?: string; refresh?: string };
+        if (!data.access) {
+          storeAuthTokens({});
+          return false;
+        }
+        // SimpleJWT may rotate the refresh token; keep the old one if it doesn't.
+        storeAuthTokens({ tokens: { access: data.access, refresh: data.refresh ?? refresh } });
+        return true;
+      } catch {
+        storeAuthTokens({});
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
+
 export async function apiRequest<T>(
   path: string,
   {
     token,
     method = "GET",
     body,
-    signal
+    signal,
+    // Internal: set once we've already retried after a refresh, to prevent loops.
+    retry = false
   }: {
     token?: string;
     method?: string;
     body?: BodyInit | null;
     signal?: AbortSignal;
+    retry?: boolean;
   } = {}
 ): Promise<T> {
   const headers = new Headers();
@@ -73,15 +160,18 @@ export async function apiRequest<T>(
     signal
   });
 
+  // Access token likely expired (30 min TTL): refresh once and replay the request.
+  if (response.status === 401 && token && !retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return apiRequest<T>(path, { token: getAccessToken(), method, body, signal, retry: true });
+    }
+  }
+
   if (!response.ok) {
     let message = `API request failed: ${response.status}`;
     try {
-      const errorPayload = await response.json();
-      if (typeof errorPayload?.detail === "string") {
-        message = errorPayload.detail;
-      } else if (typeof errorPayload === "object" && errorPayload) {
-        message = Object.values(errorPayload).flat().join(" ");
-      }
+      message = parseApiError(await response.json(), message);
     } catch {
       // Response body is optional.
     }
@@ -120,16 +210,14 @@ export function mapReview(item: ApiReview): DoctorReview {
     author: item.patient_name || "Foydalanuvchi",
     rating: Number(item.rating || 0),
     text: item.comment || "",
-    date: item.created_at
-      ? new Intl.DateTimeFormat("uz-UZ", { day: "2-digit", month: "short" }).format(new Date(item.created_at))
-      : "Bugun",
+    date: item.created_at ? formatUzDate(item.created_at) : "Bugun",
     status: item.status
   };
 }
 
 export function appointmentStatusLabel(status: ApiAppointment["status"]) {
   const labels: Record<ApiAppointment["status"], string> = {
-    pending: "Doktor tasdig'i kutilmoqda",
+    pending: "Shifokor tasdig'i kutilmoqda",
     doctor_confirmed: "Tasdiqlangan",
     doctor_rejected: "Rad etilgan",
     user_cancelled: "Bekor qilingan",
@@ -145,6 +233,23 @@ export function weekdayLabel(weekday: number) {
 
 export function normalizeSchedule(items: { results?: ApiWeeklyAvailability[] } | ApiWeeklyAvailability[]) {
   return normalizeApiList(items).sort((left, right) => left.weekday - right.weekday || left.start_time.localeCompare(right.start_time));
+}
+
+/** Public bookable slots for a doctor, grouped by day. Empty on any failure. */
+export async function fetchDoctorDaySlots(doctorId: string): Promise<DaySlots[]> {
+  try {
+    const response = await fetch(getApiUrl(`/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}`), {
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    const list = Array.isArray(data) ? data : (data?.results ?? []);
+    return groupSlots(list);
+  } catch {
+    return [];
+  }
 }
 
 export function flattenClinics(items: ApiClinic[]): Clinic[] {
@@ -169,7 +274,9 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       district: branch.district || "Tuman kiritilmagan",
       address: branch.address || "",
       workTime: branch.work_time || "",
-      rating: Number(clinic.rating ?? 0)
+      rating: Number(clinic.rating ?? 0),
+      lat: typeof branch.latitude === "number" ? branch.latitude : undefined,
+      lng: typeof branch.longitude === "number" ? branch.longitude : undefined
     }));
   });
 }

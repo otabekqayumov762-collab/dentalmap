@@ -1,8 +1,110 @@
+/* Declare `legacy` as the lowest cascade layer so every Tailwind utility wins
+   over the leftover hand-written CSS (otherwise unlayered legacy rules like
+   `button { background: transparent }` override utilities such as bg-brand-500). */
+@layer legacy;
+
+@import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
-@import "./styles/base-shell.css";
-@import "./styles/discovery.css";
-@import "./styles/content-cards.css";
-@import "./styles/registration-forms.css";
-@import "./styles/profile-menu.css";
-@import "./styles/superstat.css";
-@import "./styles/responsive.css";
+
+/* Legacy stylesheets — global foundation (root vars, leaflet markers) + dead
+   component rules pending removal. Scoped to the low-priority `legacy` layer. */
+@import "./styles/base-shell.css" layer(legacy);
+@import "./styles/discovery.css" layer(legacy);
+@import "./styles/content-cards.css" layer(legacy);
+@import "./styles/registration-forms.css" layer(legacy);
+@import "./styles/profile-menu.css" layer(legacy);
+@import "./styles/superstat.css" layer(legacy);
+@import "./styles/responsive.css" layer(legacy);
+
+/* ── Dental Map design tokens ───────────────────────────────────────────────
+   Built around the brand logo gradient (teal #16A8B5 → blue #1686EF).
+   Exposes Tailwind utilities like bg-brand-500, text-ink-600, rounded-card,
+   shadow-card, etc. Agents MUST use these tokens — never hardcoded hex. */
+@theme {
+  /* Brand — teal */
+  --color-brand-50: #ecfbfa;
+  --color-brand-100: #cef4f1;
+  --color-brand-200: #9fe8e3;
+  --color-brand-300: #63d6cf;
+  --color-brand-400: #2fbcb5;
+  --color-brand-500: #16a8b5;
+  --color-brand-600: #0f8795;
+  --color-brand-700: #116b78;
+  --color-brand-800: #135562;
+  --color-brand-900: #144853;
+
+  /* Accent — blue */
+  --color-accent-50: #eef5ff;
+  --color-accent-100: #d9e8ff;
+  --color-accent-200: #bcd7ff;
+  --color-accent-300: #8ebeff;
+  --color-accent-400: #599aff;
+  --color-accent-500: #1686ef;
+  --color-accent-600: #0e6bd4;
+  --color-accent-700: #1156ab;
+  --color-accent-800: #144a8c;
+  --color-accent-900: #163f73;
+
+  /* Doctor accent palette (matches src/dental-map/components/accent.ts) */
+  --color-accent-teal: #22b8ad;
+  --color-accent-blue: #1d7eea;
+  --color-accent-rose: #ef476f;
+  --color-accent-violet: #7c3aed;
+  --color-accent-sky: #0f8fe8;
+
+  /* Semantic */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #ef476f;
+
+  /* Ink (text) + surface (backgrounds) */
+  --color-ink-900: #0c1b21;
+  --color-ink-700: #284049;
+  --color-ink-600: #3f555f;
+  --color-ink-500: #5b727b;
+  --color-ink-400: #87989f;
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f6fafb;
+  --color-surface-100: #eef4f6;
+  --color-surface-200: #e0eaed;
+
+  /* Radius */
+  --radius-card: 1.25rem;
+  --radius-sheet: 1.75rem;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-card: 0 8px 24px -12px rgb(16 80 90 / 0.22);
+  --shadow-float: 0 18px 40px -16px rgb(16 80 90 / 0.32);
+
+  /* Type */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Hide scrollbars on scroll containers (shell + horizontal chip rows). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
