@@ -4,7 +4,7 @@ import { cn } from "../../ui";
 
 const STATUS: Record<ReceiptStatus, { label: string; text: string; Icon: LucideIcon; wrap: string; icon: string }> = {
   pending: {
-    label: "Admin tasdig'i kutilmoqda",
+    label: "Administrator tasdig'i kutilmoqda",
     text: "Chek yuborildi. Administrator tekshiruvidan so'ng profil faollashadi.",
     Icon: Clock,
     wrap: "bg-warning/10 text-warning",
@@ -41,7 +41,7 @@ export function ReceiptStatusCard({ receipt }: { receipt: Receipt }) {
         </span>
       </div>
       {receipt.status === "rejected" && receipt.reject_reason && (
-        <p className="rounded-xl bg-white/70 px-3 py-2 text-xs font-medium">
+        <p className="rounded-xl bg-surface-0/70 px-3 py-2 text-xs font-medium">
           Sabab: {receipt.reject_reason}
         </p>
       )}

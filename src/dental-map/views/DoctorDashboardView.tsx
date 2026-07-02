@@ -1,5 +1,6 @@
 import { CalendarCheck2, ChevronRight, LogOut, MessageCircle, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
+import { ThemeToggle } from "../components/ThemeToggle";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
 import { formatDate } from "./doctor/common";
 import { DoctorAppointmentRequests } from "./doctor/DoctorAppointmentRequests";
@@ -85,6 +86,13 @@ export function DoctorDashboardView({
       <div className="flex flex-col gap-4">
         {errorBanner}
         <DoctorProfileForm user={user} profile={profile} loading={loading} onProfileSubmit={onProfileSubmit} />
+        <div className="flex items-center justify-between gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 shadow-card">
+          <span className="min-w-0">
+            <strong className="block text-sm font-semibold text-ink-900">Ko&apos;rinish</strong>
+            <small className="block text-xs text-ink-500">Kunduzgi yoki tungi ko&apos;rinishni tanlang</small>
+          </span>
+          <ThemeToggle />
+        </div>
         <button
           type="button"
           onClick={() => onNavigate("feedback")}
@@ -101,7 +109,7 @@ export function DoctorDashboardView({
         <button
           type="button"
           onClick={onLogout}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-danger/30 bg-danger/10 font-semibold text-danger transition-colors hover:bg-danger/20"
         >
           <LogOut size={18} />
           Chiqish

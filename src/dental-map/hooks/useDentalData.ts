@@ -87,17 +87,24 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     try {
       setPrivateLoading(true);
       setDoctorActionError("");
-      const [mePayload, appointmentPayload, reviewPayload] = await Promise.all([
+      const [meResult, appointmentResult, reviewResult] = await Promise.allSettled([
         apiRequest<ApiUser>("/api/users/me/", { token }),
         apiRequest<ApiList<ApiAppointment> | ApiAppointment[]>("/api/appointments/?ordering=-created_at", { token }),
         apiRequest<ApiList<ApiReview> | ApiReview[]>("/api/reviews/?ordering=-created_at", { token })
       ]);
-      const nextUser = mePayload;
-      setCurrentUser(nextUser);
-      setAppointments(normalizeApiList(appointmentPayload));
-      setDoctorReviews(normalizeApiList(reviewPayload).map(mapReview));
 
-      if (nextUser.role === "doctor" || nextUser.doctor_profile) {
+      const nextUser = meResult.status === "fulfilled" ? meResult.value : null;
+      if (nextUser) {
+        setCurrentUser(nextUser);
+      }
+      if (appointmentResult.status === "fulfilled") {
+        setAppointments(normalizeApiList(appointmentResult.value));
+      }
+      if (reviewResult.status === "fulfilled") {
+        setDoctorReviews(normalizeApiList(reviewResult.value).map(mapReview));
+      }
+
+      if (nextUser && (nextUser.role === "doctor" || nextUser.doctor_profile)) {
         const [profileResult, scheduleResult] = await Promise.allSettled([
           apiRequest<ApiDoctor>("/api/doctors/me/", { token }),
           apiRequest<ApiList<ApiWeeklyAvailability> | ApiWeeklyAvailability[]>(

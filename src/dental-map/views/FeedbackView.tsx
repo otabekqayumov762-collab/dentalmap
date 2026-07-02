@@ -43,13 +43,13 @@ export function FeedbackView() {
       </form>
 
       {sent && (
-        <div className="flex items-center gap-3 rounded-card bg-emerald-50 p-4 text-emerald-700 shadow-card">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+        <div className="flex items-center gap-3 rounded-card bg-success/10 p-4 text-success shadow-card">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15">
             <CheckCircle2 size={18} />
           </span>
           <span className="flex flex-col">
             <strong className="text-[0.95rem] font-semibold">Xabar yuborildi</strong>
-            <small className="text-xs text-emerald-600">Administrator xabaringizni ko&apos;rib chiqadi.</small>
+            <small className="text-xs text-success">Administrator xabaringizni ko&apos;rib chiqadi.</small>
           </span>
         </div>
       )}

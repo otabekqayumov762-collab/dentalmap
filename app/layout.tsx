@@ -25,7 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uz">
+    <html lang="uz" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var s=localStorage.getItem('dental-map-theme');var tg=window.Telegram&&window.Telegram.WebApp;var d=s?s==='dark':(tg&&tg.colorScheme?tg.colorScheme==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.toggle('dark',d);e.dataset.telegramTheme=d?'dark':'light';}catch(_){}})();"
+          }}
+        />
+      </head>
       <body>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
         {children}

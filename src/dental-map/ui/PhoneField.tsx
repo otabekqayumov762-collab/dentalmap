@@ -74,7 +74,7 @@ export function PhoneField({
       <div
         className={cn(
           "flex h-12 items-center rounded-2xl border border-surface-200 bg-surface-50 transition-colors",
-          "focus-within:border-brand-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100",
+          "focus-within:border-brand-400 focus-within:bg-surface-0 focus-within:ring-2 focus-within:ring-brand-100",
           className
         )}
       >

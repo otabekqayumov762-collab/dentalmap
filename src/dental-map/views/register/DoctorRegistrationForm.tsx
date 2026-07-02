@@ -111,7 +111,7 @@ export function DoctorRegistrationForm({
       </Section>
 
       {registrationError && (
-        <div role="alert" className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger">
+        <div role="alert" className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
           <XCircle size={18} className="shrink-0" />
           <span>
             <strong className="block text-sm font-semibold">Yuborilmadi</strong>

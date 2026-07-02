@@ -68,7 +68,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink-900/45 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div
         ref={sheetRef}
         className={cn(

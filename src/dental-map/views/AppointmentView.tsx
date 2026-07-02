@@ -298,7 +298,7 @@ export function AppointmentView({
         )}
         <Button type="submit" size="lg" disabled={sent || submitting || days.length === 0}>
           <CheckCircle2 size={18} />
-          {submitting ? "Yuborilmoqda" : "Qabulga yozilish"}
+          {submitting ? "Yuborilmoqda…" : "Qabulga yozilish"}
         </Button>
       </form>
     </div>
