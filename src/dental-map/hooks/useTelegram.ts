@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { applyTheme, getStoredPreference, resolveIsDark } from "../lib/theme";
 import type { TelegramUser, TelegramWebApp } from "../types";
 
 /**
@@ -18,7 +19,7 @@ export function useTelegram() {
     setWebApp(tg);
 
     if (!tg) {
-      document.documentElement.dataset.telegramTheme = "light";
+      applyTheme(resolveIsDark(null));
       setInitialized(true);
       return;
     }
@@ -26,15 +27,15 @@ export function useTelegram() {
     tg.ready();
     tg.expand();
     tg.disableVerticalSwipes?.();
-    tg.setHeaderColor?.(tg.themeParams?.secondary_bg_color ?? "#f8fbfc");
-    tg.setBackgroundColor?.(tg.themeParams?.bg_color ?? "#f8fbfc");
 
+    // Initial theme: saved preference → Telegram colorScheme → system.
+    applyTheme(resolveIsDark(tg), tg);
+
+    // Follow the host only while the user hasn't set an explicit preference.
     const applyTelegramTheme = () => {
-      const root = document.documentElement;
-      root.dataset.telegramTheme = tg.colorScheme === "dark" ? "dark" : "light";
+      if (getStoredPreference()) return;
+      applyTheme(tg.colorScheme === "dark", tg);
     };
-
-    applyTelegramTheme();
     tg.onEvent?.("themeChanged", applyTelegramTheme);
 
     setTelegramUser(tg.initDataUnsafe?.user ?? null);

@@ -123,6 +123,7 @@
   text-decoration: none;
 }
 
+.dark,
 [data-telegram-theme="dark"] {
   --bg: #0f172a;
   --app-bg: #111827;
@@ -135,6 +136,8 @@
   --blue-dark: #7dd3fc;
   --teal: #22d3ee;
   --shadow: none;
+  --tg-bg: #101a21;
+  --tg-secondary-bg: #18232c;
 }
 
 * {

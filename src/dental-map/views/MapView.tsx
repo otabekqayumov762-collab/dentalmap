@@ -512,7 +512,7 @@ export function MapView({
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-start justify-between gap-2">
                   <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">
                     <Star size={13} />
                     {activeClinic.rating.toFixed(1)}
                   </span>
@@ -557,7 +557,7 @@ export function MapView({
                     <strong className="truncate text-sm font-semibold text-ink-900">{clinic.name}</strong>
                     <small className="truncate text-xs text-ink-500">{clinic.district}</small>
                   </span>
-                  <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-amber-600">
+                  <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-warning">
                     <Star size={12} />
                     {clinic.rating.toFixed(1)}
                   </span>

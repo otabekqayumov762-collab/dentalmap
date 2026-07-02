@@ -41,7 +41,7 @@ export function ReceiptStatusCard({ receipt }: { receipt: Receipt }) {
         </span>
       </div>
       {receipt.status === "rejected" && receipt.reject_reason && (
-        <p className="rounded-xl bg-white/70 px-3 py-2 text-xs font-medium">
+        <p className="rounded-xl bg-surface-0/70 px-3 py-2 text-xs font-medium">
           Sabab: {receipt.reject_reason}
         </p>
       )}

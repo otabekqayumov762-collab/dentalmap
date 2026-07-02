@@ -429,7 +429,7 @@ export default function DentalMapApp() {
         >
           {showAppHeader && (
             <>
-              <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 py-4 shadow-[0_8px_18px_rgba(32,55,76,0.08)]">
+              <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 py-4 shadow-[0_8px_18px_rgba(32,55,76,0.08)] dark:shadow-none">
                 <div className="flex items-center justify-between gap-3">
                   <button className="flex items-center gap-2.5" type="button" onClick={() => navigate(homeView)}>
                     <span className="inline-flex">
@@ -694,7 +694,7 @@ export default function DentalMapApp() {
 
         {viewLoading && (
           <div
-            className="absolute left-1/2 top-[86px] z-[70] inline-flex h-10 -translate-x-1/2 items-center gap-2 rounded-pill border border-surface-200 bg-white/95 px-3.5 text-[13px] font-bold text-accent-700 shadow-float backdrop-blur"
+            className="absolute left-1/2 top-[86px] z-[70] inline-flex h-10 -translate-x-1/2 items-center gap-2 rounded-pill border border-surface-200 bg-surface-0/95 px-3.5 text-[13px] font-bold text-accent-700 shadow-float backdrop-blur"
             role="status"
             aria-live="polite"
           >
@@ -705,7 +705,7 @@ export default function DentalMapApp() {
 
         {showBottomNav && (
           <nav
-            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 gap-1.5 rounded-[20px] border border-surface-200 bg-white/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] backdrop-blur"
+            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 gap-1.5 rounded-[20px] border border-surface-200 bg-surface-0/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] dark:shadow-none backdrop-blur"
             aria-label="Pastki navigatsiya"
           >
             {navTabs.map(({ id, label, Icon }) => (

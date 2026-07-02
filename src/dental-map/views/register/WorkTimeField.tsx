@@ -4,7 +4,7 @@ import { useState } from "react";
 
 const control =
   "w-full rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-ink-900 " +
-  "transition-colors focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "transition-colors focus:border-brand-400 focus:bg-surface-0 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
 /**
  * Work-hours range picked with two native time inputs; submits "HH:MM - HH:MM"

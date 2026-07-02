@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
 import { districts } from "../catalog";
+import { ThemeToggle } from "../components/ThemeToggle";
 import type { ApiUser, ViewId } from "../types";
 import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../ui";
 
@@ -306,6 +307,18 @@ export function ProfileView({
         </div>
       </section>
 
+      {/* Appearance */}
+      <section>
+        <GroupLabel>Ko&apos;rinish</GroupLabel>
+        <Card className="flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <strong className="block text-sm font-semibold text-ink-900">Mavzu</strong>
+            <small className="block text-xs text-ink-500">Kunduzgi yoki tungi ko&apos;rinishni tanlang</small>
+          </span>
+          <ThemeToggle />
+        </Card>
+      </section>
+
       {doctorRegistrationSent && (
         <Card
           className={cn(
@@ -334,7 +347,7 @@ export function ProfileView({
       <button
         type="button"
         onClick={onLogout}
-        className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-rose-200 bg-rose-50 font-semibold text-danger transition-colors hover:bg-rose-100 active:scale-[0.99]"
+        className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-danger/30 bg-danger/10 font-semibold text-danger transition-colors hover:bg-danger/20 active:scale-[0.99]"
       >
         <LogOut size={18} />
         Chiqish

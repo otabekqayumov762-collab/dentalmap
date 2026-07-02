@@ -42,7 +42,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       aria-modal="true"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-ink-900/45 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div
         className={cn(
           "relative z-10 w-full max-w-md rounded-card bg-surface-0 p-5 shadow-float",
