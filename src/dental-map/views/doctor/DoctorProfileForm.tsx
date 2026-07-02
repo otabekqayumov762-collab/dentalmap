@@ -1,11 +1,11 @@
 "use client";
 
 import { ImageUp, Save, Stethoscope } from "lucide-react";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { districts, specialtyOptions } from "../../catalog";
 import type { ApiDoctor, ApiUser } from "../../types";
-import { Button, Card, Field, PhoneField, TextareaField, cn } from "../../ui";
-import { GroupLabel, NativeSelect, SectionHeader } from "./common";
+import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../../ui";
+import { GroupLabel, SectionHeader } from "./common";
 
 export type DoctorProfileFormProps = {
   user: ApiUser | null;
@@ -17,6 +17,13 @@ export type DoctorProfileFormProps = {
 /** Doctor self-service profile editor. Uncontrolled (FormData) with defaultValue seeding. */
 export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: DoctorProfileFormProps) {
   const [fileName, setFileName] = useState("");
+  const [specialty, setSpecialty] = useState(profile?.specialty || specialtyOptions[0]);
+  const [clinicDistrict, setClinicDistrict] = useState(profile?.clinic_district || districts[1]);
+
+  useEffect(() => {
+    setSpecialty(profile?.specialty || specialtyOptions[0]);
+    setClinicDistrict(profile?.clinic_district || districts[1]);
+  }, [profile?.clinic_district, profile?.specialty]);
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFileName(event.target.files?.[0]?.name ?? "");
@@ -41,13 +48,13 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
             defaultValue={profile?.full_name || user?.full_name || ""}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <NativeSelect name="specialty" label="Mutaxassislik" defaultValue={profile?.specialty || specialtyOptions[0]}>
-              {specialtyOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </NativeSelect>
+            <Select
+              name="specialty"
+              label="Mutaxassislik"
+              value={specialty}
+              onChange={setSpecialty}
+              options={specialtyOptions.map((option) => ({ value: option, label: option }))}
+            />
             <Field
               name="experience_years"
               type="number"
@@ -131,17 +138,13 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
         <Card className="flex flex-col gap-4">
           <Field name="clinic_name" label="Klinika nomi" defaultValue={profile?.clinic_name || ""} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <NativeSelect
+            <Select
               name="clinic_district"
               label="Tuman"
-              defaultValue={profile?.clinic_district || districts[1]}
-            >
-              {districts.slice(1).map((district) => (
-                <option key={district} value={district}>
-                  {district}
-                </option>
-              ))}
-            </NativeSelect>
+              value={clinicDistrict}
+              onChange={setClinicDistrict}
+              options={districts.slice(1).map((district) => ({ value: district, label: district }))}
+            />
             <PhoneField
               name="doctor_phone"
               label="Telefon raqam"

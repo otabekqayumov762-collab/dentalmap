@@ -2,8 +2,8 @@ import { CalendarDays, ChevronDown, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { weekdayLabel } from "../../api/dentalMapApi";
 import type { ApiWeeklyAvailability } from "../../types";
-import { Button, Card, Chip, cn, Field, IconButton } from "../../ui";
-import { GroupLabel, NativeSelect, SectionHeader } from "./common";
+import { Button, Card, Chip, cn, Field, IconButton, Select } from "../../ui";
+import { GroupLabel, SectionHeader } from "./common";
 
 const weekdays = [0, 1, 2, 3, 4, 5, 6] as const;
 const durationOptions = [15, 20, 30, 45, 60] as const;
@@ -46,13 +46,12 @@ export function DoctorScheduleManager({
     <Card as="section" className="flex flex-col gap-5">
       <SectionHeader Icon={CalendarDays} title="Ish jadvali" subtitle="Bemorlar shu vaqtlardan tanlaydi" />
 
-      <NativeSelect label="Qabul davomiyligi" value={duration} onChange={(event) => setDuration(event.target.value)}>
-        {durationOptions.map((minutes) => (
-          <option key={minutes} value={minutes}>
-            {minutes} daqiqa
-          </option>
-        ))}
-      </NativeSelect>
+      <Select
+        label="Qabul davomiyligi"
+        value={duration}
+        onChange={setDuration}
+        options={durationOptions.map((minutes) => ({ value: String(minutes), label: `${minutes} daqiqa` }))}
+      />
 
       <p className="rounded-2xl bg-brand-50 px-3.5 py-2.5 text-xs leading-relaxed text-brand-700">
         Bir kun uchun bir nechta oraliq qo&apos;shing (masalan 09:00–13:00 va 15:00–18:00). Har oraliq avtomatik qabul
