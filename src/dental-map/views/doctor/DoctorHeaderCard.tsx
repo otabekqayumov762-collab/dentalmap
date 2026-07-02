@@ -138,7 +138,7 @@ export function DoctorHeaderCard({
         <StatusRow first Icon={ApprovalIcon} label={approvalLabel(approvalStatus)} state={approvalState} />
         <StatusRow
           Icon={isPublished ? Globe : EyeOff}
-          label={isPublished ? "Saytda ko'rinmoqda" : "Saytda yashirilgan"}
+          label={isPublished ? "Ilovada ko'rinmoqda" : "Ilovada yashirilgan"}
           state={isPublished ? "ok" : "bad"}
         />
         <StatusRow

@@ -61,7 +61,7 @@ export function DoctorDashboardView({
     return (
       <div className="flex flex-col gap-4">
         {errorBanner}
-        <DoctorAppointmentRequests appointments={appointments} onAppointmentAction={onAppointmentAction} />
+        <DoctorAppointmentRequests appointments={appointments} loading={loading} onAppointmentAction={onAppointmentAction} />
       </div>
     );
   }

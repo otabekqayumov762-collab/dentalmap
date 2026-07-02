@@ -1,5 +1,5 @@
 import { getAccessToken } from "../lib/tokenStore";
-import { API_BASE_URL, normalizeApiList } from "./dentalMapApi";
+import { API_BASE_URL, normalizeApiList, parseApiError, refreshAccessToken } from "./dentalMapApi";
 
 /**
  * Thin client for the FastAPI billing API (base = app origin + `/api/v1`).
@@ -49,7 +49,12 @@ export function getApiV1Url(path: string) {
 
 async function requestV1<T>(
   path: string,
-  { method = "GET", body, signal }: { method?: string; body?: BodyInit | null; signal?: AbortSignal } = {}
+  {
+    method = "GET",
+    body,
+    signal,
+    retry = false
+  }: { method?: string; body?: BodyInit | null; signal?: AbortSignal; retry?: boolean } = {}
 ): Promise<T> {
   const headers = new Headers();
   const token = getAccessToken();
@@ -70,15 +75,18 @@ async function requestV1<T>(
     signal
   });
 
+  // Access token expired: refresh once and replay (same as the Django client).
+  if (response.status === 401 && token && !retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return requestV1<T>(path, { method, body, signal, retry: true });
+    }
+  }
+
   if (!response.ok) {
     let message = `Billing request failed: ${response.status}`;
     try {
-      const errorPayload = await response.json();
-      if (typeof errorPayload?.detail === "string") {
-        message = errorPayload.detail;
-      } else if (errorPayload && typeof errorPayload === "object") {
-        message = Object.values(errorPayload).flat().join(" ");
-      }
+      message = parseApiError(await response.json(), message);
     } catch {
       // Body is optional.
     }

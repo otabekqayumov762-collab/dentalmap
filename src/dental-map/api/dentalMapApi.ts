@@ -64,7 +64,31 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
  */
 let refreshInFlight: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
+/** Human-readable message from a DRF ({detail}/{field:[...]}) or FastAPI 422
+ *  ({detail:[{msg}]}) error body — avoids the "[object Object]" garble. */
+export function parseApiError(payload: unknown, fallback = "Xatolik yuz berdi."): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+  const detail = (payload as { detail?: unknown }).detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (typeof item === "string" ? item : (item as { msg?: string })?.msg))
+      .filter((value): value is string => Boolean(value));
+    if (messages.length) {
+      return messages.join(" ");
+    }
+  }
+  const values = Object.values(payload as Record<string, unknown>)
+    .flat()
+    .filter((value): value is string => typeof value === "string");
+  return values.length ? values.join(" ") : fallback;
+}
+
+export async function refreshAccessToken(): Promise<boolean> {
   const refresh = getRefreshToken();
   if (!refresh) {
     return false;
@@ -147,12 +171,7 @@ export async function apiRequest<T>(
   if (!response.ok) {
     let message = `API request failed: ${response.status}`;
     try {
-      const errorPayload = await response.json();
-      if (typeof errorPayload?.detail === "string") {
-        message = errorPayload.detail;
-      } else if (typeof errorPayload === "object" && errorPayload) {
-        message = Object.values(errorPayload).flat().join(" ");
-      }
+      message = parseApiError(await response.json(), message);
     } catch {
       // Response body is optional.
     }
@@ -198,7 +217,7 @@ export function mapReview(item: ApiReview): DoctorReview {
 
 export function appointmentStatusLabel(status: ApiAppointment["status"]) {
   const labels: Record<ApiAppointment["status"], string> = {
-    pending: "Doktor tasdig'i kutilmoqda",
+    pending: "Shifokor tasdig'i kutilmoqda",
     doctor_confirmed: "Tasdiqlangan",
     doctor_rejected: "Rad etilgan",
     user_cancelled: "Bekor qilingan",

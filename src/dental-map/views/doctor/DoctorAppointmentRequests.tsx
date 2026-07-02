@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Loader2,
   Phone,
   UserRound,
   XCircle,
@@ -48,13 +49,15 @@ const EMPTY: Record<FilterKey, { Icon: LucideIcon; title: string; text: string }
   }
 };
 
-const DEFAULT_REJECT_REASON = "Doktor tomonidan rad etildi.";
+const DEFAULT_REJECT_REASON = "Shifokor tomonidan rad etildi.";
 
 export function DoctorAppointmentRequests({
   appointments = [],
+  loading = false,
   onAppointmentAction
 }: {
   appointments: ApiAppointment[];
+  loading?: boolean;
   onAppointmentAction: (a: ApiAppointment, action: Action, reason?: string) => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -98,7 +101,12 @@ export function DoctorAppointmentRequests({
         })}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading && appointments.length === 0 ? (
+        <Card className="flex flex-col items-center gap-2 py-10 text-center">
+          <Loader2 size={22} className="animate-spin text-brand-500" />
+          <span className="text-sm text-ink-500">Yuklanmoqda...</span>
+        </Card>
+      ) : filtered.length === 0 ? (
         <EmptyState Icon={empty.Icon} title={empty.title} text={empty.text} />
       ) : (
         <div className="flex flex-col gap-3">
