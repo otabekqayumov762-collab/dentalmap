@@ -64,9 +64,23 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
             defaultValue={profile?.work_time || ""}
           />
 
-          {/* Rasm — dropzone (photo_file) + havola (photo) */}
+          {/* Rasm — joriy rasm + dropzone (photo_file) + havola (photo) */}
           <div>
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Profil rasmi</span>
+            {profile?.photo ? (
+              <div className="mb-3 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={profile.photo}
+                  alt="Joriy profil rasmi"
+                  className="h-16 w-16 shrink-0 rounded-2xl border border-surface-200 object-cover"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-ink-900">Joriy rasm</span>
+                  <span className="block truncate text-xs text-ink-400">Yangisini yuklab almashtirishingiz mumkin</span>
+                </span>
+              </div>
+            ) : null}
             <label
               className={cn(
                 "flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed px-4 py-3.5 transition-colors",
