@@ -18,6 +18,10 @@ const DEMO_CARDS: BillingCard[] = [
   { id: "demo-humo", holder_name: "DENTAL MAP MCHJ", masked_number: "9860 •••• •••• 0987", bank_name: "Humo" }
 ];
 
+function formatUzs(value: number) {
+  return `${value.toLocaleString("ru-RU").replace(/,/g, " ")} so'm`;
+}
+
 export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: number }) {
   const offline = isOfflineMode();
 
@@ -87,6 +91,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       setSubmitError("To'lov summasini to'g'ri kiriting.");
       return;
     }
+    if (amountValue < defaultAmountUzs) {
+      setSubmitError(`Minimal to'lov ${formatUzs(defaultAmountUzs)}. Kam summa qabul qilinmaydi.`);
+      return;
+    }
     if (!file) {
       setSubmitError("Iltimos, chek faylini biriktiring.");
       return;
@@ -142,7 +150,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [amount, cards, file, latestReceipt, note, offline, selectedCardId, submitted]);
+  }, [amount, cards, defaultAmountUzs, file, latestReceipt, note, offline, selectedCardId, submitted]);
 
   return {
     cards,

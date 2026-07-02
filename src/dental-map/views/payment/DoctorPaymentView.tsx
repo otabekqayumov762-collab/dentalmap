@@ -17,7 +17,7 @@ function formatUzs(value: number) {
  * upload the receipt for admin approval. Replaces the old auto-"paid" flow.
  */
 export function DoctorPaymentView({
-  subscriptionAmountUzs = 50000,
+  subscriptionAmountUzs = 2150000,
   paid,
   onPaid
 }: {
@@ -101,7 +101,9 @@ export function DoctorPaymentView({
           </span>
           <span>
             <strong className="block text-sm font-bold text-ink-900">Shifokor obunasi</strong>
-            <small className="block text-xs text-ink-500">Profil 1 oy davomida faol bo&apos;ladi.</small>
+            <small className="block text-xs text-ink-500">
+              Profil 1 oy davomida faol bo&apos;ladi. Minimal to&apos;lov: {formatUzs(subscriptionAmountUzs)}.
+            </small>
           </span>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
@@ -150,7 +152,7 @@ export function DoctorPaymentView({
         name="amount_uzs"
         type="number"
         inputMode="numeric"
-        min={0}
+        min={subscriptionAmountUzs}
         value={amount}
         disabled={submitting}
         onChange={(event) => setAmount(event.target.value)}

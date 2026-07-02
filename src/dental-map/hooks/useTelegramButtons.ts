@@ -100,7 +100,7 @@ export function useTelegramButtons({
       activeView === "appointment"
         ? "Qabulga yozilish"
         : activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid
-          ? "50 000 so'm to'lash"
+          ? "2 150 000 so'm to'lash"
           : activeView === "register" && registerRole === "doctor"
             ? "Shifokor anketasini yuborish"
             : activeView === "register"
