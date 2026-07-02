@@ -7,22 +7,22 @@ const STATUS: Record<ReceiptStatus, { label: string; text: string; Icon: LucideI
     label: "Admin tasdig'i kutilmoqda",
     text: "Chek yuborildi. Administrator tekshiruvidan so'ng profil faollashadi.",
     Icon: Clock,
-    wrap: "bg-amber-50 text-amber-800",
-    icon: "text-amber-500"
+    wrap: "bg-warning/10 text-warning",
+    icon: "text-warning"
   },
   approved: {
     label: "To'lov tasdiqlandi",
     text: "Obuna faol. Endi to'liq ishlashingiz mumkin.",
     Icon: CheckCircle2,
-    wrap: "bg-emerald-50 text-emerald-800",
-    icon: "text-emerald-500"
+    wrap: "bg-success/10 text-success",
+    icon: "text-success"
   },
   rejected: {
     label: "To'lov rad etildi",
     text: "Chek qabul qilinmadi. Iltimos, to'g'ri chek bilan qayta yuboring.",
     Icon: XCircle,
-    wrap: "bg-rose-50 text-rose-700",
-    icon: "text-rose-500"
+    wrap: "bg-danger/10 text-danger",
+    icon: "text-danger"
   }
 };
 

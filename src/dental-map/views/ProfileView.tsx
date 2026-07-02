@@ -310,7 +310,9 @@ export function ProfileView({
         <Card
           className={cn(
             "flex items-start gap-3",
-            doctorSubscriptionPaid ? "border-emerald-100 bg-emerald-50" : "border-amber-100 bg-amber-50"
+            doctorSubscriptionPaid
+              ? "border-success/20 bg-success/10"
+              : "border-warning/20 bg-warning/10"
           )}
         >
           <span className={cn("mt-0.5 shrink-0", doctorSubscriptionPaid ? "text-success" : "text-warning")}>

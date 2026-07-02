@@ -168,7 +168,7 @@ export function DoctorAppointmentRequests({
                 )}
 
                 {appointment.status === "doctor_rejected" && appointment.reject_reason && (
-                  <p className="flex items-start gap-2 rounded-2xl bg-rose-50 px-3.5 py-3 text-sm leading-relaxed text-rose-600">
+                  <p className="flex items-start gap-2 rounded-2xl bg-danger/10 px-3.5 py-3 text-sm leading-relaxed text-danger">
                     <XCircle size={16} className="mt-0.5 shrink-0" />
                     <span>{appointment.reject_reason}</span>
                   </p>

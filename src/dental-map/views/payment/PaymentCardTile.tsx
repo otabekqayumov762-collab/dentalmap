@@ -83,7 +83,7 @@ export function PaymentCardTile({
           }}
           className={cn(
             "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-xs font-semibold transition-colors",
-            copied ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-ink-600 hover:bg-surface-200"
+            copied ? "bg-success/10 text-success" : "bg-surface-100 text-ink-600 hover:bg-surface-200"
           )}
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}

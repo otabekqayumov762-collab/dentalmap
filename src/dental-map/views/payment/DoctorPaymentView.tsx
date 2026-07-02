@@ -113,7 +113,7 @@ export function DoctorPaymentView({
             Kartalar yuklanmoqda…
           </div>
         ) : loadError ? (
-          <div className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger">
+          <div className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
             <AlertTriangle size={18} className="shrink-0" />
             <small className="text-xs">{loadError}</small>
           </div>
@@ -159,7 +159,7 @@ export function DoctorPaymentView({
       />
 
       {submitError && (
-        <div role="alert" className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-danger">
+        <div role="alert" className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
           <AlertTriangle size={18} className="shrink-0" />
           <span>
             <strong className="block text-sm font-semibold">Chek yuborilmadi</strong>
