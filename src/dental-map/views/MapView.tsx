@@ -292,27 +292,34 @@ const LeafletCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Leafl
 
     layer.clearLayers();
 
-    userMarkerRef.current = L.marker(userRef.current, {
+    const userMarker = L.marker(userRef.current, {
       icon: L.divIcon({
         className: "map-leaflet-user-marker",
         html: "<span><b>Siz</b></span>",
         iconAnchor: [32, 64],
         iconSize: [64, 64]
       }),
-      interactive: false
+      interactive: false,
+      keyboard: false
     }).addTo(layer);
+    userMarkerRef.current = userMarker;
+
+    userMarker.getElement()?.setAttribute("aria-hidden", "true");
 
     clinics.forEach(({ clinic, position, tone }) => {
-      (
-        L.marker(position, {
-          icon: L.divIcon({
-            className: `map-leaflet-clinic-marker ${tone}`,
-            html: `<span>${escapeHtml(clinic.name)}</span>`,
-            iconAnchor: [74, 44],
-            iconSize: [148, 44]
-          })
-        }).addTo(layer) as LeafletMarker
-      ).on("click", () => onSelectRef.current(clinic));
+      const marker = L.marker(position, {
+        icon: L.divIcon({
+          className: `map-leaflet-clinic-marker ${tone}`,
+          html: `<span>${escapeHtml(clinic.name)}</span>`,
+          iconAnchor: [74, 44],
+          iconSize: [148, 44]
+        }),
+        keyboard: false
+      })
+        .addTo(layer)
+        .on("click", () => onSelectRef.current(clinic));
+
+      marker.getElement()?.setAttribute("aria-hidden", "true");
     });
 
     const bounds = L.latLngBounds([userRef.current, ...clinics.map(({ position }) => position)]);
@@ -419,9 +426,10 @@ export function MapView({
           type="button"
           aria-label="Ortga qaytish"
           onClick={onBack}
-          className="pointer-events-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
+          className="pointer-events-auto inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-pill bg-surface-0 px-3.5 text-sm font-semibold text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
         >
           <ArrowLeft size={22} />
+          <span>Ortga</span>
         </button>
         <form
           onSubmit={async (event) => {

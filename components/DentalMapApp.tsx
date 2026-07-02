@@ -329,10 +329,18 @@ export default function DentalMapApp() {
   }, [webApp]);
 
   useEffect(() => {
-    if (!selectedDoctor && apiDoctors.length > 0) {
-      setSelectedDoctor(apiDoctors[0]);
+    if (apiDoctors.length === 0) {
+      return;
     }
-  }, [apiDoctors, selectedDoctor]);
+
+    setSelectedDoctor((current) => {
+      if (!current) {
+        return apiDoctors[0];
+      }
+
+      return apiDoctors.find((doctor) => doctor.id === current.id) ?? apiDoctors[0];
+    });
+  }, [apiDoctors]);
 
   // First time a session resolves, send doctors straight to their dashboard.
   useEffect(() => {
