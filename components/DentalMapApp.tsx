@@ -30,6 +30,7 @@ import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
+import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 export default function DentalMapApp() {
@@ -297,15 +298,13 @@ export default function DentalMapApp() {
     const phone = String(formData.get("phone") || "").trim();
     const city = String(formData.get("city") || "").trim() || "Toshkent";
     const age = String(formData.get("age") || "").trim();
-    const password = String(formData.get("password") || "");
-    const passwordConfirm = String(formData.get("password_confirm") || "");
 
-    if (password.length < 8) {
-      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+    if (fullName.length < 2) {
+      setRegistrationError("F.I.O. ni to'liq kiriting.");
       return;
     }
-    if (password !== passwordConfirm) {
-      setRegistrationError("Parollar bir xil emas.");
+    if (phone.replace(/\D/g, "").length < 12) {
+      setRegistrationError("Telefon raqamni to'liq kiriting.");
       return;
     }
 
@@ -313,6 +312,7 @@ export default function DentalMapApp() {
     formData.set("full_name", fullName);
     formData.set("phone", phone);
     formData.set("city", city);
+    formData.delete("password");
     formData.delete("password_confirm");
     const gender = normalizeGender(String(formData.get("gender") || ""));
     if (gender) {
@@ -335,13 +335,26 @@ export default function DentalMapApp() {
   async function sendDoctorRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const fullName = String(formData.get("full_name") || "").trim();
     const phone = String(formData.get("doctor_phone") || formData.get("phone") || "").trim();
+    const specialty = String(formData.get("specialty") || "").trim();
+    const clinicName = String(formData.get("clinic_name") || "").trim();
+    const clinicDistrict = String(formData.get("clinic_district") || "").trim();
+    const clinicAddress = String(formData.get("clinic_address") || "").trim();
     const rawExperience = String(formData.get("experience_years") || "").trim();
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
     const password = String(formData.get("password") || "");
     const passwordConfirm = String(formData.get("password_confirm") || "");
     const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
 
+    if (fullName.length < 2 || phone.replace(/\D/g, "").length < 12) {
+      setRegistrationError("Shifokor F.I.O. va telefon raqamni to'liq kiriting.");
+      return;
+    }
+    if (!specialty || !clinicName || !clinicDistrict || !clinicAddress) {
+      setRegistrationError("Mutaxassislik, klinika nomi, tuman va manzilni to'ldiring.");
+      return;
+    }
     if (password.length < 8) {
       setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
       return;
@@ -354,9 +367,19 @@ export default function DentalMapApp() {
       setRegistrationError("Klinika uchun Google yoki Yandex Maps linkini kiriting.");
       return;
     }
+    if (!isSupportedMapLink(clinicLocationUrl)) {
+      setRegistrationError("Faqat Google yoki Yandex Maps linkini kiriting.");
+      return;
+    }
 
     formData.set("role", "doctor");
+    formData.set("full_name", fullName);
     formData.set("phone", phone);
+    formData.set("doctor_phone", phone);
+    formData.set("specialty", specialty);
+    formData.set("clinic_name", clinicName);
+    formData.set("clinic_district", clinicDistrict);
+    formData.set("clinic_address", clinicAddress);
     formData.set("experience_years", experienceYears);
     formData.set("clinic_location_url", clinicLocationUrl);
     formData.delete("password_confirm");

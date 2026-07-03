@@ -13,8 +13,8 @@ const control =
 export function WorkTimeField({
   name,
   label = "Ish vaqti",
-  defaultStart = "",
-  defaultEnd = ""
+  defaultStart = "09:00",
+  defaultEnd = "18:00"
 }: {
   name: string;
   label?: string;

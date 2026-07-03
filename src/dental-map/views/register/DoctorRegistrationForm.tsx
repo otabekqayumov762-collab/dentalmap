@@ -45,8 +45,8 @@ export function DoctorRegistrationForm({
   return (
     <form id="doctor-register-form" className="flex flex-col gap-4" onSubmit={onSubmit}>
       <Section step={1} title="Shaxsiy ma'lumotlar">
-        <Field label="Shifokor F.I.O." name="full_name" placeholder="Ism familiya" />
-        <PhoneField label="Telefon raqam" name="doctor_phone" />
+        <Field label="Shifokor F.I.O." name="full_name" placeholder="Ism familiya" required />
+        <PhoneField label="Telefon raqam" name="doctor_phone" required />
         <Field
           label="Parol"
           name="password"
@@ -105,13 +105,13 @@ export function DoctorRegistrationForm({
           options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
           placeholder="Xizmatlarni tanlang"
         />
-        <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" />
+        <Field label="Ish staji" name="experience_years" placeholder="Masalan: 8 yil" required />
         <WorkTimeField name="work_time" />
         <TextareaField label="Izoh" name="description" placeholder="Qisqa ma'lumot" />
       </Section>
 
       <Section step={3} title="Klinika">
-        <Field label="Ishlaydigan klinika nomi" name="clinic_name" placeholder="Klinika nomi" />
+        <Field label="Ishlaydigan klinika nomi" name="clinic_name" placeholder="Klinika nomi" required />
         <Select
           label="Klinika tumani"
           name="clinic_district"
@@ -124,6 +124,7 @@ export function DoctorRegistrationForm({
           label="Klinika manzili"
           name="clinic_address"
           placeholder="Ko'cha va uy raqami (masalan: Bunyodkor 9)"
+          required
         />
         <LocationPickerField name="clinic_location_url" label="Klinika lokatsiyasi linki" required />
       </Section>

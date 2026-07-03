@@ -4,6 +4,15 @@ import { MapPin } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../ui";
 
+export function isSupportedMapLink(value: string) {
+  const cleanValue = value.trim();
+  return (
+    Boolean(cleanValue) &&
+    (/(^https?:\/\/)?([^/]+\.)?(yandex|google)\./i.test(cleanValue) ||
+      /(^https?:\/\/)?maps\.app\.goo\.gl/i.test(cleanValue))
+  );
+}
+
 export function LocationPickerField({
   name,
   label = "Klinika lokatsiyasi linki",
@@ -17,10 +26,7 @@ export function LocationPickerField({
 }) {
   const [value, setValue] = useState(defaultValue);
   const cleanValue = value.trim();
-  const supported =
-    !cleanValue ||
-    /(^https?:\/\/)?([^/]+\.)?(yandex|google)\./i.test(cleanValue) ||
-    /(^https?:\/\/)?maps\.app\.goo\.gl/i.test(cleanValue);
+  const supported = !cleanValue || isSupportedMapLink(cleanValue);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -39,7 +45,7 @@ export function LocationPickerField({
         <input
           name={name}
           value={value}
-          aria-required={required}
+          required={required}
           inputMode="url"
           autoComplete="url"
           placeholder="Google yoki Yandex Maps linki"

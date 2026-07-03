@@ -17,15 +17,23 @@ function toneFor(accent: string) {
   return accentTone[doctorAccentClass(accent)] ?? accentTone["accent-teal"];
 }
 
-export function BrandLogo() {
+export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <span
-      className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-brand-200/70 bg-brand-50 text-brand-600 shadow-sm"
+      className={cn(
+        "relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl",
+        "border border-brand-200/70 bg-surface-0 text-brand-600 shadow-sm",
+        "dark:border-white/10 dark:bg-surface-50",
+        className
+      )}
       aria-hidden="true"
     >
-      <span className="absolute inset-1 rounded-[14px] bg-surface-0/80" />
-      <Stethoscope size={22} strokeWidth={2.4} className="relative z-10" />
-      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent-teal" />
+      <img
+        src="/brand/dental-map-logo.png"
+        alt=""
+        className="h-full w-full scale-[1.55] object-cover"
+        draggable={false}
+      />
     </span>
   );
 }

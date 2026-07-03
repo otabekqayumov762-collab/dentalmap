@@ -1,3 +1,24 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+for (const file of [".env.local", ".env"]) {
+  const path = resolve(process.cwd(), file);
+  if (!existsSync(path)) {
+    continue;
+  }
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) {
+      continue;
+    }
+    const [key, ...valueParts] = trimmed.split("=");
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+    process.env[key] = valueParts.join("=").replace(/^['"]|['"]$/g, "");
+  }
+}
+
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
 
 function fail(message) {

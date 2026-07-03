@@ -14,8 +14,24 @@ import type {
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "";
 
-export const API_BASE_URL =
-  configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+function resolveApiBaseUrl() {
+  if (typeof window !== "undefined" && configuredApiUrl) {
+    try {
+      const configured = new URL(configuredApiUrl);
+      const localApi = configured.hostname === "localhost" || configured.hostname === "127.0.0.1";
+      const localApp = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      if (localApi && !localApp) {
+        return window.location.origin;
+      }
+    } catch {
+      return configuredApiUrl;
+    }
+  }
+
+  return configuredApiUrl || (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export function isBackendConfigured() {
   return Boolean(API_BASE_URL);

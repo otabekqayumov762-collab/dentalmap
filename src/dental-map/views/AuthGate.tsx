@@ -58,7 +58,7 @@ export function AuthGate({
 
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
-      <section className="relative flex w-full max-w-[640px] flex-col gap-5 px-5 pb-10 pt-7">
+      <section className="relative flex w-full max-w-[640px] flex-col gap-5 px-5 pb-10 pt-6">
         <button
           type="button"
           aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
@@ -67,7 +67,7 @@ export function AuthGate({
           className={cn(
             "absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
             isDarkTheme
-              ? "border-brand-300 bg-brand-50 text-brand-600 dark:border-white/10 dark:bg-surface-50 dark:text-ink-700"
+              ? "border-surface-200 bg-surface-0 text-brand-600 dark:border-white/10 dark:bg-surface-50 dark:text-ink-700"
               : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
           )}
         >
@@ -75,18 +75,18 @@ export function AuthGate({
         </button>
 
         <header className="mx-auto mt-8 flex w-full max-w-sm flex-col items-center gap-3 text-center">
-          <span className="inline-flex h-16 w-16 items-center justify-center rounded-[26px] border border-surface-200 bg-surface-0 shadow-card">
-            <BrandLogo />
-          </span>
-          <h1 className="text-[1.35rem] font-black tracking-tight text-ink-900">
-            DENTAL <span className="text-brand-500">MAP</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <BrandLogo className="h-14 w-14 rounded-[22px]" />
+            <h1 className="text-[1.55rem] font-black tracking-tight text-ink-900">
+              DENTAL <span className="text-brand-500">MAP</span>
+            </h1>
+          </div>
           <p className="text-sm font-medium leading-relaxed text-ink-500">
             Telefon raqam orqali kiring yoki yangi profil yarating
           </p>
         </header>
 
-        <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-surface-200 bg-surface-0 p-1.5 shadow-card">
+        <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-surface-200 bg-surface-0 p-1.5 shadow-card dark:bg-surface-50">
           {(["login", "register"] as const).map((value) => (
             <button
               key={value}
@@ -96,7 +96,7 @@ export function AuthGate({
               className={cn(
                 "h-12 rounded-[19px] text-sm font-extrabold transition-colors",
                 mode === value
-                  ? "bg-brand-500 text-white shadow-card dark:bg-brand-400 dark:text-surface-0"
+                  ? "bg-brand-500 text-white shadow-card"
                   : "text-ink-500 hover:text-ink-700"
               )}
             >

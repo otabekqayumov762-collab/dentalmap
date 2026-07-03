@@ -105,6 +105,10 @@ export function AppointmentView({
       setFormError("Qabul vaqtini tanlang.");
       return;
     }
+    if (note.trim().length < 3) {
+      setFormError("Bemor holatini qisqa yozing.");
+      return;
+    }
     setFormError("");
     onSubmit(event);
   }
@@ -205,12 +209,12 @@ export function AppointmentView({
                       "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97]",
                       active
-                        ? "border-ink-900 bg-ink-900 text-white shadow-card"
+                        ? "border-brand-500 bg-brand-500 text-white shadow-card"
                         : "border-surface-200 bg-surface-50 text-ink-700 hover:border-brand-300 hover:bg-brand-50"
                     )}
                   >
                     {active && (
-                      <span className="absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-brand-300" />
+                      <span className="absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-white/85" />
                     )}
                     {slot}
                   </button>
@@ -235,6 +239,7 @@ export function AppointmentView({
           label="Bemor holati"
           name="note"
           value={note}
+          required
           maxLength={1000}
           placeholder="Masalan: tish og'riyapti, milk shishgan yoki tekshiruv kerak"
           onChange={(event) => {
