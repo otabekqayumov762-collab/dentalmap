@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowLeft, Bell, Loader2, Search, Stethoscope, X } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Search, Stethoscope, Sun, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
 import { doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
-import { createTemporaryPassword } from "@/src/dental-map/lib/secure";
+import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
 import { cn } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
@@ -79,6 +79,7 @@ export default function DentalMapApp() {
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const landedRef = useRef(false);
 
   const isTelegram = Boolean(webApp);
@@ -135,6 +136,17 @@ export default function DentalMapApp() {
   const tabViews: ViewId[] = ["home", "map", "doctors", "profile", ...doctorViews];
   const showPageBack = !isMapView && !tabViews.includes(activeView);
 
+  useEffect(() => {
+    setIsDarkTheme(isDarkActive());
+  }, []);
+
+  function toggleTheme() {
+    const nextDark = !isDarkTheme;
+    setPreference(nextDark ? "dark" : "light");
+    setIsDarkTheme(nextDark);
+    webApp?.HapticFeedback?.selectionChanged();
+  }
+
   function renderDoctorDashboard(section: DoctorSection) {
     return (
       <DoctorDashboardView
@@ -168,8 +180,11 @@ export default function DentalMapApp() {
 
   const submitDoctorRegistration = useCallback(() => {
     setDoctorRegistrationSent(true);
+    window.requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
     webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [webApp]);
+  }, [scrollRef, webApp]);
 
   function openAppointment(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
@@ -217,6 +232,14 @@ export default function DentalMapApp() {
 
     if (selectedDoctor) {
       const formData = new FormData(event.currentTarget);
+      const profile = currentUser?.profile;
+      const fullName = String(currentUser?.full_name || "").trim();
+      const phone = String(currentUser?.phone || "").trim();
+      if (!fullName || !phone) {
+        setAppointmentSubmitError("Profil ma'lumotlari to'liq emas. Profil bo'limida F.I.O. va telefonni to'ldiring.");
+        webApp?.HapticFeedback?.notificationOccurred("error");
+        return;
+      }
       const lead = {
         id: `appointment-${Date.now()}`,
         createdAt: new Date().toISOString(),
@@ -225,10 +248,10 @@ export default function DentalMapApp() {
         clinic: selectedDoctor.clinic,
         district: selectedDoctor.district,
         selectedSlot,
-        fullName: String(formData.get("fullName") || "").trim(),
-        phone: String(formData.get("phone") || "").trim(),
-        gender: String(formData.get("gender") || "").trim(),
-        age: String(formData.get("age") || "").trim(),
+        fullName,
+        phone,
+        gender: String(profile?.gender || "").trim(),
+        age: profile?.age ? String(profile.age) : "",
         appointmentDate: String(formData.get("appointmentDate") || "").trim(),
         note: String(formData.get("note") || "").trim()
       };
@@ -274,11 +297,23 @@ export default function DentalMapApp() {
     const phone = String(formData.get("phone") || "").trim();
     const city = String(formData.get("city") || "").trim() || "Toshkent";
     const age = String(formData.get("age") || "").trim();
+    const password = String(formData.get("password") || "");
+    const passwordConfirm = String(formData.get("password_confirm") || "");
+
+    if (password.length < 8) {
+      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setRegistrationError("Parollar bir xil emas.");
+      return;
+    }
 
     formData.set("role", "user");
     formData.set("full_name", fullName);
     formData.set("phone", phone);
     formData.set("city", city);
+    formData.delete("password_confirm");
     const gender = normalizeGender(String(formData.get("gender") || ""));
     if (gender) {
       formData.set("gender", gender);
@@ -289,11 +324,10 @@ export default function DentalMapApp() {
 
     try {
       setRegistrationError("");
-      formData.set("password", createTemporaryPassword("User"));
       await registerUser(formData);
       submitUserRegistration();
-    } catch {
-      setRegistrationError("Profil backendga yuborilmadi. F.I.O. va telefon raqamni tekshiring.");
+    } catch (error) {
+      setRegistrationError(error instanceof Error ? error.message : "Profil backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     }
   }
@@ -304,18 +338,35 @@ export default function DentalMapApp() {
     const phone = String(formData.get("doctor_phone") || formData.get("phone") || "").trim();
     const rawExperience = String(formData.get("experience_years") || "").trim();
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
+    const password = String(formData.get("password") || "");
+    const passwordConfirm = String(formData.get("password_confirm") || "");
+    const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
+
+    if (password.length < 8) {
+      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setRegistrationError("Parollar bir xil emas.");
+      return;
+    }
+    if (!clinicLocationUrl) {
+      setRegistrationError("Klinika uchun Google yoki Yandex Maps linkini kiriting.");
+      return;
+    }
 
     formData.set("role", "doctor");
     formData.set("phone", phone);
     formData.set("experience_years", experienceYears);
+    formData.set("clinic_location_url", clinicLocationUrl);
+    formData.delete("password_confirm");
 
     try {
       setRegistrationError("");
-      formData.set("password", createTemporaryPassword("Doctor"));
       await registerDoctor(formData);
       submitDoctorRegistration();
-    } catch {
-      setRegistrationError("Anketa backendga yuborilmadi. Maydonlarni to'liq to'ldiring.");
+    } catch (error) {
+      setRegistrationError(error instanceof Error ? error.message : "Ma'lumotlar backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     }
   }
@@ -464,6 +515,20 @@ export default function DentalMapApp() {
                         <Search size={18} />
                       </button>
                     )}
+                    <button
+                      type="button"
+                      aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
+                      aria-pressed={isDarkTheme}
+                      onClick={toggleTheme}
+                      className={cn(
+                        "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                        isDarkTheme
+                          ? "border-brand-300 bg-brand-50 text-brand-600 dark:border-white/10 dark:bg-surface-100 dark:text-ink-700"
+                          : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
+                      )}
+                    >
+                      <Sun size={18} />
+                    </button>
                     <button
                       type="button"
                       aria-label="Bildirishnomalar"
@@ -713,21 +778,36 @@ export default function DentalMapApp() {
 
         {showBottomNav && (
           <nav
-            className="absolute inset-x-3.5 bottom-[calc(10px+env(safe-area-inset-bottom))] z-30 grid grid-cols-4 gap-1.5 rounded-[20px] border border-surface-200 bg-surface-0/95 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.13)] dark:shadow-none backdrop-blur"
+            className="absolute inset-x-5 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 grid gap-1 rounded-[22px] border border-surface-200/90 bg-surface-0/96 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-0/90 dark:shadow-none"
+            style={{ gridTemplateColumns: `repeat(${navTabs.length}, minmax(0, 1fr))` }}
             aria-label="Pastki navigatsiya"
           >
             {navTabs.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 type="button"
+                aria-label={label}
+                title={label}
                 onClick={() => navigate(id)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-semibold transition-colors",
-                  activeTabId === id ? "bg-brand-50 text-brand-600" : "text-ink-400 hover:text-ink-500"
+                  "relative flex min-h-[54px] items-center justify-center rounded-[18px] transition-all",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300",
+                  activeTabId === id
+                    ? "bg-brand-50 text-brand-700 shadow-[inset_0_0_0_1px_rgba(55,126,208,0.08)]"
+                    : "text-ink-400 hover:bg-surface-50 hover:text-ink-600"
                 )}
               >
-                <Icon size={20} />
-                <span>{label}</span>
+                <span
+                  className={cn(
+                    "grid h-7 w-7 place-items-center rounded-full transition-colors",
+                    activeTabId === id ? "bg-surface-0 text-brand-600 shadow-sm" : "text-inherit"
+                  )}
+                >
+                  <Icon size={20} strokeWidth={2.2} />
+                </span>
+                {activeTabId === id && (
+                  <span className="absolute bottom-1.5 h-1 w-6 rounded-full bg-brand-500/70" aria-hidden="true" />
+                )}
               </button>
             ))}
           </nav>

@@ -129,6 +129,14 @@ export function DoctorDetailView({
                     <strong className="text-sm text-ink-900">{review.author}</strong>
                     <small className="text-xs text-ink-400">{review.date}</small>
                   </div>
+                  {(review.clinic || review.clinicDistrict) && (
+                    <span className="mt-1 inline-flex max-w-full items-center gap-1 text-xs font-medium text-ink-500">
+                      <Building2 size={13} className="shrink-0 text-brand-500" />
+                      <span className="truncate">
+                        {[review.clinic, review.clinicDistrict].filter(Boolean).join(", ")}
+                      </span>
+                    </span>
+                  )}
                   <span className="mt-1 flex gap-0.5" aria-label={`${review.rating} yulduz`}>
                     {Array.from({ length: 5 }, (_, index) => (
                       <Star

@@ -72,7 +72,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
             defaultValue={profile?.work_time || ""}
           />
 
-          {/* Rasm — joriy rasm + dropzone (photo_file) + havola (photo) */}
+          {/* Rasm — joriy rasm va yangi fayl uploadi. */}
           <div>
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Profil rasmi</span>
             {profile?.photo ? (
@@ -121,14 +121,6 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
               />
             </label>
           </div>
-          <Field
-            name="photo"
-            type="url"
-            label="Rasm havolasi (ixtiyoriy)"
-            placeholder="https://..."
-            hint="Fayl yuklamasangiz, rasm havolasini qoldiring."
-            defaultValue={profile?.photo || ""}
-          />
         </Card>
       </section>
 

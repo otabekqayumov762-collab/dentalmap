@@ -11,14 +11,14 @@ const roleOptions: Array<{
   {
     id: "user",
     Icon: User,
-    title: "Foydalanuvchi",
-    subtitle: "Qabulga yozilish va konsultatsiya olish"
+    title: "Mijoz",
+    subtitle: "Qabulga yozilish"
   },
   {
     id: "doctor",
     Icon: Stethoscope,
     title: "Shifokor",
-    subtitle: "Anketa, klinika va obuna to'lovi"
+    subtitle: "Klinika profili"
   }
 ];
 
@@ -30,46 +30,46 @@ export function RegisterRoleToggle({
   onRoleChange: (role: RegisterRole) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3" aria-label="Rol tanlash">
-      {roleOptions.map(({ id, Icon, title, subtitle }) => {
-        const active = role === id;
+    <div className="rounded-card border border-surface-200 bg-surface-0 p-2 shadow-card" aria-label="Rol tanlash">
+      <div className="grid grid-cols-2 gap-2">
+        {roleOptions.map(({ id, Icon, title, subtitle }) => {
+          const active = role === id;
 
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onRoleChange(id)}
-            className={cn(
-              "flex flex-col gap-2.5 rounded-card border p-3.5 text-left transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]",
-              active
-                ? "border-brand-400 bg-brand-50 shadow-card"
-                : "border-surface-100 bg-surface-0 hover:bg-surface-50"
-            )}
-          >
-            <span
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onRoleChange(id)}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
-                active ? "bg-brand-500 text-white" : "bg-surface-100 text-ink-500"
+                "relative flex min-h-[86px] items-center gap-3 rounded-[22px] border p-3 text-left transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]",
+                active
+                  ? "border-brand-400 bg-brand-500 text-white shadow-card dark:border-brand-300 dark:bg-brand-400 dark:text-surface-0"
+                  : "border-transparent bg-surface-50 text-ink-700 hover:bg-surface-100"
               )}
             >
-              <Icon size={20} />
-            </span>
-            <span>
-              <strong
+              <span
                 className={cn(
-                  "block text-sm font-bold",
-                  active ? "text-brand-700" : "text-ink-900"
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors",
+                  active ? "bg-white/16 text-white" : "bg-surface-0 text-brand-600"
                 )}
               >
-                {title}
-              </strong>
-              <small className="mt-0.5 block text-xs leading-snug text-ink-500">{subtitle}</small>
-            </span>
-          </button>
-        );
-      })}
+                <Icon size={21} />
+              </span>
+              <span className="min-w-0">
+                <strong className="block truncate text-sm font-extrabold">{title}</strong>
+                <small className={cn("mt-0.5 block truncate text-xs font-semibold", active ? "text-white/78" : "text-ink-500")}>
+                  {subtitle}
+                </small>
+              </span>
+              {active && (
+                <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-brand-300 dark:bg-brand-500" />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

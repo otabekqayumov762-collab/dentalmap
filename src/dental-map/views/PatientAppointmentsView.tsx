@@ -154,7 +154,17 @@ export function PatientAppointmentsView({
                 </div>
 
                 {appointment.note && (
-                  <p className="rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">{appointment.note}</p>
+                  <div className="rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">
+                    <span className="mb-1 block text-xs font-semibold uppercase text-ink-400">Bemor holati</span>
+                    <p className="leading-relaxed">{appointment.note}</p>
+                  </div>
+                )}
+
+                {appointment.status === "doctor_rejected" && appointment.reject_reason && (
+                  <div className="rounded-2xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+                    <span className="mb-1 block text-xs font-semibold uppercase text-danger/70">Rad etish sababi</span>
+                    <p className="leading-relaxed">{appointment.reject_reason}</p>
+                  </div>
                 )}
 
                 {(canCancel || canReview || (appointment.status === "completed" && isReviewed)) && (

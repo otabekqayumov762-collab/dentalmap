@@ -1,22 +1,13 @@
 import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
-import { genderOptions } from "../catalog";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import { upcomingDays, type DaySlots } from "../lib/schedule";
 import type { Doctor } from "../types";
-import { Button, Card, Chip, Field, PhoneField } from "../ui";
-
-type AppointmentDraft = {
-  fullName: string;
-  phone: string;
-  age: string;
-  gender: string;
-};
+import { Button, Card, TextareaField, cn } from "../ui";
 
 const draftKey = "dentalmap_appointment_draft";
-const profileKey = "dental-map-user-profile";
-const defaultDraft: AppointmentDraft = { fullName: "", phone: "", age: "", gender: "" };
+const defaultNote = "";
 
 function readSaved<T>(key: string): Partial<T> {
   try {
@@ -44,7 +35,7 @@ export function AppointmentView({
   submitting: boolean;
   submitError: string;
 }) {
-  const [draft, setDraft] = useState<AppointmentDraft>(defaultDraft);
+  const [note, setNote] = useState(defaultNote);
   const [hydrated, setHydrated] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -75,16 +66,8 @@ export function AppointmentView({
   const daySlots = useMemo(() => currentDay?.slots ?? [], [currentDay]);
 
   useEffect(() => {
-    // Prefill from the saved profile first (so the user's details auto-appear),
-    // then fall back to any half-finished appointment draft.
-    const profile = readSaved<{ name: string; phone: string }>(profileKey);
-    const saved = readSaved<AppointmentDraft>(draftKey);
-    setDraft({
-      fullName: profile.name || saved.fullName || "",
-      phone: profile.phone || saved.phone || "",
-      age: saved.age || "",
-      gender: saved.gender || ""
-    });
+    const saved = readSaved<{ note: string }>(draftKey);
+    setNote(saved.note || "");
     setHydrated(true);
   }, []);
 
@@ -93,11 +76,11 @@ export function AppointmentView({
       return;
     }
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify(draft));
+      window.localStorage.setItem(draftKey, JSON.stringify({ note }));
     } catch {
       // Local draft is optional and can fail in private embedded browsers.
     }
-  }, [draft, hydrated, sent]);
+  }, [note, hydrated, sent]);
 
   // Keep a valid day selected, and drop a stale time when the day has no such slot.
   useEffect(() => {
@@ -112,29 +95,8 @@ export function AppointmentView({
     }
   }, [daySlots, selectedSlot, onSelectSlot]);
 
-  function updateDraft<Key extends keyof AppointmentDraft>(key: Key, value: AppointmentDraft[Key]) {
-    setDraft((current) => ({ ...current, [key]: value }));
-    setFormError("");
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft.fullName.trim()) {
-      setFormError("Ism familiyani kiriting.");
-      return;
-    }
-    if (!draft.phone.trim()) {
-      setFormError("Telefon raqamni kiriting.");
-      return;
-    }
-    if (!draft.gender) {
-      setFormError("Jinsni tanlang.");
-      return;
-    }
-    if (!draft.age.trim()) {
-      setFormError("Yoshni kiriting.");
-      return;
-    }
     if (!selectedDate) {
       setFormError("Qabul kunini tanlang.");
       return;
@@ -157,7 +119,7 @@ export function AppointmentView({
         </span>
         <strong className="text-xl font-bold text-ink-900">So&apos;rov yuborildi</strong>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-          Shifokor tasdiqlagandan keyin xabar yuboriladi.
+          Klinika lokatsiyasi Telegram bot orqali yuboriladi. Shifokor tasdiqlasa alohida xabar keladi.
         </p>
         <Card className="mt-6 flex w-full max-w-xs flex-col items-center gap-1">
           <span className="text-sm font-medium text-ink-700">{doctor.name}</span>
@@ -214,23 +176,47 @@ export function AppointmentView({
             })}
           </div>
 
-          <span className="mt-1 flex items-center gap-2 text-sm font-medium text-ink-700">
-            <Clock size={16} className="text-brand-500" />
-            Bo&apos;sh vaqtlar
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {daySlots.map((slot) => (
-              <Chip
-                key={slot}
-                active={selectedSlot === slot}
-                onClick={() => {
-                  onSelectSlot(slot);
-                  setFormError("");
-                }}
-              >
-                {slot}
-              </Chip>
-            ))}
+          <div className="rounded-card border border-surface-200 bg-surface-0 p-3 shadow-card">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                <Clock size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm font-extrabold text-ink-900">Bo&apos;sh vaqtlar</strong>
+                <small className="block truncate text-xs font-medium text-ink-500">{selectedDayLabel}</small>
+              </span>
+              <span className="rounded-pill bg-surface-100 px-3 py-1 text-xs font-bold text-ink-600">
+                {daySlots.length} ta
+              </span>
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(82px,1fr))] gap-2">
+              {daySlots.map((slot) => {
+                const active = selectedSlot === slot;
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      onSelectSlot(slot);
+                      setFormError("");
+                    }}
+                    className={cn(
+                      "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97]",
+                      active
+                        ? "border-ink-900 bg-ink-900 text-white shadow-card"
+                        : "border-surface-200 bg-surface-50 text-ink-700 hover:border-brand-300 hover:bg-brand-50"
+                    )}
+                  >
+                    {active && (
+                      <span className="absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-brand-300" />
+                    )}
+                    {slot}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </>
       ) : (
@@ -245,44 +231,17 @@ export function AppointmentView({
 
       <form id="appointment-form" className="mt-1 flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
         <input type="hidden" name="appointmentDate" value={selectedDate} />
-        <Field
-          label="F.I.O."
-          name="fullName"
-          autoComplete="name"
-          value={draft.fullName}
-          placeholder="Ism familiya"
-          onChange={(event) => updateDraft("fullName", event.target.value)}
+        <TextareaField
+          label="Bemor holati"
+          name="note"
+          value={note}
+          maxLength={1000}
+          placeholder="Masalan: tish og'riyapti, milk shishgan yoki tekshiruv kerak"
+          onChange={(event) => {
+            setNote(event.target.value);
+            setFormError("");
+          }}
         />
-        <PhoneField
-          label="Telefon raqam"
-          name="phone"
-          value={draft.phone}
-          onValueChange={(value) => updateDraft("phone", value)}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="min-w-0">
-            <span className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</span>
-            <input type="hidden" name="gender" value={draft.gender} />
-            <div className="flex flex-wrap gap-2">
-              {genderOptions.map((option) => (
-                <Chip key={option} active={draft.gender === option} onClick={() => updateDraft("gender", option)}>
-                  {option}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <Field
-            label="Yoshi"
-            name="age"
-            type="number"
-            inputMode="numeric"
-            min="1"
-            max="100"
-            value={draft.age}
-            placeholder="26"
-            onChange={(event) => updateDraft("age", event.target.value.replace(/\D/g, "").slice(0, 3))}
-          />
-        </div>
 
         {formError && (
           <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger" role="alert">

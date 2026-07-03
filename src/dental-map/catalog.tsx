@@ -136,6 +136,8 @@ export const fallbackReviews: DoctorReview[] = [
   {
     id: "review-dilnoza-1",
     doctorId: "demo-dilnoza",
+    clinic: "Smile Dent",
+    clinicDistrict: "Yakkasaroy",
     author: "Azizbek",
     rating: 5,
     text: "Vaqtida qabul qildi, tushuntirishlari aniq.",
@@ -145,6 +147,8 @@ export const fallbackReviews: DoctorReview[] = [
   {
     id: "review-jamshid-1",
     doctorId: "demo-jamshid",
+    clinic: "Denta Pro",
+    clinicDistrict: "Mirobod",
     author: "Madina",
     rating: 5,
     text: "Jarrohlikdan oldin hammasini batafsil tushuntirdi.",
@@ -154,6 +158,8 @@ export const fallbackReviews: DoctorReview[] = [
   {
     id: "review-malika-1",
     doctorId: "demo-malika",
+    clinic: "Neo Dental",
+    clinicDistrict: "Yunusobod",
     author: "Sardor",
     rating: 5,
     text: "Konsultatsiya tez va tartibli o'tdi.",
@@ -171,7 +177,6 @@ export const shortcuts: Shortcut[] = [
 
 export const tabs: Shortcut[] = [
   { id: "home", label: "Bosh", Icon: Home },
-  { id: "map", label: "Xarita", Icon: MapPin },
   { id: "doctors", label: "Shifokor", Icon: Stethoscope },
   { id: "profile", label: "Profil", Icon: User }
 ];

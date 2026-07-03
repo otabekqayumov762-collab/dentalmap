@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { CheckCircle2, ChevronRight, MapPin, Stethoscope, type LucideIcon } from "lucide-react";
 import { Chip, cn } from "../ui";
 import { doctorAccentClass } from "./accent";
@@ -21,28 +19,14 @@ function toneFor(accent: string) {
 
 export function BrandLogo() {
   return (
-    <svg className="h-11 w-11 shrink-0" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="dentalLogoFill" x1="9" x2="36" y1="7" y2="37" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#16A8B5" />
-          <stop offset="1" stopColor="#1686EF" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M22 4.8c8.7 0 15.8 7.1 15.8 15.8 0 10.9-13.2 18.3-15.1 19.3a1.5 1.5 0 0 1-1.4 0C19.4 38.9 6.2 31.5 6.2 20.6 6.2 11.9 13.3 4.8 22 4.8Z"
-        fill="url(#dentalLogoFill)"
-      />
-      <path
-        d="M16.4 14.2c1.8-2 3.9-.6 5.6-.6s3.8-1.4 5.6.6c2.5 2.7.5 6.5-.3 9.7-.7 2.8-.7 5.6-2.7 5.6-1.2 0-1.4-2.4-2.6-2.4s-1.4 2.4-2.6 2.4c-2 0-2-2.8-2.7-5.6-.8-3.2-2.8-7 .3-9.7Z"
-        fill="#FFFFFF"
-      />
-      <path
-        d="M17.8 20.6h8.4M22 16.4v8.4"
-        stroke="#1686EF"
-        strokeLinecap="round"
-        strokeWidth="2.2"
-      />
-    </svg>
+    <span
+      className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-brand-200/70 bg-brand-50 text-brand-600 shadow-sm"
+      aria-hidden="true"
+    >
+      <span className="absolute inset-1 rounded-[14px] bg-surface-0/80" />
+      <Stethoscope size={22} strokeWidth={2.4} className="relative z-10" />
+      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent-teal" />
+    </span>
   );
 }
 

@@ -12,7 +12,8 @@ import {
   mapReview,
   normalizeApiList,
   normalizeSchedule,
-  isOfflineMode
+  isOfflineMode,
+  parseApiError
 } from "../api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
@@ -436,7 +437,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         body: formData
       });
       if (!response.ok) {
-        throw new Error(`User register ${response.status}`);
+        const payload = await response.json().catch(() => null);
+        throw new Error(parseApiError(payload, "Profil backendga yuborilmadi."));
       }
       const payload = await response.json();
       storeAuthTokens(payload);
@@ -461,7 +463,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         body: formData
       });
       if (!response.ok) {
-        throw new Error(`Doctor register ${response.status}`);
+        const payload = await response.json().catch(() => null);
+        throw new Error(parseApiError(payload, "Ma'lumotlar backendga yuborilmadi."));
       }
       const payload = await response.json();
       storeAuthTokens(payload);

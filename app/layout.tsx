@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   title: "Dental Map",
   description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi.",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg"
+    icon: "/brand/dental-map-logo.png",
+    shortcut: "/brand/dental-map-logo.png",
+    apple: "/brand/dental-map-logo.png"
   }
 };
 

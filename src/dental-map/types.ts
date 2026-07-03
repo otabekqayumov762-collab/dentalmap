@@ -109,6 +109,9 @@ export type DoctorReview = {
   id: string;
   appointmentId?: string;
   doctorId: string;
+  clinic?: string;
+  clinicDistrict?: string;
+  clinicAddress?: string;
   author: string;
   rating: number;
   text: string;
@@ -210,6 +213,9 @@ export type ApiReview = {
   appointment_time?: string;
   doctor: string;
   doctor_name?: string;
+  clinic_name?: string;
+  clinic_district?: string;
+  clinic_address?: string;
   patient_name?: string;
   rating: number;
   comment?: string;

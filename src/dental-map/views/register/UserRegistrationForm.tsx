@@ -36,6 +36,24 @@ export function UserRegistrationForm({
     <form id="user-register-form" className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={onSubmit}>
       <Field label="F.I.O." name="full_name" placeholder="Ism familiya" />
       <PhoneField label="Telefon raqam" name="phone" />
+      <Field
+        label="Parol"
+        name="password"
+        type="password"
+        minLength={8}
+        autoComplete="new-password"
+        placeholder="Kamida 8 ta belgi"
+        required
+      />
+      <Field
+        label="Parolni takrorlang"
+        name="password_confirm"
+        type="password"
+        minLength={8}
+        autoComplete="new-password"
+        placeholder="Parolni qayta kiriting"
+        required
+      />
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</legend>
         <OptionGrid
