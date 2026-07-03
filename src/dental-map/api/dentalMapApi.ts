@@ -194,6 +194,10 @@ export async function apiRequest<T>(
     throw new Error(message);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
@@ -272,6 +276,14 @@ export async function fetchDoctorDaySlots(doctorId: string): Promise<DaySlots[]>
 }
 
 export function flattenClinics(items: ApiClinic[]): Clinic[] {
+  const toCoordinate = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined || value === "") {
+      return undefined;
+    }
+    const coordinate = Number(value);
+    return Number.isFinite(coordinate) ? coordinate : undefined;
+  };
+
   return items.flatMap((clinic) => {
     const branches = clinic.branches?.filter((branch) => branch.is_active !== false) ?? [];
     if (branches.length === 0) {
@@ -294,8 +306,8 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       address: branch.address || "",
       workTime: branch.work_time || "",
       rating: Number(clinic.rating ?? 0),
-      lat: typeof branch.latitude === "number" ? branch.latitude : undefined,
-      lng: typeof branch.longitude === "number" ? branch.longitude : undefined
+      lat: toCoordinate(branch.latitude),
+      lng: toCoordinate(branch.longitude)
     }));
   });
 }

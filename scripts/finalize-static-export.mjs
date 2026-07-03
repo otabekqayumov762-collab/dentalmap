@@ -57,6 +57,7 @@ function collectInlineScriptHashes(directory) {
 
 function createContentSecurityPolicy() {
   const apiOrigin = getApiOrigin();
+  const apiV1Origin = getOptionalOrigin("NEXT_PUBLIC_API_V1_URL");
   const sheetsOrigin =
     getOptionalOrigin("NEXT_PUBLIC_SHEETS_WEBHOOK_URL") ||
     getOptionalOrigin("NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL");
@@ -72,7 +73,13 @@ function createContentSecurityPolicy() {
     : { script: [], connect: [], img: [], font: [] };
 
   const scriptSources = ["'self'", "https://telegram.org", ...yandex.script, ...collectInlineScriptHashes(outDir)];
-  const connectSources = ["'self'", apiOrigin, "https://nominatim.openstreetmap.org", ...yandex.connect].filter(Boolean);
+  const connectSources = [
+    "'self'",
+    apiOrigin,
+    apiV1Origin,
+    "https://nominatim.openstreetmap.org",
+    ...yandex.connect
+  ].filter(Boolean);
   if (sheetsOrigin && !connectSources.includes(sheetsOrigin)) {
     connectSources.push(sheetsOrigin);
   }

@@ -711,14 +711,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       try {
         setPrivateLoading(true);
         setDoctorActionError("");
-        const response = await fetch(getApiUrl(`/api/availability/weekly/${item.id}/`), {
-          method: "DELETE",
-          cache: "no-store",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!response.ok) {
-          throw new Error(`Delete availability ${response.status}`);
-        }
+        await apiRequest<void>(`/api/availability/weekly/${item.id}/`, { token, method: "DELETE" });
         setDoctorSchedule((current) => current.filter((entry) => entry.id !== item.id));
         webApp?.HapticFeedback?.notificationOccurred("success");
       } catch (error) {

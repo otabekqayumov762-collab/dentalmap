@@ -164,6 +164,7 @@ export type ApiUser = {
     approval_status: string;
     is_published: boolean;
     subscription_expires_at?: string | null;
+    is_subscription_active?: boolean;
   } | null;
 };
 
@@ -242,8 +243,8 @@ export type ApiClinicBranch = {
   phone?: string;
   work_time?: string;
   is_active?: boolean;
-  latitude?: number;
-  longitude?: number;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
 };
 
 export type ApiClinic = {

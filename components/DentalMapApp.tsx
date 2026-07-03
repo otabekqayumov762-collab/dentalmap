@@ -298,6 +298,8 @@ export default function DentalMapApp() {
     const phone = String(formData.get("phone") || "").trim();
     const city = String(formData.get("city") || "").trim() || "Toshkent";
     const age = String(formData.get("age") || "").trim();
+    const password = String(formData.get("password") || "");
+    const passwordConfirm = String(formData.get("password_confirm") || "");
 
     if (fullName.length < 2) {
       setRegistrationError("F.I.O. ni to'liq kiriting.");
@@ -307,12 +309,19 @@ export default function DentalMapApp() {
       setRegistrationError("Telefon raqamni to'liq kiriting.");
       return;
     }
+    if (password.length < 8) {
+      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setRegistrationError("Parollar bir xil emas.");
+      return;
+    }
 
     formData.set("role", "user");
     formData.set("full_name", fullName);
     formData.set("phone", phone);
     formData.set("city", city);
-    formData.delete("password");
     formData.delete("password_confirm");
     const gender = normalizeGender(String(formData.get("gender") || ""));
     if (gender) {
@@ -413,10 +422,10 @@ export default function DentalMapApp() {
 
     setSelectedDoctor((current) => {
       if (!current) {
-        return apiDoctors[0];
+        return null;
       }
 
-      return apiDoctors.find((doctor) => doctor.id === current.id) ?? apiDoctors[0];
+      return apiDoctors.find((doctor) => doctor.id === current.id) ?? null;
     });
   }, [apiDoctors]);
 

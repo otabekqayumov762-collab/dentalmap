@@ -113,6 +113,8 @@ export function useTelegramButtons({
       activeView === "more" ||
       activeView === "feedback" ||
       activeView === "doctorDetail" ||
+      ((activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") &&
+        !selectedDoctor) ||
       (activeView === "register" && registerRole === "user" && userRegistered) ||
       doctorSubscriptionPaid
     ) {
