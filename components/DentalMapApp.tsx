@@ -29,7 +29,7 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
-import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
+import { DoctorPendingApprovalView } from "@/src/dental-map/views/DoctorPendingApprovalView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
@@ -621,19 +621,23 @@ function DentalMapAppInner() {
       );
     }
     // An already-authenticated doctor who has not cleared the subscription gate
-    // must land on the payment view — NOT the login wall (which would be a
-    // dead-end for a logged-in account). DoctorPaymentView self-fetches receipts
-    // + subscription, so a pending-receipt doctor sees the wait screen and an
-    // unpaid doctor sees the pay form; both self-recover across reloads.
+    // must land on the pending-approval screen — NOT the login wall (a dead-end
+    // for a logged-in account). Payment is temporarily hidden (billing not ready):
+    // the doctor waits for admin approval and the app opens automatically once the
+    // subscription becomes active on the next refresh.
     if (currentUser && doctorRegistrationPending) {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
           <section
             className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-100"
-            aria-label="Shifokor obunasi"
+            aria-label="Shifokor tasdig'i"
           >
             <div className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5 py-6">
-              <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={handleDoctorPaid} />
+              <DoctorPendingApprovalView
+                onRefresh={() => refreshPrivateData()}
+                onLogout={logout}
+                refreshing={privateLoading}
+              />
             </div>
           </section>
         </main>
@@ -794,21 +798,21 @@ function DentalMapAppInner() {
                       options={clinicOptions}
                     />
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2.5 pb-1" aria-label="Bo'limlar">
+                  <div className="grid grid-cols-3 gap-2.5" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (
                       <button
                         key={id}
                         type="button"
                         onClick={() => navigate(id)}
                         className={cn(
-                          "flex h-12 shrink-0 items-center gap-2 rounded-2xl border px-3.5 font-semibold transition-colors",
+                          "flex flex-col items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-semibold transition-colors",
                           activeView === id
                             ? "border-brand-300 bg-brand-50 text-brand-700"
                             : "border-surface-100 bg-surface-0 text-brand-600 shadow-card"
                         )}
                       >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                          <Icon size={16} />
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                          <Icon size={18} />
                         </span>
                         <span>{label}</span>
                       </button>

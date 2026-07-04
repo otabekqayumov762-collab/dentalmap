@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { RegisterRole, ViewId } from "../types";
 import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
-import { DoctorPaymentView } from "./payment/DoctorPaymentView";
+import { DoctorPendingApprovalView } from "./DoctorPendingApprovalView";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
@@ -92,9 +92,7 @@ export function RegisterView({
             />
           )}
 
-          {doctorRegistrationSent && (
-            <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={onDoctorPaid} />
-          )}
+          {doctorRegistrationSent && <DoctorPendingApprovalView />}
         </>
       )}
 

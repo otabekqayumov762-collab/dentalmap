@@ -86,10 +86,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-const variantStyles: Record<ToastVariant, { className: string; Icon: ComponentType<{ size?: number; className?: string }> }> = {
-  error: { className: "bg-danger/10 text-danger", Icon: XCircle },
-  success: { className: "bg-brand-50 text-brand-700", Icon: CheckCircle2 },
-  info: { className: "bg-surface-0 text-ink-700", Icon: Info }
+const variantStyles: Record<ToastVariant, { border: string; iconColor: string; Icon: ComponentType<{ size?: number; className?: string }> }> = {
+  error: { border: "border-danger/40", iconColor: "text-danger", Icon: XCircle },
+  success: { border: "border-brand-300", iconColor: "text-brand-600", Icon: CheckCircle2 },
+  info: { border: "border-surface-200", iconColor: "text-ink-500", Icon: Info }
 };
 
 function Toaster({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: number) => void }) {
@@ -106,24 +106,24 @@ function Toaster({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: n
       aria-live="assertive"
     >
       {toasts.map(({ id, variant, message }) => {
-        const { className, Icon } = variantStyles[variant];
+        const { border, iconColor, Icon } = variantStyles[variant];
         return (
           <div
             key={id}
             role={variant === "error" ? "alert" : "status"}
             className={cn(
-              "pointer-events-auto flex w-full max-w-sm animate-[modal-in_0.15s_ease-out] items-center gap-2.5",
-              "rounded-2xl border border-surface-200/60 px-4 py-3 text-sm font-medium shadow-card backdrop-blur",
-              className
+              "pointer-events-auto flex w-full max-w-md animate-[modal-in_0.15s_ease-out] items-center gap-3",
+              "rounded-2xl border bg-surface-0 px-4 py-3.5 text-sm font-semibold text-ink-900 shadow-lg",
+              border
             )}
           >
-            <Icon size={18} className="shrink-0" />
-            <span className="min-w-0 flex-1">{message}</span>
+            <Icon size={20} className={cn("shrink-0", iconColor)} />
+            <span className="min-w-0 flex-1 leading-snug">{message}</span>
             <button
               type="button"
               aria-label="Yopish"
               onClick={() => onDismiss(id)}
-              className="shrink-0 opacity-70 transition-opacity hover:opacity-100"
+              className="shrink-0 text-ink-400 transition-colors hover:text-ink-700"
             >
               <X size={16} />
             </button>
