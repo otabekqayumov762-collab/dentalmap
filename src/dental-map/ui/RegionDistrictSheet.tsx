@@ -24,12 +24,20 @@ export function RegionDistrictSheet({
   open,
   onClose,
   onSelect,
-  selected
+  selected,
+  mode = "filter"
 }: {
   open: boolean;
   onClose: () => void;
   onSelect: (selection: RegionDistrictSelection) => void;
   selected?: RegionDistrictSelection;
+  /**
+   * "filter" (Home discovery): "all" is valid — keep the "Barcha hududlar" and
+   * per-region "Barchasi" shortcuts. "select" (data collection: profile / user
+   * registration / clinic location): "all" is meaningless — hide both shortcuts
+   * so a concrete region AND district must be picked.
+   */
+  mode?: "filter" | "select";
 }) {
   const [page, setPage] = useState<"regions" | "districts">("regions");
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
@@ -57,20 +65,22 @@ export function RegionDistrictSheet({
     >
       {page === "regions" ? (
         <div className="flex flex-col gap-1.5" role="listbox" aria-label="Hududlar">
-          <button
-            type="button"
-            aria-selected={isAllSelected}
-            onClick={() => choose({ region: null, district: null })}
-            className={cn(rowBase, isAllSelected ? rowActive : rowIdle)}
-          >
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-                <MapPin size={15} />
+          {mode === "filter" && (
+            <button
+              type="button"
+              aria-selected={isAllSelected}
+              onClick={() => choose({ region: null, district: null })}
+              className={cn(rowBase, isAllSelected ? rowActive : rowIdle)}
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                  <MapPin size={15} />
+                </span>
+                <span className="min-w-0 truncate">Barcha hududlar</span>
               </span>
-              <span className="min-w-0 truncate">Barcha hududlar</span>
-            </span>
-            {isAllSelected && <Check size={16} className="shrink-0 text-brand-600" />}
-          </button>
+              {isAllSelected && <Check size={16} className="shrink-0 text-brand-600" />}
+            </button>
+          )}
 
           {regions.map((region) => {
             const isRegionSelected = selected?.region === region;
@@ -107,20 +117,22 @@ export function RegionDistrictSheet({
             Orqaga
           </button>
 
-          <button
-            type="button"
-            aria-selected={selected?.region === activeRegion && !selected?.district}
-            onClick={() => choose({ region: activeRegion, district: null })}
-            className={cn(
-              rowBase,
-              selected?.region === activeRegion && !selected?.district ? rowActive : rowIdle
-            )}
-          >
-            <span className="min-w-0 truncate">Barchasi</span>
-            {selected?.region === activeRegion && !selected?.district && (
-              <Check size={16} className="shrink-0 text-brand-600" />
-            )}
-          </button>
+          {mode === "filter" && (
+            <button
+              type="button"
+              aria-selected={selected?.region === activeRegion && !selected?.district}
+              onClick={() => choose({ region: activeRegion, district: null })}
+              className={cn(
+                rowBase,
+                selected?.region === activeRegion && !selected?.district ? rowActive : rowIdle
+              )}
+            >
+              <span className="min-w-0 truncate">Barchasi</span>
+              {selected?.region === activeRegion && !selected?.district && (
+                <Check size={16} className="shrink-0 text-brand-600" />
+              )}
+            </button>
+          )}
 
           {(activeRegion ? regionDistricts[activeRegion] ?? [] : []).map((district) => {
             const active = selected?.district === district;
@@ -156,7 +168,8 @@ export function RegionDistrictField({
   district,
   onSelect,
   placeholder = "Hudud tanlang",
-  error
+  error,
+  mode = "filter"
 }: {
   name?: string;
   label?: string;
@@ -166,6 +179,9 @@ export function RegionDistrictField({
   placeholder?: string;
   /** Swap the trigger border to a danger tone when the field is invalid. */
   error?: boolean;
+  /** "filter" keeps the "Barcha hududlar"/"Barchasi" shortcuts (Home); "select"
+   *  removes them so a concrete region+district must be picked (data collection). */
+  mode?: "filter" | "select";
 }) {
   const [open, setOpen] = useState(false);
   const summary = district ? (region ? `${region} · ${district}` : district) : region ?? "";
@@ -198,6 +214,7 @@ export function RegionDistrictField({
         onClose={() => setOpen(false)}
         selected={{ region, district }}
         onSelect={onSelect}
+        mode={mode}
       />
     </div>
   );

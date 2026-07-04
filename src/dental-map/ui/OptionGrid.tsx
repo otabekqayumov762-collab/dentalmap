@@ -8,6 +8,8 @@ type BaseProps = {
   /** Hidden input name for FormData submission (single: value, multi: comma-joined). */
   name?: string;
   className?: string;
+  /** Wrap the grid in a danger ring when the field is invalid (matches the wizard's error convention). */
+  error?: boolean;
 };
 
 type SingleProps = BaseProps & {
@@ -30,12 +32,18 @@ export type OptionGridProps = SingleProps | MultiProps;
  * for long labels on narrow phones, without the list getting too tall.
  */
 export function OptionGrid(props: OptionGridProps) {
-  const { options, name, className } = props;
+  const { options, name, className, error } = props;
   const selected = props.multiple ? props.value : [props.value];
   const hiddenValue = props.multiple ? props.value.join(",") : props.value;
 
   return (
-    <div className={cn("grid grid-cols-2 gap-2.5", className)}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-2.5",
+        error && "rounded-2xl p-1 ring-1 ring-danger",
+        className
+      )}
+    >
       {name && <input type="hidden" name={name} value={hiddenValue} />}
       {options.map((option) => {
         const active = selected.includes(option.value);

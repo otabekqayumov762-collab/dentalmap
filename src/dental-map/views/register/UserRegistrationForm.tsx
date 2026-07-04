@@ -135,6 +135,7 @@ export function UserRegistrationForm({
       <RegionDistrictField
         label="Tuman"
         name="district"
+        mode="select"
         region={userRegion}
         district={userDistrict || null}
         onSelect={(selection) => {

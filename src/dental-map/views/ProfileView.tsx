@@ -264,6 +264,7 @@ export function ProfileView({
             <RegionDistrictField
               name="district"
               label="Tuman"
+              mode="select"
               region={region ?? (profile.district ? districtToRegion[profile.district] ?? null : null)}
               district={profile.district || null}
               onSelect={(selection) => {

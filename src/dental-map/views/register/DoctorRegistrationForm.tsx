@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
-import { serviceItems, specialtyOptions } from "../../catalog";
-import { Button, Field, MultiSelectSheet, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
+import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
+import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
 import { WorkTimeField } from "./WorkTimeField";
 
 const STEP_TITLES = ["Shaxsiy ma'lumotlar", "Mutaxassislik", "Klinika"] as const;
@@ -10,6 +10,7 @@ const TOTAL_STEPS = STEP_TITLES.length;
 type DoctorField =
   | "full_name"
   | "doctor_phone"
+  | "doctor_gender"
   | "password"
   | "password_confirm"
   | "specialty"
@@ -36,12 +37,14 @@ export function DoctorRegistrationForm({
   step,
   submitting,
   doctorSpecialty,
+  doctorGender,
   doctorRegion,
   doctorDistrict,
   selectedServiceIds,
   photoFileName,
   onStepChange,
   onSpecialtyChange,
+  onDoctorGenderChange,
   onRegionChange,
   onDistrictChange,
   onToggleService,
@@ -51,12 +54,14 @@ export function DoctorRegistrationForm({
   step: number;
   submitting: boolean;
   doctorSpecialty: string;
+  doctorGender: string;
   doctorRegion: string | null;
   doctorDistrict: string;
   selectedServiceIds: string[];
   photoFileName: string;
   onStepChange: (step: number) => void;
   onSpecialtyChange: (specialty: string) => void;
+  onDoctorGenderChange: (gender: string) => void;
   onRegionChange: (region: string | null) => void;
   onDistrictChange: (district: string) => void;
   onToggleService: (serviceId: string) => void;
@@ -92,6 +97,9 @@ export function DoctorRegistrationForm({
       }
       if (password !== passwordConfirm) {
         return { field: "password_confirm", message: "Parollar bir xil emas." };
+      }
+      if (!value("doctor_gender")) {
+        return { field: "doctor_gender", message: "Jinsni tanlang." };
       }
       return null;
     }
@@ -220,6 +228,19 @@ export function DoctorRegistrationForm({
             error={invalidField === "password_confirm"}
             onChange={() => clear("password_confirm")}
           />
+          <fieldset className="m-0 border-0 p-0">
+            <legend className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</legend>
+            <OptionGrid
+              name="doctor_gender"
+              value={doctorGender}
+              onChange={(gender) => {
+                onDoctorGenderChange(gender);
+                clear("doctor_gender");
+              }}
+              options={genderOptions.map((item) => ({ value: item, label: item }))}
+              error={invalidField === "doctor_gender"}
+            />
+          </fieldset>
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-surface-200 bg-surface-50 px-4 py-3.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
             <input
               type="file"
@@ -294,6 +315,7 @@ export function DoctorRegistrationForm({
           <RegionDistrictField
             label="Klinika tumani"
             name="clinic_district"
+            mode="select"
             region={doctorRegion}
             district={doctorDistrict || null}
             onSelect={(selection) => {

@@ -218,7 +218,8 @@ export function mapDoctor(item: ApiDoctor, index: number): Doctor {
     phone: item.doctor_phone || "",
     nextSlot: "",
     image: item.photo || undefined,
-    accent: accentColors[index % accentColors.length]
+    accent: accentColors[index % accentColors.length],
+    gender: item.gender || ""
   };
 }
 

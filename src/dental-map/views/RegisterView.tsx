@@ -39,6 +39,7 @@ export function RegisterView({
   const [userRegion, setUserRegion] = useState<string | null>(null);
   const [userDistrict, setUserDistrict] = useState("");
   const [doctorSpecialty, setDoctorSpecialty] = useState("");
+  const [doctorGender, setDoctorGender] = useState("");
   const [doctorRegion, setDoctorRegion] = useState<string | null>(null);
   const [doctorDistrict, setDoctorDistrict] = useState("");
 
@@ -75,12 +76,14 @@ export function RegisterView({
               step={doctorStep}
               submitting={submitting}
               doctorSpecialty={doctorSpecialty}
+              doctorGender={doctorGender}
               doctorRegion={doctorRegion}
               doctorDistrict={doctorDistrict}
               selectedServiceIds={selectedServiceIds}
               photoFileName={photoFileName}
               onStepChange={onDoctorStepChange}
               onSpecialtyChange={setDoctorSpecialty}
+              onDoctorGenderChange={setDoctorGender}
               onRegionChange={setDoctorRegion}
               onDistrictChange={setDoctorDistrict}
               onToggleService={toggleService}

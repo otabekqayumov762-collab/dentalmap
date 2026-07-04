@@ -7,7 +7,7 @@ import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
-import { cn, RegionDistrictField, ToastProvider, useToast } from "@/src/dental-map/ui";
+import { cn, RegionDistrictField, Select, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
@@ -70,6 +70,8 @@ function DentalMapAppInner() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState<string | null>(null);
   const [district, setDistrict] = useState("Barchasi");
+  const [genderFilter, setGenderFilter] = useState<"" | "male" | "female">("");
+  const [clinicFilter, setClinicFilter] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
@@ -124,33 +126,61 @@ function DentalMapAppInner() {
     [hasDistrict, district, region]
   );
 
+  // Distinct clinic names present across doctors + clinics, for the Home clinic
+  // filter. Names can diverge slightly between the two sources, so the option
+  // list is the UNION of both to minimise a "filters doctors but not clinics"
+  // mismatch. "" (Hammasi klinikalar) shows everything.
+  const clinicOptions = useMemo(() => {
+    const names = new Set<string>();
+    apiDoctors.forEach((doctor) => {
+      if (doctor.clinic) {
+        names.add(doctor.clinic);
+      }
+    });
+    apiClinics.forEach((clinic) => {
+      if (clinic.name) {
+        names.add(clinic.name);
+      }
+    });
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+    return [
+      { value: "", label: "Hammasi klinikalar" },
+      ...sorted.map((name) => ({ value: name, label: name }))
+    ];
+  }, [apiDoctors, apiClinics]);
+
   const filteredDoctors = useMemo(() => {
     const search = query.trim().toLowerCase();
 
     const matched = apiDoctors.filter((doctor) => {
       const text = `${doctor.name} ${doctor.specialty} ${doctor.clinic} ${doctor.district}`.toLowerCase();
-      return matchesLocation(doctor.district) && text.includes(search);
+      return (
+        matchesLocation(doctor.district) &&
+        text.includes(search) &&
+        (!genderFilter || doctor.gender === genderFilter) &&
+        (!clinicFilter || doctor.clinic === clinicFilter)
+      );
     });
 
     if (!hasDistrict && !region) {
       return matched;
     }
     return [...matched].sort((a, b) => locationRank(a.district) - locationRank(b.district));
-  }, [apiDoctors, query, matchesLocation, locationRank, hasDistrict, region]);
+  }, [apiDoctors, query, matchesLocation, locationRank, hasDistrict, region, genderFilter, clinicFilter]);
 
   const filteredClinics = useMemo(() => {
     const search = query.trim().toLowerCase();
 
     const matched = apiClinics.filter((clinic) => {
       const text = `${clinic.name} ${clinic.district} ${clinic.address}`.toLowerCase();
-      return matchesLocation(clinic.district) && text.includes(search);
+      return matchesLocation(clinic.district) && text.includes(search) && (!clinicFilter || clinic.name === clinicFilter);
     });
 
     if (!hasDistrict && !region) {
       return matched;
     }
     return [...matched].sort((a, b) => locationRank(a.district) - locationRank(b.district));
-  }, [apiClinics, query, matchesLocation, locationRank, hasDistrict, region]);
+  }, [apiClinics, query, matchesLocation, locationRank, hasDistrict, region, clinicFilter]);
 
   const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
   const homeView: ViewId = isDoctorAccount ? "profile" : "home";
@@ -440,6 +470,12 @@ function DentalMapAppInner() {
     formData.set("clinic_district", clinicDistrict);
     formData.set("clinic_address", clinicAddress);
     formData.set("experience_years", experienceYears);
+    // Normalize the collected gender (Erkak/Ayol → male/female) to mirror the
+    // user path; step-1 validation is the required gate.
+    const doctorGender = normalizeGender(String(formData.get("doctor_gender") || ""));
+    if (doctorGender) {
+      formData.set("doctor_gender", doctorGender);
+    }
     // clinic_location_url is no longer collected — the location is sent to the
     // doctor via the Telegram bot after admin approval (backend treats it optional).
     formData.delete("clinic_location_url");
@@ -729,6 +765,7 @@ function DentalMapAppInner() {
                 <section className="mt-4 grid grid-cols-1 gap-3">
                   <div className="rounded-card bg-surface-0 p-4 shadow-card">
                     <RegionDistrictField
+                      mode="filter"
                       region={region}
                       district={district === "Barchasi" ? null : district}
                       onSelect={(selection) => {
@@ -737,6 +774,24 @@ function DentalMapAppInner() {
                         setDistrict(selection.district ?? "Barchasi");
                       }}
                       placeholder="Barcha hududlar"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 rounded-card bg-surface-0 p-4 shadow-card">
+                    <Select
+                      label="Jinsi"
+                      value={genderFilter}
+                      onChange={(next) => setGenderFilter(next as "" | "male" | "female")}
+                      options={[
+                        { value: "", label: "Hammasi" },
+                        { value: "male", label: "Erkak" },
+                        { value: "female", label: "Ayol" }
+                      ]}
+                    />
+                    <Select
+                      label="Klinika"
+                      value={clinicFilter}
+                      onChange={setClinicFilter}
+                      options={clinicOptions}
                     />
                   </div>
                   <div className="flex flex-wrap justify-center gap-2.5 pb-1" aria-label="Bo'limlar">

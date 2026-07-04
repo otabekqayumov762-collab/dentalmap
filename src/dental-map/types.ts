@@ -103,6 +103,8 @@ export type Doctor = {
   nextSlot: string;
   image?: string;
   accent: string;
+  /** "male" | "female" | "" — drives the Home gender filter. */
+  gender?: string;
   /** Daily time slots the doctor is free (HH:MM). Drives the booking picker. */
   slots?: string[];
 };
@@ -184,6 +186,7 @@ export type ApiDoctor = {
   clinic_address?: string;
   clinic_location_url?: string;
   directions?: string;
+  gender?: string;
   rating?: string | number;
   reviews_count?: number;
   approval_status?: string;
