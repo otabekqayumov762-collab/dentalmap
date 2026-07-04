@@ -103,7 +103,10 @@ function createContentSecurityPolicy() {
     styleSrc,
     fontSrc,
     "object-src 'none'",
-    "frame-ancestors 'none'",
+    // Telegram opens the mini app inside its client (WebView loads it top-level;
+    // Telegram Web embeds it in an iframe), so the app MUST allow Telegram to frame
+    // it — 'none' here silently blocks "open in bot". Restrict to Telegram origins.
+    "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org",
     "base-uri 'self'",
     "form-action 'self'",
     "upgrade-insecure-requests"
@@ -116,7 +119,6 @@ function writeNetlifyHeaders(csp) {
     [
       "/*",
       "  X-Content-Type-Options: nosniff",
-      "  X-Frame-Options: DENY",
       "  Referrer-Policy: strict-origin-when-cross-origin",
       "  Permissions-Policy: camera=(), microphone=(), geolocation=(self)",
       `  Content-Security-Policy: ${csp}`,
@@ -128,7 +130,6 @@ function writeNetlifyHeaders(csp) {
 function nginxSecurityHeaders(csp) {
   return [
     '    add_header X-Content-Type-Options "nosniff" always;',
-    '    add_header X-Frame-Options "DENY" always;',
     '    add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
     '    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;',
     `    add_header Content-Security-Policy "${csp}" always;`
