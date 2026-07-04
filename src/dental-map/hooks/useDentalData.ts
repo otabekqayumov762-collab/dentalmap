@@ -133,6 +133,28 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     }
   }, []);
 
+  // Load approved reviews for a single doctor — called lazily by the doctor DETAIL
+  // view, so the public catalog never pulls the entire /api/reviews/ list on first paint.
+  const loadDoctorReviews = useCallback(async (doctorId: string) => {
+    if (!doctorId || isOfflineMode() || !isBackendConfigured()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/reviews/?doctor=${encodeURIComponent(doctorId)}&status=approved`),
+        { cache: "no-store" }
+      );
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json()) as ApiList<ApiReview>;
+      setDoctorReviews(normalizeApiList(payload).map(mapReview));
+    } catch {
+      // Reviews are non-critical for the detail view; keep any existing state.
+    }
+  }, []);
+
   // Telegram-backed authentication, run once after host detection settles.
   useEffect(() => {
     if (!telegramInitialized) {
@@ -259,22 +281,22 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       try {
         setDataLoading(true);
         setDataError("");
-        const [doctorResponse, clinicResponse, reviewResponse] = await Promise.all([
+        // The doctor LIST only needs reviews_count (already denormalized on each
+        // doctor), so we intentionally skip the unfiltered /api/reviews/ fetch here
+        // and load reviews lazily per doctor via loadDoctorReviews() on the detail view.
+        const [doctorResponse, clinicResponse] = await Promise.all([
           fetch(getApiUrl("/api/doctors/"), { cache: "no-store", signal: controller.signal }),
-          fetch(getApiUrl("/api/clinics/"), { cache: "no-store", signal: controller.signal }),
-          fetch(getApiUrl("/api/reviews/"), { cache: "no-store", signal: controller.signal })
+          fetch(getApiUrl("/api/clinics/"), { cache: "no-store", signal: controller.signal })
         ]);
-        if (!doctorResponse.ok || !clinicResponse.ok || !reviewResponse.ok) {
+        if (!doctorResponse.ok || !clinicResponse.ok) {
           throw new Error("Backend data request failed");
         }
-        const [doctorPayload, clinicPayload, reviewPayload] = (await Promise.all([
+        const [doctorPayload, clinicPayload] = (await Promise.all([
           doctorResponse.json(),
-          clinicResponse.json(),
-          reviewResponse.json()
-        ])) as [ApiList<ApiDoctor>, ApiList<ApiClinic>, ApiList<ApiReview>];
+          clinicResponse.json()
+        ])) as [ApiList<ApiDoctor>, ApiList<ApiClinic>];
         setApiDoctors(normalizeApiList(doctorPayload).map(mapDoctor));
         setApiClinics(flattenClinics(normalizeApiList(clinicPayload)));
-        setDoctorReviews(normalizeApiList(reviewPayload).map(mapReview));
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           setDataError("Backend vaqtincha ulanmagan. 24/7 ko'rish rejimi ishlayapti.");
@@ -792,6 +814,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     authMessage,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
+    loadDoctorReviews,
     loginWithPassword,
     logout,
     createAppointment,

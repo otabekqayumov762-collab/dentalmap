@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 
 const outDir = resolve(process.argv[2] || "out");
 
@@ -151,6 +152,12 @@ function writeNginxConfig(csp) {
     root /usr/share/nginx/html;
     index index.html;
 
+    gzip_static on;
+    gzip on;
+    gzip_comp_level 4;
+    gzip_types application/json text/css application/javascript image/svg+xml;
+    gzip_min_length 512;
+
 ${securityHeaders}
 
     location / {
@@ -168,7 +175,29 @@ ${assetSecurityHeaders}
   );
 }
 
+const COMPRESSIBLE_EXTENSIONS = [".js", ".css", ".html", ".svg", ".json"];
+
+function precompressAssets(directory) {
+  let count = 0;
+  for (const entry of readdirSync(directory)) {
+    const path = join(directory, entry);
+    const stat = statSync(path);
+    if (stat.isDirectory()) {
+      count += precompressAssets(path);
+      continue;
+    }
+    if (!COMPRESSIBLE_EXTENSIONS.some((ext) => path.endsWith(ext))) {
+      continue;
+    }
+    const compressed = gzipSync(readFileSync(path), { level: 9 });
+    writeFileSync(`${path}.gz`, compressed);
+    count += 1;
+  }
+  return count;
+}
+
 const csp = createContentSecurityPolicy();
 writeNetlifyHeaders(csp);
 writeNginxConfig(csp);
-console.log("Static export security headers generated.");
+const precompressedCount = precompressAssets(outDir);
+console.log(`Static export security headers generated. Precompressed ${precompressedCount} asset(s).`);
