@@ -1,4 +1,4 @@
-import { AlertCircle, CalendarDays, CheckCircle2, Clock } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, Clock, Loader2, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { DoctorAvatar, SectionTitle } from "../components/common";
@@ -40,24 +40,41 @@ export function AppointmentView({
   const [formError, setFormError] = useState("");
 
   // Backend: real bookable slots from the doctor's schedule. Offline: synthesized.
-  const [remoteDays, setRemoteDays] = useState<DaySlots[] | null>(null);
+  // Online slots go through an explicit loading/ready/error machine so we never
+  // render fake DEFAULT_SLOTS during the fetch and never silently blank an error.
+  const offline = isOfflineMode();
+  const [remoteDays, setRemoteDays] = useState<DaySlots[]>([]);
+  const [slotsStatus, setSlotsStatus] = useState<"loading" | "ready" | "error">(offline ? "ready" : "loading");
+  const [retryNonce, setRetryNonce] = useState(0);
   useEffect(() => {
-    if (isOfflineMode()) {
-      setRemoteDays(null);
+    if (offline) {
+      setSlotsStatus("ready");
       return;
     }
     let cancelled = false;
-    void fetchDoctorDaySlots(doctor.id).then((result) => {
-      if (!cancelled) {
-        setRemoteDays(result);
-      }
-    });
+    setSlotsStatus("loading");
+    fetchDoctorDaySlots(doctor.id)
+      .then((result) => {
+        if (!cancelled) {
+          setRemoteDays(result);
+          setSlotsStatus("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSlotsStatus("error");
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [doctor.id]);
+  }, [doctor.id, offline, retryNonce]);
 
-  const days = useMemo(() => remoteDays ?? upcomingDays(doctor.slots), [remoteDays, doctor.slots]);
+  // In online mode ONLY real backend slots drive the UI (never DEFAULT_SLOTS).
+  const days = useMemo(
+    () => (offline ? upcomingDays(doctor.slots) : remoteDays),
+    [offline, remoteDays, doctor.slots]
+  );
   const [selectedDate, setSelectedDate] = useState("");
   const currentDay = useMemo(
     () => days.find((day) => day.iso === selectedDate) ?? days[0],
@@ -151,7 +168,33 @@ export function AppointmentView({
       </Card>
 
       <SectionTitle title="Qabul kunini tanlang" />
-      {days.length > 0 ? (
+      {slotsStatus === "loading" ? (
+        <Card className="flex items-center gap-3 text-ink-500">
+          <Loader2 size={18} className="shrink-0 animate-spin text-brand-500" />
+          <span>
+            <strong className="block text-sm text-ink-700">Bo&apos;sh vaqtlar yuklanmoqda</strong>
+            <small className="block text-xs text-ink-400">Shifokorning jadvali tekshirilmoqda…</small>
+          </span>
+        </Card>
+      ) : slotsStatus === "error" ? (
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 text-danger">
+            <AlertCircle size={18} className="shrink-0" />
+            <span>
+              <strong className="block text-sm">Bo&apos;sh vaqtlarni yuklab bo&apos;lmadi</strong>
+              <small className="block text-xs text-danger/80">Internet aloqasini tekshirib, qayta urinib ko&apos;ring.</small>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRetryNonce((nonce) => nonce + 1)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-pill border border-surface-200 bg-surface-0 px-4 text-sm font-bold text-brand-600 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]"
+          >
+            <RotateCw size={16} />
+            Qayta urinish
+          </button>
+        </Card>
+      ) : days.length > 0 ? (
         <>
           <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1">
             {days.map((day) => {
@@ -260,7 +303,7 @@ export function AppointmentView({
             <span>{submitError}</span>
           </div>
         )}
-        <Button type="submit" size="lg" disabled={sent || submitting || days.length === 0}>
+        <Button type="submit" size="lg" disabled={sent || submitting || slotsStatus !== "ready" || days.length === 0}>
           <CheckCircle2 size={18} />
           {submitting ? "Yuborilmoqda…" : "Qabulga yozilish"}
         </Button>

@@ -29,6 +29,7 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
+import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
@@ -193,9 +194,10 @@ export default function DentalMapApp() {
 
   function openAppointment(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
-    if (selectedDoctor?.id !== doctor.id) {
-      setConsultationSent(false);
-    }
+    // Always start a fresh booking form. Previously this only reset the success
+    // flag when switching to a DIFFERENT doctor, so re-booking the SAME doctor
+    // showed a stale "So'rov yuborildi" success and blocked a new request.
+    setConsultationSent(false);
     setAppointmentSubmitError("");
     setSelectedDoctor(doctor);
     changeView("appointment");
@@ -222,6 +224,7 @@ export default function DentalMapApp() {
 
   function handleLogout() {
     logout();
+    setConsultationSent(false);
     setUserRegistered(false);
     setDoctorRegistrationSent(false);
     setDoctorSubscriptionPaid(false);
@@ -441,7 +444,26 @@ export default function DentalMapApp() {
     webApp?.HapticFeedback?.notificationOccurred("success");
   }, [webApp]);
 
-  const doctorRegistrationPending = doctorRegistrationSent && !doctorSubscriptionPaid;
+  // SERVER-DERIVED subscription truth. The payment gate must NOT rely on the
+  // ephemeral `doctorRegistrationSent` local flag (it resets to false on reload,
+  // which previously let an unpaid-but-registered doctor walk past the gate).
+  // `/api/doctors/me/` (doctorProfile) and the nested `doctor_profile` on
+  // `/api/users/me/` (currentUser) are both re-fetched on every reload, so the
+  // gate is fully governed by the backend. A future-dated expiry is treated as
+  // active as a fallback when the boolean flag is absent.
+  const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
+  const isFutureDate = (value?: string | null) =>
+    value ? new Date(value).getTime() > Date.now() : false;
+  const subscriptionActive =
+    Boolean(doctorProfile?.is_subscription_active) ||
+    Boolean(nestedDoctorProfile?.is_subscription_active) ||
+    isFutureDate(doctorProfile?.subscription_expires_at) ||
+    isFutureDate(nestedDoctorProfile?.subscription_expires_at);
+  // `doctorSubscriptionPaid` is kept ONLY as an additive same-session unlock right
+  // after onPaid; it resets on reload so the server governs across sessions — this
+  // is what closes the exploit (on reopen both local flags are false and the
+  // server subscription is inactive → the doctor stays blocked).
+  const doctorRegistrationPending = isDoctorAccount && !subscriptionActive && !doctorSubscriptionPaid;
   const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
   const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
 
@@ -505,10 +527,36 @@ export default function DentalMapApp() {
   // Auth wall: no entry without logging in or registering (as patient/doctor).
   // A doctor mid-registration must finish the subscription payment before entry.
   if (!isAuthenticated) {
-    if (authStatus === "loading") {
+    // Fail-closed: hold the spinner while a returning doctor's server
+    // subscription state is still resolving so we neither flash the pay screen
+    // nor briefly leak the app. The freshly-registered same-session case
+    // (doctorRegistrationSent) skips this and goes straight to the pay step.
+    if (
+      authStatus === "loading" ||
+      (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile)
+    ) {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
           <Loader2 size={26} className="animate-spin text-brand-500" />
+        </main>
+      );
+    }
+    // An already-authenticated doctor who has not cleared the subscription gate
+    // must land on the payment view — NOT the login wall (which would be a
+    // dead-end for a logged-in account). DoctorPaymentView self-fetches receipts
+    // + subscription, so a pending-receipt doctor sees the wait screen and an
+    // unpaid doctor sees the pay form; both self-recover across reloads.
+    if (currentUser && doctorRegistrationPending) {
+      return (
+        <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
+          <section
+            className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-100"
+            aria-label="Shifokor obunasi"
+          >
+            <div className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5 py-6">
+              <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={handleDoctorPaid} />
+            </div>
+          </section>
         </main>
       );
     }

@@ -258,21 +258,22 @@ export function normalizeSchedule(items: { results?: ApiWeeklyAvailability[] } |
   return normalizeApiList(items).sort((left, right) => left.weekday - right.weekday || left.start_time.localeCompare(right.start_time));
 }
 
-/** Public bookable slots for a doctor, grouped by day. Empty on any failure. */
+/**
+ * Public bookable slots for a doctor, grouped by day. THROWS on network/HTTP
+ * failure so the caller can distinguish "no slots" (empty array) from "could not
+ * load" (error) and render the right state — a swallowed `[]` previously made an
+ * error look identical to a doctor with no availability.
+ */
 export async function fetchDoctorDaySlots(doctorId: string): Promise<DaySlots[]> {
-  try {
-    const response = await fetch(getApiUrl(`/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}`), {
-      cache: "no-store"
-    });
-    if (!response.ok) {
-      return [];
-    }
-    const data = await response.json();
-    const list = Array.isArray(data) ? data : (data?.results ?? []);
-    return groupSlots(list);
-  } catch {
-    return [];
+  const response = await fetch(getApiUrl(`/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}`), {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error(`Bo'sh vaqtlarni yuklab bo'lmadi (${response.status}).`);
   }
+  const data = await response.json();
+  const list = Array.isArray(data) ? data : (data?.results ?? []);
+  return groupSlots(list);
 }
 
 export function flattenClinics(items: ApiClinic[]): Clinic[] {
