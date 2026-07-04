@@ -37,6 +37,7 @@ export function AppointmentView({
 }) {
   const { toast } = useToast();
   const [note, setNote] = useState(defaultNote);
+  const [sharePhoneConsent, setSharePhoneConsent] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   // Backend: real bookable slots from the doctor's schedule. Offline: synthesized.
@@ -126,6 +127,10 @@ export function AppointmentView({
       toast.error("Bemor holatini qisqa yozing.");
       return;
     }
+    if (!sharePhoneConsent) {
+      toast.error("Telefon raqamingiz shifokorga yuborilishiga rozilik bering.");
+      return;
+    }
     onSubmit(event);
   }
 
@@ -138,9 +143,6 @@ export function AppointmentView({
           <CheckCircle2 size={40} />
         </span>
         <strong className="text-xl font-bold text-ink-900">So&apos;rov yuborildi</strong>
-        <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-          Klinika lokatsiyasi Telegram bot orqali yuboriladi. Shifokor tasdiqlasa alohida xabar keladi.
-        </p>
         <Card className="mt-6 flex w-full max-w-xs flex-col items-center gap-1">
           <span className="text-sm font-medium text-ink-700">{doctor.name}</span>
           <b className="flex items-center gap-2 text-base font-bold text-ink-900">
@@ -290,6 +292,19 @@ export function AppointmentView({
             setNote(event.target.value);
           }}
         />
+
+        <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-700">
+          <input
+            type="checkbox"
+            name="sharePhoneConsent"
+            checked={sharePhoneConsent}
+            onChange={(event) => setSharePhoneConsent(event.target.checked)}
+            className="mt-0.5 size-5 shrink-0 rounded border-surface-300 text-brand-500 focus:ring-brand-400"
+          />
+          <span className="leading-relaxed">
+            Telefon raqamim tanlangan shifokorga qabulni tasdiqlash va bog&apos;lanish uchun yuborilishiga roziman.
+          </span>
+        </label>
 
         <Button type="submit" size="lg" disabled={sent || submitting || slotsStatus !== "ready" || days.length === 0}>
           <CheckCircle2 size={18} />

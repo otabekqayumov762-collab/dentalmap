@@ -214,8 +214,7 @@ export const tabs: Shortcut[] = [
 export const doctorTabs: Shortcut[] = [
   { id: "profile", label: "Kabinet", Icon: LayoutGrid },
   { id: "doctorRequests", label: "Qabullar", Icon: CalendarCheck2 },
-  { id: "doctorSchedule", label: "Jadval", Icon: CalendarDays },
-  { id: "doctorEdit", label: "Profil", Icon: User }
+  { id: "doctorSchedule", label: "Jadval", Icon: CalendarDays }
 ];
 
 export const serviceItems = [

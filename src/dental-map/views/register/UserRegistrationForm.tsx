@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { genderOptions } from "../../catalog";
 import { Button, Field, OptionGrid, PhoneField, RegionDistrictField, useToast } from "../../ui";
 
-type UserField = "full_name" | "phone" | "password" | "password_confirm";
+type UserField = "full_name" | "phone";
 
 export function UserRegistrationForm({
   userGender,
@@ -40,14 +40,6 @@ export function UserRegistrationForm({
     }
     if (value("phone").replace(/\D/g, "").length < 12) {
       return { field: "phone", message: "Telefon raqamni to'liq kiriting." };
-    }
-    const password = String(data.get("password") || "");
-    const passwordConfirm = String(data.get("password_confirm") || "");
-    if (password.length < 8) {
-      return { field: "password", message: "Parol kamida 8 ta belgidan iborat bo'lishi kerak." };
-    }
-    if (password !== passwordConfirm) {
-      return { field: "password_confirm", message: "Parollar bir xil emas." };
     }
     return null;
   }
@@ -99,28 +91,6 @@ export function UserRegistrationForm({
         required
         error={invalidField === "phone"}
         onValueChange={() => clear("phone")}
-      />
-      <Field
-        label="Parol"
-        name="password"
-        type="password"
-        minLength={8}
-        autoComplete="new-password"
-        placeholder="Kamida 8 ta belgi"
-        required
-        error={invalidField === "password"}
-        onChange={() => clear("password")}
-      />
-      <Field
-        label="Parolni takrorlang"
-        name="password_confirm"
-        type="password"
-        minLength={8}
-        autoComplete="new-password"
-        placeholder="Parolni qayta kiriting"
-        required
-        error={invalidField === "password_confirm"}
-        onChange={() => clear("password_confirm")}
       />
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</legend>

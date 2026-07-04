@@ -141,7 +141,6 @@ export function RegionDistrictSheet({
               <button
                 key={district}
                 type="button"
-                aria-selected={active}
                 onClick={() => choose({ region: activeRegion, district })}
                 className={cn(rowBase, active ? rowActive : rowIdle)}
               >

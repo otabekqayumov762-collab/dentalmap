@@ -54,36 +54,56 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     const controller = new AbortController();
     setCardsLoading(true);
     setLoadError("");
-    (async () => {
-      try {
-        const [cardList, receipts, subscription] = await Promise.all([
-          fetchCards(controller.signal),
-          fetchReceipts(controller.signal).catch(() => [] as Receipt[]),
-          fetchSubscription(controller.signal).catch(() => ({
-            amount_uzs: defaultAmountUzs,
-            currency: "UZS",
-            display: formatUzs(defaultAmountUzs)
-          }))
-        ]);
-        setCards(cardList);
+    let active = true;
+
+    void fetchSubscription(controller.signal)
+      .then((subscription) => {
+        if (!active) {
+          return;
+        }
         setSubscriptionAmountUzs(subscription.amount_uzs);
         setAmount((current) => (current === String(defaultAmountUzs) ? String(subscription.amount_uzs) : current));
-        setSelectedCardId((current) => current ?? cardList[0]?.id ?? null);
-        if (receipts[0]) {
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setSubscriptionAmountUzs(defaultAmountUzs);
+      });
+
+    void fetchReceipts(controller.signal)
+      .then((receipts) => {
+        if (active && receipts[0]) {
           setLatestReceipt(receipts[0]);
         }
+      })
+      .catch(() => {
+        // Receipt history must not block the payment screen.
+      });
+
+    void (async () => {
+      try {
+        const cardList = await fetchCards(controller.signal);
+        if (!active) {
+          return;
+        }
+        setCards(cardList);
+        setSelectedCardId((current) => current ?? cardList[0]?.id ?? null);
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && active) {
           setLoadError(error instanceof Error ? error.message : "Kartalarni yuklab bo'lmadi.");
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && active) {
           setCardsLoading(false);
         }
       }
     })();
 
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [defaultAmountUzs, offline]);
 
   const submit = useCallback(async () => {

@@ -12,14 +12,12 @@ export function RegisterView({
   services,
   userRegistered,
   doctorRegistrationSent,
-  doctorSubscriptionPaid,
   submitting,
   doctorStep,
   onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
-  onDoctorPaid,
   onNavigate
 }: {
   role: RegisterRole;
@@ -27,14 +25,12 @@ export function RegisterView({
   services: Service[];
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
-  doctorSubscriptionPaid: boolean;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPaid: () => void;
   onNavigate: (view: ViewId) => void;
 }) {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);

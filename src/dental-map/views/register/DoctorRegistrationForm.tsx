@@ -1,8 +1,9 @@
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, Upload } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
 import type { Service, Specialty } from "../../types";
 import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
+import { isSupportedMapLink, LocationPickerField } from "./LocationPickerField";
 import { WorkTimeField } from "./WorkTimeField";
 
 const STEP_TITLES = ["Shaxsiy ma'lumotlar", "Mutaxassislik", "Klinika"] as const;
@@ -18,7 +19,8 @@ type DoctorField =
   | "experience_years"
   | "clinic_name"
   | "clinic_district"
-  | "clinic_address";
+  | "clinic_address"
+  | "clinic_location_url";
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
@@ -136,6 +138,9 @@ export function DoctorRegistrationForm({
       }
       if (!value("clinic_address")) {
         return { field: "clinic_address", message: "Klinika manzilini kiriting." };
+      }
+      if (!isSupportedMapLink(value("clinic_location_url"))) {
+        return { field: "clinic_location_url", message: "Google yoki Yandex Maps linkini kiriting." };
       }
       return null;
     }
@@ -347,10 +352,7 @@ export function DoctorRegistrationForm({
             error={invalidField === "clinic_address"}
             onChange={() => clear("clinic_address")}
           />
-          <div className="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3.5 text-sm text-ink-700">
-            <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
-            <p>Klinika lokatsiyasi Telegram bot orqali yuboriladi. Shifokor tasdiqlagandan so&apos;ng sizga xabar beramiz.</p>
-          </div>
+          <LocationPickerField name="clinic_location_url" required />
         </Section>
       </div>
 
@@ -379,7 +381,7 @@ export function DoctorRegistrationForm({
           {step === TOTAL_STEPS ? (
             <>
               {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-              {submitting ? "Yuborilmoqda…" : "To'lovga o'tish"}
+              {submitting ? "Yuborilmoqda…" : "Ro'yxatdan o'tish"}
             </>
           ) : (
             <>

@@ -10,7 +10,6 @@ type UseTelegramButtonsArgs = {
   selectedDoctor: Doctor | null;
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
-  doctorSubscriptionPaid: boolean;
   submitting: boolean;
   doctorStep: number;
   showBack: boolean;
@@ -30,7 +29,6 @@ export function useTelegramButtons({
   selectedDoctor,
   userRegistered,
   doctorRegistrationSent,
-  doctorSubscriptionPaid,
   submitting,
   doctorStep,
   showBack,
@@ -86,13 +84,6 @@ export function useTelegramButtons({
         }
         return;
       }
-      if (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid) {
-        const paymentButton = document.getElementById("doctor-payment-submit");
-        if (paymentButton instanceof HTMLButtonElement) {
-          paymentButton.click();
-        }
-        return;
-      }
       if (activeView === "register" && registerRole === "user" && userRegistered) {
         return;
       }
@@ -116,12 +107,10 @@ export function useTelegramButtons({
     const buttonText =
       activeView === "appointment"
         ? "Qabulga yozilish"
-        : activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid
-          ? "Chekni yuborish"
-          : activeView === "register" && registerRole === "doctor"
+        : activeView === "register" && registerRole === "doctor"
             ? doctorStep < 3
               ? "Keyingi"
-              : "To'lovga o'tish"
+              : "Ro'yxatdan o'tish"
             : activeView === "register"
               ? "Profil yaratish"
               : "Qabulga yozilish";
@@ -135,7 +124,7 @@ export function useTelegramButtons({
       ((activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") &&
         !selectedDoctor) ||
       (activeView === "register" && registerRole === "user" && userRegistered) ||
-      doctorSubscriptionPaid
+      (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent)
     ) {
       mainButton.hide();
     } else {
@@ -158,7 +147,6 @@ export function useTelegramButtons({
     activeView,
     changeView,
     doctorRegistrationSent,
-    doctorSubscriptionPaid,
     doctorStep,
     registerRole,
     selectedDoctor,
