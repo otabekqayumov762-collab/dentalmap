@@ -1,7 +1,7 @@
-import { LogIn, XCircle } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ViewId } from "../types";
-import { Button, Field, PhoneField } from "../ui";
+import { Button, Field, PhoneField, useToast } from "../ui";
 
 export function LoginView({
   onLogin,
@@ -10,30 +10,46 @@ export function LoginView({
   onLogin: (login: string, password: string) => Promise<string>;
   onNavigate: (view: ViewId) => void;
 }) {
+  const { toast } = useToast();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [invalidField, setInvalidField] = useState<"phone" | "password" | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!phone.trim() || !password) {
-      setError("Telefon va parolni kiriting.");
+    if (!phone.trim()) {
+      setInvalidField("phone");
+      toast.error("Telefon va parolni kiriting.");
       return;
     }
+    if (!password) {
+      setInvalidField("password");
+      toast.error("Telefon va parolni kiriting.");
+      return;
+    }
+    setInvalidField(null);
     setSubmitting(true);
-    setError("");
     const message = await onLogin(phone, password);
     setSubmitting(false);
     if (message) {
-      setError(message);
+      toast.error(message);
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
       <form className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={handleSubmit}>
-        <PhoneField label="Telefon raqam" name="phone" value={phone} onValueChange={setPhone} />
+        <PhoneField
+          label="Telefon raqam"
+          name="phone"
+          value={phone}
+          error={invalidField === "phone"}
+          onValueChange={(value) => {
+            setPhone(value);
+            setInvalidField((current) => (current === "phone" ? null : current));
+          }}
+        />
         <Field
           label="Parol"
           name="password"
@@ -41,18 +57,12 @@ export function LoginView({
           autoComplete="current-password"
           placeholder="••••••••"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          error={invalidField === "password"}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            setInvalidField((current) => (current === "password" ? null : current));
+          }}
         />
-
-        {error && (
-          <div
-            className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
-            role="alert"
-          >
-            <XCircle size={17} className="shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
 
         <Button type="submit" size="lg" disabled={submitting}>
           <LogIn size={18} />

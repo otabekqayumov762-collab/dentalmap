@@ -1,7 +1,9 @@
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
-import type { FormEvent } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { genderOptions } from "../../catalog";
-import { Button, Field, OptionGrid, PhoneField, RegionDistrictField } from "../../ui";
+import { Button, Field, OptionGrid, PhoneField, RegionDistrictField, useToast } from "../../ui";
+
+type UserField = "full_name" | "phone" | "password" | "password_confirm";
 
 export function UserRegistrationForm({
   userGender,
@@ -9,7 +11,6 @@ export function UserRegistrationForm({
   userDistrict,
   userRegistered,
   submitting,
-  registrationError,
   onGenderChange,
   onRegionChange,
   onDistrictChange,
@@ -20,12 +21,51 @@ export function UserRegistrationForm({
   userDistrict: string;
   userRegistered: boolean;
   submitting: boolean;
-  registrationError: string;
   onGenderChange: (gender: string) => void;
   onRegionChange: (region: string | null) => void;
   onDistrictChange: (district: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const { toast } = useToast();
+  const [invalidField, setInvalidField] = useState<UserField | null>(null);
+
+  // Mirrors the thresholds in DentalMapApp.sendUserRegistration; gating here
+  // (before the passed onSubmit) means the app-level guards act only as a
+  // backstop, so a single toast fires per failure.
+  function validate(form: HTMLFormElement): { field: UserField; message: string } | null {
+    const data = new FormData(form);
+    const value = (key: string) => String(data.get(key) || "").trim();
+    if (value("full_name").length < 2) {
+      return { field: "full_name", message: "F.I.O. ni to'liq kiriting." };
+    }
+    if (value("phone").replace(/\D/g, "").length < 12) {
+      return { field: "phone", message: "Telefon raqamni to'liq kiriting." };
+    }
+    const password = String(data.get("password") || "");
+    const passwordConfirm = String(data.get("password_confirm") || "");
+    if (password.length < 8) {
+      return { field: "password", message: "Parol kamida 8 ta belgidan iborat bo'lishi kerak." };
+    }
+    if (password !== passwordConfirm) {
+      return { field: "password_confirm", message: "Parollar bir xil emas." };
+    }
+    return null;
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const result = validate(event.currentTarget);
+    if (result) {
+      event.preventDefault();
+      setInvalidField(result.field);
+      toast.error(result.message);
+      return;
+    }
+    setInvalidField(null);
+    onSubmit(event);
+  }
+
+  const clear = (field: UserField) => setInvalidField((current) => (current === field ? null : current));
+
   if (userRegistered) {
     return (
       <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3.5">
@@ -39,9 +79,27 @@ export function UserRegistrationForm({
   }
 
   return (
-    <form id="user-register-form" className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card" onSubmit={onSubmit}>
-      <Field label="F.I.O." name="full_name" placeholder="Ism familiya" required />
-      <PhoneField label="Telefon raqam" name="phone" required />
+    <form
+      id="user-register-form"
+      noValidate
+      className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card"
+      onSubmit={handleSubmit}
+    >
+      <Field
+        label="F.I.O."
+        name="full_name"
+        placeholder="Ism familiya"
+        required
+        error={invalidField === "full_name"}
+        onChange={() => clear("full_name")}
+      />
+      <PhoneField
+        label="Telefon raqam"
+        name="phone"
+        required
+        error={invalidField === "phone"}
+        onValueChange={() => clear("phone")}
+      />
       <Field
         label="Parol"
         name="password"
@@ -50,6 +108,8 @@ export function UserRegistrationForm({
         autoComplete="new-password"
         placeholder="Kamida 8 ta belgi"
         required
+        error={invalidField === "password"}
+        onChange={() => clear("password")}
       />
       <Field
         label="Parolni takrorlang"
@@ -59,6 +119,8 @@ export function UserRegistrationForm({
         autoComplete="new-password"
         placeholder="Parolni qayta kiriting"
         required
+        error={invalidField === "password_confirm"}
+        onChange={() => clear("password_confirm")}
       />
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</legend>
@@ -69,7 +131,7 @@ export function UserRegistrationForm({
           options={genderOptions.map((item) => ({ value: item, label: item }))}
         />
       </fieldset>
-      <Field label="Yoshi" name="age" type="number" min="1" max="100" placeholder="Yosh" />
+      <Field label="Yoshi" name="age" numeric placeholder="Yosh" />
       <RegionDistrictField
         label="Tuman"
         name="district"
@@ -81,15 +143,6 @@ export function UserRegistrationForm({
         }}
         placeholder="Tumanni tanlang"
       />
-      {registrationError && (
-        <div role="alert" className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
-          <XCircle size={18} className="shrink-0" />
-          <span>
-            <strong className="block text-sm font-semibold">Yuborilmadi</strong>
-            <small className="block text-xs opacity-90">{registrationError}</small>
-          </span>
-        </div>
-      )}
       <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
         {submitting ? "Yuborilmoqda…" : "Profil yaratish"}

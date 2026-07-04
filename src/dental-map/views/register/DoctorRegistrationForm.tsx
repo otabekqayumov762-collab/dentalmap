@@ -1,11 +1,22 @@
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { serviceItems, specialtyOptions } from "../../catalog";
-import { Button, Field, MultiSelectSheet, PhoneField, RegionDistrictField, Select, TextareaField, cn } from "../../ui";
+import { Button, Field, MultiSelectSheet, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
 import { WorkTimeField } from "./WorkTimeField";
 
 const STEP_TITLES = ["Shaxsiy ma'lumotlar", "Mutaxassislik", "Klinika"] as const;
 const TOTAL_STEPS = STEP_TITLES.length;
+
+type DoctorField =
+  | "full_name"
+  | "doctor_phone"
+  | "password"
+  | "password_confirm"
+  | "specialty"
+  | "experience_years"
+  | "clinic_name"
+  | "clinic_district"
+  | "clinic_address";
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
@@ -21,18 +32,6 @@ function Section({ step, title, children }: { step: number; title: string; child
   );
 }
 
-function DangerAlert({ title, message }: { title: string; message: string }) {
-  return (
-    <div role="alert" className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
-      <XCircle size={18} className="shrink-0" />
-      <span>
-        <strong className="block text-sm font-semibold">{title}</strong>
-        <small className="block text-xs opacity-90">{message}</small>
-      </span>
-    </div>
-  );
-}
-
 export function DoctorRegistrationForm({
   step,
   submitting,
@@ -41,7 +40,6 @@ export function DoctorRegistrationForm({
   doctorDistrict,
   selectedServiceIds,
   photoFileName,
-  registrationError,
   onStepChange,
   onSpecialtyChange,
   onRegionChange,
@@ -57,7 +55,6 @@ export function DoctorRegistrationForm({
   doctorDistrict: string;
   selectedServiceIds: string[];
   photoFileName: string;
-  registrationError: string;
   onStepChange: (step: number) => void;
   onSpecialtyChange: (specialty: string) => void;
   onRegionChange: (region: string | null) => void;
@@ -66,83 +63,95 @@ export function DoctorRegistrationForm({
   onPhotoFileChange: (fileName: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [stepError, setStepError] = useState("");
+  const [invalidField, setInvalidField] = useState<DoctorField | null>(null);
 
   // Per-step client validation — mirrors the thresholds enforced in
-  // DentalMapApp.sendDoctorRegistration so both paths stay consistent.
-  function validateStep(target: number): string {
+  // DentalMapApp.sendDoctorRegistration so both paths stay consistent. Returns
+  // the offending field + message so the specific control can be highlighted.
+  function validateStep(target: number): { field: DoctorField; message: string } | null {
     const form = formRef.current;
     if (!form) {
-      return "";
+      return null;
     }
     const formData = new FormData(form);
     const value = (key: string) => String(formData.get(key) || "").trim();
 
     if (target === 1) {
       if (value("full_name").length < 2) {
-        return "Shifokor F.I.O. ni to'liq kiriting.";
+        return { field: "full_name", message: "Shifokor F.I.O. ni to'liq kiriting." };
       }
       if (value("doctor_phone").replace(/\D/g, "").length < 12) {
-        return "Telefon raqamni to'liq kiriting.";
+        return { field: "doctor_phone", message: "Telefon raqamni to'liq kiriting." };
       }
       const password = String(formData.get("password") || "");
       const passwordConfirm = String(formData.get("password_confirm") || "");
       if (password.length < 8) {
-        return "Parol kamida 8 ta belgidan iborat bo'lishi kerak.";
+        return { field: "password", message: "Parol kamida 8 ta belgidan iborat bo'lishi kerak." };
       }
       if (password !== passwordConfirm) {
-        return "Parollar bir xil emas.";
+        return { field: "password_confirm", message: "Parollar bir xil emas." };
       }
-      return "";
+      return null;
     }
 
     if (target === 2) {
       if (!doctorSpecialty.trim() && !value("specialty")) {
-        return "Asosiy yo'nalishni tanlang.";
+        return { field: "specialty", message: "Asosiy yo'nalishni tanlang." };
       }
       if (!value("experience_years")) {
-        return "Ish stajini kiriting.";
+        return { field: "experience_years", message: "Ish stajini kiriting." };
       }
-      return "";
+      return null;
     }
 
     if (target === 3) {
-      if (!value("clinic_name") || !value("clinic_district") || !value("clinic_address")) {
-        return "Klinika nomi, tuman va manzilni to'ldiring.";
+      if (!value("clinic_name")) {
+        return { field: "clinic_name", message: "Klinika nomini kiriting." };
       }
-      return "";
+      if (!value("clinic_district")) {
+        return { field: "clinic_district", message: "Klinika tumanini tanlang." };
+      }
+      if (!value("clinic_address")) {
+        return { field: "clinic_address", message: "Klinika manzilini kiriting." };
+      }
+      return null;
     }
 
-    return "";
+    return null;
   }
 
   function advance() {
-    const message = validateStep(step);
-    if (message) {
-      setStepError(message);
+    const result = validateStep(step);
+    if (result) {
+      setInvalidField(result.field);
+      toast.error(result.message);
       return;
     }
-    setStepError("");
+    setInvalidField(null);
     onStepChange(Math.min(step + 1, TOTAL_STEPS));
   }
 
   function goBack() {
-    setStepError("");
+    setInvalidField(null);
     onStepChange(Math.max(step - 1, 1));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     // Step 3 native submit — guard once more before handing off to the app.
-    const message = validateStep(3);
-    if (message) {
+    const result = validateStep(3);
+    if (result) {
       event.preventDefault();
-      setStepError(message);
+      setInvalidField(result.field);
+      toast.error(result.message);
       return;
     }
-    setStepError("");
+    setInvalidField(null);
     onSubmit(event);
   }
+
+  const clear = (field: DoctorField) => setInvalidField((current) => (current === field ? null : current));
 
   return (
     <form
@@ -174,8 +183,21 @@ export function DoctorRegistrationForm({
 
       <div className={cn(step !== 1 && "hidden")}>
         <Section step={1} title="Shaxsiy ma'lumotlar">
-          <Field label="Shifokor F.I.O." name="full_name" placeholder="Ism familiya" required />
-          <PhoneField label="Telefon raqam" name="doctor_phone" required />
+          <Field
+            label="Shifokor F.I.O."
+            name="full_name"
+            placeholder="Ism familiya"
+            required
+            error={invalidField === "full_name"}
+            onChange={() => clear("full_name")}
+          />
+          <PhoneField
+            label="Telefon raqam"
+            name="doctor_phone"
+            required
+            error={invalidField === "doctor_phone"}
+            onValueChange={() => clear("doctor_phone")}
+          />
           <Field
             label="Parol"
             name="password"
@@ -184,6 +206,8 @@ export function DoctorRegistrationForm({
             autoComplete="new-password"
             placeholder="Kamida 8 ta belgi"
             required
+            error={invalidField === "password"}
+            onChange={() => clear("password")}
           />
           <Field
             label="Parolni takrorlang"
@@ -193,6 +217,8 @@ export function DoctorRegistrationForm({
             autoComplete="new-password"
             placeholder="Parolni qayta kiriting"
             required
+            error={invalidField === "password_confirm"}
+            onChange={() => clear("password_confirm")}
           />
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-surface-200 bg-surface-50 px-4 py-3.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
             <input
@@ -224,9 +250,13 @@ export function DoctorRegistrationForm({
             label="Asosiy yo'nalish"
             name="specialty"
             value={doctorSpecialty}
-            onChange={onSpecialtyChange}
+            onChange={(next) => {
+              onSpecialtyChange(next);
+              clear("specialty");
+            }}
             options={specialtyOptions.map((item) => ({ value: item, label: item }))}
             placeholder="Yo'nalishni tanlang"
+            error={invalidField === "specialty"}
           />
           <MultiSelectSheet
             label="Ko'rsatadigan xizmatlar"
@@ -239,10 +269,12 @@ export function DoctorRegistrationForm({
           <Field
             label="Ish staji"
             name="experience_years"
-            inputMode="numeric"
-            placeholder="Masalan: 8 yil"
+            numeric
+            placeholder="Masalan: 8"
             hint="Faqat raqam, masalan 8"
             required
+            error={invalidField === "experience_years"}
+            onInput={() => clear("experience_years")}
           />
           <WorkTimeField name="work_time" />
           <TextareaField label="Izoh" name="description" placeholder="Qisqa ma'lumot" />
@@ -251,7 +283,14 @@ export function DoctorRegistrationForm({
 
       <div className={cn(step !== 3 && "hidden")}>
         <Section step={3} title="Klinika">
-          <Field label="Ishlaydigan klinika nomi" name="clinic_name" placeholder="Klinika nomi" required />
+          <Field
+            label="Ishlaydigan klinika nomi"
+            name="clinic_name"
+            placeholder="Klinika nomi"
+            required
+            error={invalidField === "clinic_name"}
+            onChange={() => clear("clinic_name")}
+          />
           <RegionDistrictField
             label="Klinika tumani"
             name="clinic_district"
@@ -260,14 +299,18 @@ export function DoctorRegistrationForm({
             onSelect={(selection) => {
               onRegionChange(selection.region);
               onDistrictChange(selection.district ?? "");
+              clear("clinic_district");
             }}
             placeholder="Tumanni tanlang"
+            error={invalidField === "clinic_district"}
           />
           <Field
             label="Klinika manzili"
             name="clinic_address"
             placeholder="Ko'cha va uy raqami (masalan: Bunyodkor 9)"
             required
+            error={invalidField === "clinic_address"}
+            onChange={() => clear("clinic_address")}
           />
           <div className="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3.5 text-sm text-ink-700">
             <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
@@ -275,10 +318,6 @@ export function DoctorRegistrationForm({
           </div>
         </Section>
       </div>
-
-      {stepError && <DangerAlert title="To'ldiring" message={stepError} />}
-
-      {registrationError && <DangerAlert title="Yuborilmadi" message={registrationError} />}
 
       <div className="flex items-center gap-3">
         {step > 1 && (

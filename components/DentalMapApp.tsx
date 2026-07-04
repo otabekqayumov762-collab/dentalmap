@@ -7,7 +7,7 @@ import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
-import { cn, RegionDistrictField } from "@/src/dental-map/ui";
+import { cn, RegionDistrictField, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
@@ -33,7 +33,8 @@ import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentV
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
-export default function DentalMapApp() {
+function DentalMapAppInner() {
+  const { toast } = useToast();
   const { webApp, telegramUser, initialized: telegramInitialized } = useTelegram();
   const { activeView, viewLoading, changeView, scrollRef } = useViewNavigation();
   const { savedDoctorIds, toggleSavedDoctor } = useSavedDoctors(webApp);
@@ -73,8 +74,6 @@ export default function DentalMapApp() {
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
   const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
-  const [appointmentSubmitError, setAppointmentSubmitError] = useState("");
-  const [registrationError, setRegistrationError] = useState("");
   const [registerRole, setRegisterRole] = useState<RegisterRole>("user");
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
@@ -87,6 +86,9 @@ export default function DentalMapApp() {
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const landedRef = useRef(false);
+  // Tracks a manual Home-filter change so the saved-district seeding effect
+  // never clobbers a pick the user made themselves.
+  const filterTouchedRef = useRef(false);
 
   const isTelegram = Boolean(webApp);
 
@@ -234,7 +236,6 @@ export default function DentalMapApp() {
     // flag when switching to a DIFFERENT doctor, so re-booking the SAME doctor
     // showed a stale "So'rov yuborildi" success and blocked a new request.
     setConsultationSent(false);
-    setAppointmentSubmitError("");
     setSelectedDoctor(doctor);
     changeView("appointment");
   }
@@ -272,7 +273,6 @@ export default function DentalMapApp() {
   }
 
   function handleRoleChange(role: RegisterRole) {
-    setRegistrationError("");
     setRegisterRole(role);
     // Reset the doctor wizard when leaving the doctor path so it re-enters at step 1.
     if (role !== "doctor") {
@@ -282,7 +282,6 @@ export default function DentalMapApp() {
 
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAppointmentSubmitError("");
 
     if (selectedDoctor) {
       const formData = new FormData(event.currentTarget);
@@ -290,7 +289,7 @@ export default function DentalMapApp() {
       const fullName = String(currentUser?.full_name || "").trim();
       const phone = String(currentUser?.phone || "").trim();
       if (!fullName || !phone) {
-        setAppointmentSubmitError("Profil ma'lumotlari to'liq emas. Profil bo'limida F.I.O. va telefonni to'ldiring.");
+        toast.error("Profil ma'lumotlari to'liq emas. Profil bo'limida F.I.O. va telefonni to'ldiring.");
         webApp?.HapticFeedback?.notificationOccurred("error");
         return;
       }
@@ -331,7 +330,7 @@ export default function DentalMapApp() {
           return;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Qabul so'rovi yuborilmadi.";
-          setAppointmentSubmitError(message);
+          toast.error(message);
           webApp?.HapticFeedback?.notificationOccurred("error");
           return;
         } finally {
@@ -355,19 +354,19 @@ export default function DentalMapApp() {
     const passwordConfirm = String(formData.get("password_confirm") || "");
 
     if (fullName.length < 2) {
-      setRegistrationError("F.I.O. ni to'liq kiriting.");
+      toast.error("F.I.O. ni to'liq kiriting.");
       return;
     }
     if (phone.replace(/\D/g, "").length < 12) {
-      setRegistrationError("Telefon raqamni to'liq kiriting.");
+      toast.error("Telefon raqamni to'liq kiriting.");
       return;
     }
     if (password.length < 8) {
-      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
       return;
     }
     if (password !== passwordConfirm) {
-      setRegistrationError("Parollar bir xil emas.");
+      toast.error("Parollar bir xil emas.");
       return;
     }
 
@@ -390,11 +389,10 @@ export default function DentalMapApp() {
     try {
       submittingRef.current = true;
       setIsSubmitting(true);
-      setRegistrationError("");
       await registerUser(formData);
       submitUserRegistration();
     } catch (error) {
-      setRegistrationError(error instanceof Error ? error.message : "Profil backendga yuborilmadi.");
+      toast.error(error instanceof Error ? error.message : "Profil backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     } finally {
       submittingRef.current = false;
@@ -417,19 +415,19 @@ export default function DentalMapApp() {
     const passwordConfirm = String(formData.get("password_confirm") || "");
 
     if (fullName.length < 2 || phone.replace(/\D/g, "").length < 12) {
-      setRegistrationError("Shifokor F.I.O. va telefon raqamni to'liq kiriting.");
+      toast.error("Shifokor F.I.O. va telefon raqamni to'liq kiriting.");
       return;
     }
     if (!specialty || !clinicName || !clinicDistrict || !clinicAddress) {
-      setRegistrationError("Mutaxassislik, klinika nomi, tuman va manzilni to'ldiring.");
+      toast.error("Mutaxassislik, klinika nomi, tuman va manzilni to'ldiring.");
       return;
     }
     if (password.length < 8) {
-      setRegistrationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
       return;
     }
     if (password !== passwordConfirm) {
-      setRegistrationError("Parollar bir xil emas.");
+      toast.error("Parollar bir xil emas.");
       return;
     }
 
@@ -453,11 +451,10 @@ export default function DentalMapApp() {
     try {
       submittingRef.current = true;
       setIsSubmitting(true);
-      setRegistrationError("");
       await registerDoctor(formData);
       submitDoctorRegistration();
     } catch (error) {
-      setRegistrationError(error instanceof Error ? error.message : "Ma'lumotlar backendga yuborilmadi.");
+      toast.error(error instanceof Error ? error.message : "Ma'lumotlar backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     } finally {
       submittingRef.current = false;
@@ -509,6 +506,23 @@ export default function DentalMapApp() {
       return apiDoctors.find((doctor) => doctor.id === current.id) ?? null;
     });
   }, [apiDoctors]);
+
+  // Seed the Home location filter from the signed-in user's saved district once,
+  // so they immediately see doctors/clinics near where they live. Never overrides
+  // a manual pick (filterTouchedRef), and only applies for a district we can map
+  // to a region — unknown/free-text districts fall back to "Barchasi".
+  useEffect(() => {
+    const saved = currentUser?.profile?.district;
+    if (!saved || filterTouchedRef.current) {
+      return;
+    }
+    const derived = districtToRegion[saved];
+    if (!derived) {
+      return;
+    }
+    setRegion(derived);
+    setDistrict(saved);
+  }, [currentUser?.profile?.district]);
 
   // First time a session resolves, send doctors straight to their dashboard.
   useEffect(() => {
@@ -598,7 +612,6 @@ export default function DentalMapApp() {
         userRegistered={userRegistered}
         doctorRegistrationSent={doctorRegistrationSent}
         doctorSubscriptionPaid={doctorSubscriptionPaid}
-        registrationError={registrationError}
         submitting={isSubmitting}
         doctorStep={doctorStep}
         onDoctorStepChange={setDoctorStep}
@@ -719,6 +732,7 @@ export default function DentalMapApp() {
                       region={region}
                       district={district === "Barchasi" ? null : district}
                       onSelect={(selection) => {
+                        filterTouchedRef.current = true;
                         setRegion(selection.region);
                         setDistrict(selection.district ?? "Barchasi");
                       }}
@@ -805,7 +819,10 @@ export default function DentalMapApp() {
               doctors={filteredDoctors}
               clinics={filteredClinics}
               district={district}
-              onDistrictChange={setDistrict}
+              onDistrictChange={(nextDistrict) => {
+                filterTouchedRef.current = true;
+                setDistrict(nextDistrict);
+              }}
               onBack={() => navigate("home")}
               onAppointment={openAppointment}
             />
@@ -832,7 +849,6 @@ export default function DentalMapApp() {
                 onSubmit={sendConsultation}
                 sent={consultationSent}
                 submitting={appointmentSubmitting}
-                submitError={appointmentSubmitError}
                 onBackToMenu={() => navigate(homeView)}
               />
             ) : (
@@ -850,7 +866,6 @@ export default function DentalMapApp() {
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
-              registrationError={registrationError}
               submitting={isSubmitting}
               doctorStep={doctorStep}
               onDoctorStepChange={setDoctorStep}
@@ -967,5 +982,13 @@ export default function DentalMapApp() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function DentalMapApp() {
+  return (
+    <ToastProvider>
+      <DentalMapAppInner />
+    </ToastProvider>
   );
 }

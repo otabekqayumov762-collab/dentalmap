@@ -11,7 +11,6 @@ export function RegisterView({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
-  registrationError,
   submitting,
   doctorStep,
   onDoctorStepChange,
@@ -25,7 +24,6 @@ export function RegisterView({
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
-  registrationError: string;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
@@ -65,7 +63,6 @@ export function RegisterView({
           userDistrict={userDistrict}
           userRegistered={userRegistered}
           submitting={submitting}
-          registrationError={registrationError}
           onGenderChange={setUserGender}
           onRegionChange={setUserRegion}
           onDistrictChange={setUserDistrict}
@@ -82,7 +79,6 @@ export function RegisterView({
               doctorDistrict={doctorDistrict}
               selectedServiceIds={selectedServiceIds}
               photoFileName={photoFileName}
-              registrationError={registrationError}
               onStepChange={onDoctorStepChange}
               onSpecialtyChange={setDoctorSpecialty}
               onRegionChange={setDoctorRegion}

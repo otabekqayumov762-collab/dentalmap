@@ -4,7 +4,7 @@ import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import { upcomingDays, type DaySlots } from "../lib/schedule";
 import type { Doctor } from "../types";
-import { Button, Card, TextareaField, cn } from "../ui";
+import { Button, Card, TextareaField, cn, useToast } from "../ui";
 
 const draftKey = "dentalmap_appointment_draft";
 const defaultNote = "";
@@ -25,7 +25,6 @@ export function AppointmentView({
   onSubmit,
   sent,
   submitting,
-  submitError,
   onBackToMenu
 }: {
   doctor: Doctor;
@@ -34,12 +33,11 @@ export function AppointmentView({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   sent: boolean;
   submitting: boolean;
-  submitError: string;
   onBackToMenu: () => void;
 }) {
+  const { toast } = useToast();
   const [note, setNote] = useState(defaultNote);
   const [hydrated, setHydrated] = useState(false);
-  const [formError, setFormError] = useState("");
 
   // Backend: real bookable slots from the doctor's schedule. Offline: synthesized.
   // Online slots go through an explicit loading/ready/error machine so we never
@@ -117,18 +115,17 @@ export function AppointmentView({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedDate) {
-      setFormError("Qabul kunini tanlang.");
+      toast.error("Qabul kunini tanlang.");
       return;
     }
     if (!selectedSlot || !daySlots.includes(selectedSlot)) {
-      setFormError("Qabul vaqtini tanlang.");
+      toast.error("Qabul vaqtini tanlang.");
       return;
     }
     if (note.trim().length < 3) {
-      setFormError("Bemor holatini qisqa yozing.");
+      toast.error("Bemor holatini qisqa yozing.");
       return;
     }
-    setFormError("");
     onSubmit(event);
   }
 
@@ -211,7 +208,6 @@ export function AppointmentView({
                   type="button"
                   onClick={() => {
                     setSelectedDate(day.iso);
-                    setFormError("");
                   }}
                   className={
                     "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97] " +
@@ -252,7 +248,6 @@ export function AppointmentView({
                     aria-pressed={active}
                     onClick={() => {
                       onSelectSlot(slot);
-                      setFormError("");
                     }}
                     className={cn(
                       "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
@@ -293,22 +288,9 @@ export function AppointmentView({
           placeholder="Masalan: tish og'riyapti, milk shishgan yoki tekshiruv kerak"
           onChange={(event) => {
             setNote(event.target.value);
-            setFormError("");
           }}
         />
 
-        {formError && (
-          <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger" role="alert">
-            <AlertCircle size={17} className="shrink-0" />
-            <span>{formError}</span>
-          </div>
-        )}
-        {submitError && (
-          <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-sm font-medium text-danger" role="alert">
-            <AlertCircle size={17} className="shrink-0" />
-            <span>{submitError}</span>
-          </div>
-        )}
         <Button type="submit" size="lg" disabled={sent || submitting || slotsStatus !== "ready" || days.length === 0}>
           <CheckCircle2 size={18} />
           {submitting ? "Yuborilmoqda…" : "Qabulga yozilish"}

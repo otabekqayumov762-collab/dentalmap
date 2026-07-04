@@ -32,6 +32,8 @@ export type PhoneFieldProps = {
   onValueChange?: (fullValue: string) => void;
   required?: boolean;
   className?: string;
+  /** Swap the border to a danger tone when the field is invalid. */
+  error?: boolean;
 };
 
 /**
@@ -46,7 +48,8 @@ export function PhoneField({
   defaultValue,
   onValueChange,
   required,
-  className
+  className,
+  error
 }: PhoneFieldProps) {
   const controlled = value !== undefined;
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -73,8 +76,10 @@ export function PhoneField({
       {label && <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>}
       <div
         className={cn(
-          "flex h-12 items-center rounded-2xl border border-surface-200 bg-surface-50 transition-colors",
-          "focus-within:border-brand-400 focus-within:bg-surface-0 focus-within:ring-2 focus-within:ring-brand-100",
+          "flex h-12 items-center rounded-2xl bg-surface-50 transition-colors focus-within:bg-surface-0 focus-within:ring-2",
+          error
+            ? "border border-danger focus-within:border-danger focus-within:ring-danger/30"
+            : "border border-surface-200 focus-within:border-brand-400 focus-within:ring-brand-100",
           className
         )}
       >

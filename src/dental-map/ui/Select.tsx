@@ -14,10 +14,12 @@ export type SelectProps = {
   label?: ReactNode;
   name?: string;
   className?: string;
+  /** Swap the trigger border to a danger tone when the field is invalid. */
+  error?: boolean;
 };
 
 /** Accessible custom dropdown with a styled option list (closes on outside click / Escape). */
-export function Select({ value, options, onChange, placeholder = "Tanlang", label, name, className }: SelectProps) {
+export function Select({ value, options, onChange, placeholder = "Tanlang", label, name, className, error }: SelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value);
@@ -55,9 +57,13 @@ export function Select({ value, options, onChange, placeholder = "Tanlang", labe
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}
           className={cn(
-            "flex w-full items-center justify-between gap-2 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-left",
-            "transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100",
-            open && "border-brand-400 ring-2 ring-brand-100"
+            "flex w-full items-center justify-between gap-2 rounded-2xl bg-surface-50 px-4 py-3 text-left",
+            "transition-colors focus:outline-none focus:ring-2",
+            open
+              ? "border border-brand-400 ring-2 ring-brand-100"
+              : error
+                ? "border border-danger focus:border-danger focus:ring-danger/30"
+                : "border border-surface-200 focus:border-brand-400 focus:ring-brand-100"
           )}
         >
           <span className={cn("truncate", selected ? "text-ink-900" : "text-ink-400")}>

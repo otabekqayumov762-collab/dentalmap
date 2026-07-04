@@ -155,7 +155,8 @@ export function RegionDistrictField({
   region,
   district,
   onSelect,
-  placeholder = "Hudud tanlang"
+  placeholder = "Hudud tanlang",
+  error
 }: {
   name?: string;
   label?: string;
@@ -163,6 +164,8 @@ export function RegionDistrictField({
   district: string | null;
   onSelect: (selection: RegionDistrictSelection) => void;
   placeholder?: string;
+  /** Swap the trigger border to a danger tone when the field is invalid. */
+  error?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const summary = district ? (region ? `${region} · ${district}` : district) : region ?? "";
@@ -174,7 +177,12 @@ export function RegionDistrictField({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-left transition-colors hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-2xl bg-surface-50 px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2",
+          error
+            ? "border border-danger hover:border-danger focus-visible:ring-danger/30"
+            : "border border-surface-200 hover:border-brand-300 focus-visible:ring-brand-100"
+        )}
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">

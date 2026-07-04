@@ -19,7 +19,6 @@ export type AuthGateProps = {
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
-  registrationError: string;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
@@ -41,7 +40,6 @@ export function AuthGate({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
-  registrationError,
   submitting,
   doctorStep,
   onDoctorStepChange,
@@ -119,7 +117,6 @@ export function AuthGate({
             userRegistered={userRegistered}
             doctorRegistrationSent={doctorRegistrationSent}
             doctorSubscriptionPaid={doctorSubscriptionPaid}
-            registrationError={registrationError}
             submitting={submitting}
             doctorStep={doctorStep}
             onDoctorStepChange={onDoctorStepChange}
