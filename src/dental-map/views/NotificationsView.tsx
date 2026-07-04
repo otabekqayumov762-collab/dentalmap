@@ -3,10 +3,8 @@ import { Badge, Card } from "../ui";
 import { EmptyState } from "../components/common";
 
 export function NotificationsView({
-  sent,
   isDoctor,
   pendingCount = 0,
-  onOpenAppointment,
   onOpenRequests
 }: {
   sent: boolean;

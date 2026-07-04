@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { CheckCircle2, ChevronRight, MapPin, Stethoscope, type LucideIcon } from "lucide-react";
 import { Chip, cn } from "../ui";
 import { doctorAccentClass } from "./accent";

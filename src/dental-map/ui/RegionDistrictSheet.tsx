@@ -59,7 +59,6 @@ export function RegionDistrictSheet({
         <div className="flex flex-col gap-1.5" role="listbox" aria-label="Hududlar">
           <button
             type="button"
-            aria-selected={isAllSelected}
             onClick={() => choose({ region: null, district: null })}
             className={cn(rowBase, isAllSelected ? rowActive : rowIdle)}
           >
@@ -109,7 +108,6 @@ export function RegionDistrictSheet({
 
           <button
             type="button"
-            aria-selected={selected?.region === activeRegion && !selected?.district}
             onClick={() => choose({ region: activeRegion, district: null })}
             className={cn(
               rowBase,
@@ -129,7 +127,6 @@ export function RegionDistrictSheet({
               <button
                 key={district}
                 type="button"
-                aria-selected={active}
                 onClick={() => choose({ region: activeRegion, district })}
                 className={cn(rowBase, active ? rowActive : rowIdle)}
               >

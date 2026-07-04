@@ -350,8 +350,6 @@ function DentalMapAppInner() {
     const phone = String(formData.get("phone") || "").trim();
     const city = String(formData.get("city") || "").trim() || "Toshkent";
     const age = String(formData.get("age") || "").trim();
-    const password = String(formData.get("password") || "");
-    const passwordConfirm = String(formData.get("password_confirm") || "");
 
     if (fullName.length < 2) {
       toast.error("F.I.O. ni to'liq kiriting.");
@@ -361,19 +359,11 @@ function DentalMapAppInner() {
       toast.error("Telefon raqamni to'liq kiriting.");
       return;
     }
-    if (password.length < 8) {
-      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
-      return;
-    }
-    if (password !== passwordConfirm) {
-      toast.error("Parollar bir xil emas.");
-      return;
-    }
-
     formData.set("role", "user");
     formData.set("full_name", fullName);
     formData.set("phone", phone);
     formData.set("city", city);
+    formData.delete("password");
     formData.delete("password_confirm");
     const gender = normalizeGender(String(formData.get("gender") || ""));
     if (gender) {
