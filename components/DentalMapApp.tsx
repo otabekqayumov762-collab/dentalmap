@@ -80,6 +80,9 @@ function DentalMapAppInner() {
   const [selectedSlot, setSelectedSlot] = useState("14:30");
   const [consultationSent, setConsultationSent] = useState(false);
   const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
+  // Backend booking-conflict message (2-hour rule / slot already taken), surfaced
+  // inline in the appointment form. Cleared on a fresh booking or a slot change.
+  const [appointmentError, setAppointmentError] = useState<string | null>(null);
   const [registerRole, setRegisterRole] = useState<RegisterRole>("user");
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
@@ -280,6 +283,7 @@ function DentalMapAppInner() {
     // flag when switching to a DIFFERENT doctor, so re-booking the SAME doctor
     // showed a stale "So'rov yuborildi" success and blocked a new request.
     setConsultationSent(false);
+    setAppointmentError(null);
     setSelectedDoctor(doctor);
     changeView("appointment");
   }
@@ -365,16 +369,28 @@ function DentalMapAppInner() {
         note: lead.note
       };
 
+      // Online + backend configured but no auth token: a real booking cannot be
+      // created. Block instead of falling through to the offline lead-save path,
+      // which would flip a fake "So'rov yuborildi" success without booking anything.
+      if (!isOfflineMode() && isBackendConfigured() && !isStaticPreviewHost() && !token) {
+        setAppointmentError("Avtorizatsiya talab qilinadi. Iltimos, ilovani qayta oching.");
+        webApp?.HapticFeedback?.notificationOccurred("error");
+        return;
+      }
+
       if (isOfflineMode() || (token && isBackendConfigured() && !isStaticPreviewHost())) {
         try {
           setAppointmentSubmitting(true);
+          setAppointmentError(null);
           await createAppointment(appointmentBody, token);
           persistAppointmentLead(lead);
           submitConsultation();
           return;
         } catch (error) {
+          // The backend rejects clashing bookings (2-soat rule / band vaqt) with a
+          // field error; apiRequest surfaces its readable message via error.message.
           const message = error instanceof Error ? error.message : "Qabul so'rovi yuborilmadi.";
-          toast.error(message);
+          setAppointmentError(message);
           webApp?.HapticFeedback?.notificationOccurred("error");
           return;
         } finally {
@@ -925,6 +941,8 @@ function DentalMapAppInner() {
                 onSubmit={sendConsultation}
                 sent={consultationSent}
                 submitting={appointmentSubmitting}
+                submitError={appointmentError}
+                onDismissError={() => setAppointmentError(null)}
                 onBackToMenu={() => navigate(homeView)}
               />
             ) : (

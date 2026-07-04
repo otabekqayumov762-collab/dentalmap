@@ -25,6 +25,8 @@ export function AppointmentView({
   onSubmit,
   sent,
   submitting,
+  submitError,
+  onDismissError,
   onBackToMenu
 }: {
   doctor: Doctor;
@@ -33,6 +35,8 @@ export function AppointmentView({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   sent: boolean;
   submitting: boolean;
+  submitError?: string | null;
+  onDismissError?: () => void;
   onBackToMenu: () => void;
 }) {
   const { toast } = useToast();
@@ -210,6 +214,7 @@ export function AppointmentView({
                   type="button"
                   onClick={() => {
                     setSelectedDate(day.iso);
+                    onDismissError?.();
                   }}
                   className={
                     "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97] " +
@@ -250,6 +255,7 @@ export function AppointmentView({
                     aria-pressed={active}
                     onClick={() => {
                       onSelectSlot(slot);
+                      onDismissError?.();
                     }}
                     className={cn(
                       "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
@@ -305,6 +311,16 @@ export function AppointmentView({
             Telefon raqamim tanlangan shifokorga qabulni tasdiqlash va bog&apos;lanish uchun yuborilishiga roziman.
           </span>
         </label>
+
+        {submitError && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3.5 text-danger"
+          >
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span className="min-w-0 flex-1 text-sm font-semibold leading-snug">{submitError}</span>
+          </div>
+        )}
 
         <Button type="submit" size="lg" disabled={sent || submitting || slotsStatus !== "ready" || days.length === 0}>
           <CheckCircle2 size={18} />
