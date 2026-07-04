@@ -4,7 +4,7 @@ import { Sun } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "../components/common";
 import { isDarkActive, setPreference } from "../lib/theme";
-import type { RegisterRole } from "../types";
+import type { RegisterRole, Service, Specialty } from "../types";
 import { cn } from "../ui";
 import { LoginView } from "./LoginView";
 import { RegisterView } from "./RegisterView";
@@ -16,6 +16,8 @@ export type AuthGateProps = {
   onModeChange: (mode: AuthMode) => void;
   onLogin: (login: string, password: string) => Promise<string>;
   role: RegisterRole;
+  specialties: Specialty[];
+  services: Service[];
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
@@ -37,6 +39,8 @@ export function AuthGate({
   onModeChange,
   onLogin,
   role,
+  specialties,
+  services,
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
@@ -114,6 +118,8 @@ export function AuthGate({
         ) : (
           <RegisterView
             role={role}
+            specialties={specialties}
+            services={services}
             userRegistered={userRegistered}
             doctorRegistrationSent={doctorRegistrationSent}
             doctorSubscriptionPaid={doctorSubscriptionPaid}

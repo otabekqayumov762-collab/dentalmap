@@ -50,6 +50,8 @@ function DentalMapAppInner() {
     privateLoading,
     doctorActionError,
     currentUser,
+    specialties,
+    services,
     authStatus,
     authMessage,
     refreshPrivateData,
@@ -226,6 +228,7 @@ function DentalMapAppInner() {
       <DoctorDashboardView
         section={section}
         user={currentUser}
+        specialties={specialties}
         profile={doctorProfile}
         appointments={appointments}
         schedule={doctorSchedule}
@@ -649,6 +652,8 @@ function DentalMapAppInner() {
         onModeChange={setAuthMode}
         onLogin={handleLogin}
         role={registerRole}
+        specialties={specialties}
+        services={services}
         userRegistered={userRegistered}
         doctorRegistrationSent={doctorRegistrationSent}
         doctorSubscriptionPaid={doctorSubscriptionPaid}
@@ -870,7 +875,7 @@ function DentalMapAppInner() {
           )}
 
           {activeView === "services" && (
-            <ServicesView onNavigate={navigate} />
+            <ServicesView services={services} onNavigate={navigate} />
           )}
 
           {activeView === "map" && (
@@ -922,6 +927,8 @@ function DentalMapAppInner() {
           {activeView === "register" && (
             <RegisterView
               role={registerRole}
+              specialties={specialties}
+              services={services}
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}

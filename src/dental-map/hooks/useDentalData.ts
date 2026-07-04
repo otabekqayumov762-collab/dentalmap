@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   apiRequest,
+  fetchServices,
+  fetchSpecialties,
   flattenClinics,
   getApiUrl,
   isBackendConfigured,
@@ -36,6 +38,8 @@ import type {
   Clinic,
   Doctor,
   DoctorReview,
+  Service,
+  Specialty,
   TelegramAuthStatus,
   TelegramUser,
   TelegramWebApp
@@ -64,6 +68,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   const [privateLoading, setPrivateLoading] = useState(false);
   const [doctorActionError, setDoctorActionError] = useState("");
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [authStatus, setAuthStatus] = useState<TelegramAuthStatus>("loading");
   const [authMessage, setAuthMessage] = useState("Telegram Mini App tayyorlanmoqda.");
 
@@ -236,6 +242,19 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setDataLoading(false);
         return;
       }
+
+      // Admin-managed specialty/service lists (independent, resilient fetch so a
+      // doctors failure never blocks it and vice-versa). Empty [] on failure
+      // engages the catalog fallback in the consuming forms.
+      void Promise.all([
+        fetchSpecialties(controller.signal),
+        fetchServices(controller.signal)
+      ]).then(([specialtyList, serviceList]) => {
+        if (!controller.signal.aborted) {
+          setSpecialties(specialtyList);
+          setServices(serviceList);
+        }
+      });
 
       try {
         setDataLoading(true);
@@ -756,6 +775,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     privateLoading,
     doctorActionError,
     currentUser,
+    specialties,
+    services,
     authStatus,
     authMessage,
     reviewableAppointmentByDoctor,

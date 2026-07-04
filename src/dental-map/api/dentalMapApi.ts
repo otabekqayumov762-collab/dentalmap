@@ -9,7 +9,9 @@ import type {
   ApiWeeklyAvailability,
   Clinic,
   Doctor,
-  DoctorReview
+  DoctorReview,
+  Service,
+  Specialty
 } from "../types";
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "";
@@ -312,4 +314,38 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       lng: toCoordinate(branch.longitude)
     }));
   });
+}
+
+/**
+ * Admin-managed "Asosiy yo'nalish" list (GET /api/specialties/). Returns a plain
+ * JSON array. Swallows ALL errors (incl. AbortError and the getApiUrl "unset base
+ * URL" throw) and returns [] so the caller falls back to the catalog constants.
+ */
+export async function fetchSpecialties(signal?: AbortSignal): Promise<Specialty[]> {
+  try {
+    const response = await fetch(getApiUrl("/api/specialties/"), { cache: "no-store", signal });
+    if (!response.ok) {
+      return [];
+    }
+    return normalizeApiList<Specialty>(await response.json());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Admin-managed "Ko'rsatiladigan xizmatlar" list (GET /api/services/). Returns a
+ * plain JSON array. Swallows ALL errors and returns [] so the caller falls back
+ * to the catalog constants.
+ */
+export async function fetchServices(signal?: AbortSignal): Promise<Service[]> {
+  try {
+    const response = await fetch(getApiUrl("/api/services/"), { cache: "no-store", signal });
+    if (!response.ok) {
+      return [];
+    }
+    return normalizeApiList<Service>(await response.json());
+  } catch {
+    return [];
+  }
 }

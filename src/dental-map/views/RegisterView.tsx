@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import type { RegisterRole, ViewId } from "../types";
+import type { RegisterRole, Service, Specialty, ViewId } from "../types";
 import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
 import { DoctorPendingApprovalView } from "./DoctorPendingApprovalView";
@@ -8,6 +8,8 @@ import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
 export function RegisterView({
   role,
+  specialties,
+  services,
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
@@ -21,6 +23,8 @@ export function RegisterView({
   onNavigate
 }: {
   role: RegisterRole;
+  specialties: Specialty[];
+  services: Service[];
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
@@ -75,6 +79,8 @@ export function RegisterView({
             <DoctorRegistrationForm
               step={doctorStep}
               submitting={submitting}
+              specialties={specialties}
+              services={services}
               doctorSpecialty={doctorSpecialty}
               doctorGender={doctorGender}
               doctorRegion={doctorRegion}

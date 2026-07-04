@@ -1,12 +1,15 @@
 import { ChevronRight } from "lucide-react";
 import { serviceItems } from "../catalog";
 import { cn } from "../ui";
-import type { ViewId } from "../types";
+import type { Service, ViewId } from "../types";
 
-export function ServicesView({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
+export function ServicesView({ services, onNavigate }: { services: Service[]; onNavigate: (view: ViewId) => void }) {
+  // Admin-managed services when available, else the offline catalog fallback.
+  const tiles = services.length ? services.map((s) => ({ id: s.id, label: s.name })) : serviceItems;
+
   return (
     <div className="grid grid-cols-2 gap-3">
-      {serviceItems.map(({ id, label }) => (
+      {tiles.map(({ id, label }) => (
         <button
           key={id}
           type="button"

@@ -3,27 +3,33 @@
 import { ImageUp, Save, Stethoscope } from "lucide-react";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { districts, specialtyOptions } from "../../catalog";
-import type { ApiDoctor, ApiUser } from "../../types";
+import type { ApiDoctor, ApiUser, Specialty } from "../../types";
 import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../../ui";
 import { GroupLabel, SectionHeader } from "./common";
 
 export type DoctorProfileFormProps = {
   user: ApiUser | null;
   profile: ApiDoctor | null;
+  specialties: Specialty[];
   loading: boolean;
   onProfileSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void> | void;
 };
 
 /** Doctor self-service profile editor. Uncontrolled (FormData) with defaultValue seeding. */
-export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: DoctorProfileFormProps) {
+export function DoctorProfileForm({ user, profile, specialties, loading, onProfileSubmit }: DoctorProfileFormProps) {
+  // Admin-managed names when available, else the offline catalog fallback.
+  const specialtyNames = specialties.length ? specialties.map((s) => s.name) : specialtyOptions;
+
   const [fileName, setFileName] = useState("");
-  const [specialty, setSpecialty] = useState(profile?.specialty || specialtyOptions[0]);
+  const [specialty, setSpecialty] = useState(profile?.specialty || specialtyNames[0]);
   const [clinicDistrict, setClinicDistrict] = useState(profile?.clinic_district || districts[1]);
 
   useEffect(() => {
-    setSpecialty(profile?.specialty || specialtyOptions[0]);
+    setSpecialty(profile?.specialty || specialtyNames[0]);
     setClinicDistrict(profile?.clinic_district || districts[1]);
-  }, [profile?.clinic_district, profile?.specialty]);
+    // Re-seed when a late-arriving fetched list resolves and the doctor has no saved specialty.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.clinic_district, profile?.specialty, specialtyNames.length]);
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFileName(event.target.files?.[0]?.name ?? "");
@@ -53,7 +59,7 @@ export function DoctorProfileForm({ user, profile, loading, onProfileSubmit }: D
               label="Mutaxassislik"
               value={specialty}
               onChange={setSpecialty}
-              options={specialtyOptions.map((option) => ({ value: option, label: option }))}
+              options={specialtyNames.map((option) => ({ value: option, label: option }))}
             />
             <Field
               name="experience_years"

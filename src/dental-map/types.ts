@@ -148,6 +148,12 @@ export type ApiList<T> = {
   results?: T[];
 };
 
+/** Admin-managed "Asosiy yo'nalish" list from GET /api/specialties/. */
+export type Specialty = { id: string; name: string };
+
+/** Admin-managed "Ko'rsatiladigan xizmatlar" list from GET /api/services/. */
+export type Service = { id: string; name: string };
+
 export type ApiUser = {
   id: string;
   full_name?: string;

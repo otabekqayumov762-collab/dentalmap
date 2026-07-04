@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
+import type { Service, Specialty } from "../../types";
 import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
 import { WorkTimeField } from "./WorkTimeField";
 
@@ -36,6 +37,8 @@ function Section({ step, title, children }: { step: number; title: string; child
 export function DoctorRegistrationForm({
   step,
   submitting,
+  specialties,
+  services,
   doctorSpecialty,
   doctorGender,
   doctorRegion,
@@ -53,6 +56,8 @@ export function DoctorRegistrationForm({
 }: {
   step: number;
   submitting: boolean;
+  specialties: Specialty[];
+  services: Service[];
   doctorSpecialty: string;
   doctorGender: string;
   doctorRegion: string | null;
@@ -71,6 +76,14 @@ export function DoctorRegistrationForm({
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [invalidField, setInvalidField] = useState<DoctorField | null>(null);
+
+  // Admin-managed lists when available, else the offline catalog fallback.
+  const specialtyChoices = specialties.length
+    ? specialties.map((s) => ({ value: s.name, label: s.name }))
+    : specialtyOptions.map((item) => ({ value: item, label: item }));
+  const serviceChoices = services.length
+    ? services.map((s) => ({ value: s.name, label: s.name }))
+    : serviceItems.map(({ id, label }) => ({ value: id, label }));
 
   // Per-step client validation — mirrors the thresholds enforced in
   // DentalMapApp.sendDoctorRegistration so both paths stay consistent. Returns
@@ -275,7 +288,7 @@ export function DoctorRegistrationForm({
               onSpecialtyChange(next);
               clear("specialty");
             }}
-            options={specialtyOptions.map((item) => ({ value: item, label: item }))}
+            options={specialtyChoices}
             placeholder="Yo'nalishni tanlang"
             error={invalidField === "specialty"}
           />
@@ -284,7 +297,7 @@ export function DoctorRegistrationForm({
             name="services"
             value={selectedServiceIds}
             onToggle={onToggleService}
-            options={serviceItems.map(({ id, label }) => ({ value: id, label }))}
+            options={serviceChoices}
             placeholder="Xizmatlarni tanlang"
           />
           <Field

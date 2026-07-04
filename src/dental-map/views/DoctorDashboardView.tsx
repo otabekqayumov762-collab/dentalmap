@@ -1,6 +1,6 @@
 import { CalendarCheck2, ChevronRight, LogOut, MessageCircle, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
-import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
+import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, Specialty, ViewId } from "../types";
 import { formatDate } from "./doctor/common";
 import { DoctorAppointmentRequests } from "./doctor/DoctorAppointmentRequests";
 import { DoctorHeaderCard } from "./doctor/DoctorHeaderCard";
@@ -13,6 +13,7 @@ export type DoctorSection = "kabinet" | "appointments" | "schedule" | "profile";
 export function DoctorDashboardView({
   section = "kabinet",
   user,
+  specialties,
   profile,
   appointments,
   schedule,
@@ -28,6 +29,7 @@ export function DoctorDashboardView({
 }: {
   section?: DoctorSection;
   user: ApiUser | null;
+  specialties: Specialty[];
   profile: ApiDoctor | null;
   appointments: ApiAppointment[];
   schedule: ApiWeeklyAvailability[];
@@ -84,7 +86,7 @@ export function DoctorDashboardView({
     return (
       <div className="flex flex-col gap-4">
         {errorBanner}
-        <DoctorProfileForm user={user} profile={profile} loading={loading} onProfileSubmit={onProfileSubmit} />
+        <DoctorProfileForm user={user} profile={profile} specialties={specialties} loading={loading} onProfileSubmit={onProfileSubmit} />
         <button
           type="button"
           onClick={() => onNavigate("feedback")}
