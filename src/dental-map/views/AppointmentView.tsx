@@ -1,4 +1,4 @@
-import { AlertCircle, CalendarDays, CheckCircle2, Clock, Loader2, RotateCw } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, Clock, Home, Loader2, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { DoctorAvatar, SectionTitle } from "../components/common";
@@ -25,7 +25,8 @@ export function AppointmentView({
   onSubmit,
   sent,
   submitting,
-  submitError
+  submitError,
+  onBackToMenu
 }: {
   doctor: Doctor;
   selectedSlot: string;
@@ -34,6 +35,7 @@ export function AppointmentView({
   sent: boolean;
   submitting: boolean;
   submitError: string;
+  onBackToMenu: () => void;
 }) {
   const [note, setNote] = useState(defaultNote);
   const [hydrated, setHydrated] = useState(false);
@@ -150,6 +152,10 @@ export function AppointmentView({
             <em className="not-italic font-semibold text-brand-600">{selectedSlot}</em>
           </b>
         </Card>
+        <Button type="button" size="lg" className="mt-6 w-full max-w-xs" onClick={onBackToMenu}>
+          <Home size={18} />
+          Asosiy menuga qaytish
+        </Button>
       </div>
     );
   }

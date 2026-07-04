@@ -1,4 +1,4 @@
-import { BellOff, CalendarCheck2, ChevronRight, Clock, Bell, Inbox } from "lucide-react";
+import { BellOff, ChevronRight, Bell, Inbox } from "lucide-react";
 import { Badge, Card } from "../ui";
 import { EmptyState } from "../components/common";
 
@@ -52,27 +52,11 @@ export function NotificationsView({
           />
         )
       ) : (
-        <Card as="article" interactive onClick={onOpenAppointment} className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-            {sent ? <Clock size={20} /> : <CalendarCheck2 size={20} />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <strong className="truncate text-ink-900">
-                {sent ? "Administrator tasdig'i kutilmoqda" : "Qabul formasi tayyor"}
-              </strong>
-              <Badge tone={sent ? "warning" : "brand"} className="shrink-0">
-                {sent ? "Jarayonda" : "Yangi"}
-              </Badge>
-            </div>
-            <p className="text-sm text-ink-500">
-              {sent
-                ? "So'rovingiz ko'rib chiqilmoqda. Shifokor tasdiqlagach xabar beramiz."
-                : "F.I.O, telefon, kun va vaqtni kiriting — qabulga yoziling."}
-            </p>
-          </div>
-          <ChevronRight size={18} className="shrink-0 text-ink-400" />
-        </Card>
+        <EmptyState
+          title="Bildirishnoma hozircha mavjud emas"
+          text="Qabul holati va yangiliklar Telegram bot orqali yuboriladi. Shifokor so'rovingizni tasdiqlagach, sizga xabar keladi."
+          Icon={BellOff}
+        />
       )}
     </div>
   );
