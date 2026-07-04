@@ -767,7 +767,7 @@ function DentalMapAppInner() {
 
               {showDiscoveryControls && (
                 <section className="mt-4 grid grid-cols-1 gap-3">
-                  <div className="rounded-card bg-surface-0 p-4 shadow-card">
+                  <div className="flex flex-col gap-3 rounded-card bg-surface-0 p-4 shadow-card">
                     <RegionDistrictField
                       mode="filter"
                       region={region}
@@ -779,24 +779,24 @@ function DentalMapAppInner() {
                       }}
                       placeholder="Barcha hududlar"
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 rounded-card bg-surface-0 p-4 shadow-card">
-                    <Select
-                      label="Jinsi"
-                      value={genderFilter}
-                      onChange={(next) => setGenderFilter(next as "" | "male" | "female")}
-                      options={[
-                        { value: "", label: "Hammasi" },
-                        { value: "male", label: "Erkak" },
-                        { value: "female", label: "Ayol" }
-                      ]}
-                    />
-                    <Select
-                      label="Klinika"
-                      value={clinicFilter}
-                      onChange={setClinicFilter}
-                      options={clinicOptions}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Select
+                        label="Jinsi"
+                        value={genderFilter}
+                        onChange={(next) => setGenderFilter(next as "" | "male" | "female")}
+                        options={[
+                          { value: "", label: "Hammasi" },
+                          { value: "male", label: "Erkak" },
+                          { value: "female", label: "Ayol" }
+                        ]}
+                      />
+                      <Select
+                        label="Klinika"
+                        value={clinicFilter}
+                        onChange={setClinicFilter}
+                        options={clinicOptions}
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2.5" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (

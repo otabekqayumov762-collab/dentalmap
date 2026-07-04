@@ -62,7 +62,7 @@ export function AuthGate({
 
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
-      <section className="relative flex w-full max-w-[640px] flex-col gap-5 px-5 pb-10 pt-6">
+      <section className="relative flex w-full min-w-0 max-w-[640px] flex-col gap-5 overflow-x-hidden px-5 pb-10 pt-6">
         <button
           type="button"
           aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
