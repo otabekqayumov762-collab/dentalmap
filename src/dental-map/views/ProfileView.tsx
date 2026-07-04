@@ -17,7 +17,7 @@ import { openExternal } from "../lib/url";
 import type { ApiUser, ViewId } from "../types";
 
 // Support/help-desk Telegram account. Override via NEXT_PUBLIC_SUPPORT_URL.
-const SUPPORT_TELEGRAM_URL = process.env.NEXT_PUBLIC_SUPPORT_URL || "https://t.me/dentalmap_support";
+const SUPPORT_TELEGRAM_URL = process.env.NEXT_PUBLIC_SUPPORT_URL || "https://t.me/Alisherovich_5";
 import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
 
 type ProfileForm = {
