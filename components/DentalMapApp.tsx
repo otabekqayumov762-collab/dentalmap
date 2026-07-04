@@ -594,6 +594,10 @@ function DentalMapAppInner() {
     // (doctorRegistrationSent) skips this and goes straight to the pending screen.
     if (
       authStatus === "loading" ||
+      // Session restored from a stored token (authStatus flips to "authenticated"
+      // immediately) but currentUser is still being fetched — hold the spinner so a
+      // reload on Home doesn't flash the login/register wall as if logged out.
+      (authStatus === "authenticated" && !currentUser && privateLoading) ||
       (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile)
     ) {
       return (
