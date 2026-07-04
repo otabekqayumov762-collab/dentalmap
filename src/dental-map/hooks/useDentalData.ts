@@ -603,27 +603,38 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setDoctorActionError("Jadval qo'shish uchun avtorizatsiya kerak.");
         return;
       }
-      const formData = new FormData(event.currentTarget);
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const schedulePayload = {
+        weekday: Number(formData.get("weekday") || 0),
+        start_time: String(formData.get("start_time") || "09:00"),
+        end_time: String(formData.get("end_time") || "18:00"),
+        slot_duration_minutes: Number(formData.get("slot_duration_minutes") || 30),
+        is_active: true,
+        note: ""
+      };
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticItem: ApiWeeklyAvailability = {
+        id: optimisticId,
+        ...schedulePayload
+      };
 
       try {
         setPrivateLoading(true);
         setDoctorActionError("");
+        setDoctorSchedule((current) => normalizeSchedule([...current, optimisticItem]));
         const item = await apiRequest<ApiWeeklyAvailability>("/api/availability/weekly/", {
           token,
           method: "POST",
-          body: JSON.stringify({
-            weekday: Number(formData.get("weekday") || 0),
-            start_time: String(formData.get("start_time") || "09:00"),
-            end_time: String(formData.get("end_time") || "18:00"),
-            slot_duration_minutes: Number(formData.get("slot_duration_minutes") || 30),
-            is_active: true,
-            note: String(formData.get("note") || "")
-          })
+          body: JSON.stringify(schedulePayload)
         });
-        setDoctorSchedule((current) => normalizeSchedule([item, ...current]));
-        event.currentTarget.reset();
+        setDoctorSchedule((current) =>
+          normalizeSchedule(current.map((entry) => (entry.id === optimisticId ? item : entry)))
+        );
+        form.reset();
         webApp?.HapticFeedback?.notificationOccurred("success");
       } catch (error) {
+        setDoctorSchedule((current) => current.filter((entry) => entry.id !== optimisticId));
         setDoctorActionError(error instanceof Error ? error.message : "Jadval qo'shilmadi.");
         webApp?.HapticFeedback?.notificationOccurred("error");
       } finally {

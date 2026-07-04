@@ -13,11 +13,11 @@ import { useState } from "react";
 import { EmptyState } from "../../components/common";
 import { formatUzDate } from "../../lib/date";
 import type { ApiAppointment } from "../../types";
-import { Badge, Button, Card, Field, Chip, cn } from "../../ui";
+import { Badge, Button, Card, Field, Chip } from "../../ui";
 import { SectionHeader, appointmentStatusLabel, statusTone } from "./common";
 
 type FilterKey = "all" | "pending" | "doctor_confirmed" | "completed";
-type Action = "confirm" | "reject" | "complete" | "mark_no_show";
+export type DoctorAppointmentAction = "confirm" | "reject" | "complete" | "mark_no_show";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "Hammasi" },
@@ -49,7 +49,66 @@ const EMPTY: Record<FilterKey, { Icon: LucideIcon; title: string; text: string }
   }
 };
 
-const DEFAULT_REJECT_REASON = "Shifokor tomonidan rad etildi.";
+const REJECT_REASON_PLACEHOLDER = "Masalan: shu vaqtda boshqa qabul bor.";
+
+function isoDate(offsetDays: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+export function createDemoAppointments(): ApiAppointment[] {
+  return [
+    {
+      id: "demo-appointment-pending-1",
+      doctor: "demo-doctor",
+      full_name: "Madina Karimova",
+      phone: "+998901234567",
+      gender: "Ayol",
+      age: 28,
+      appointment_date: isoDate(1),
+      appointment_time: "09:30:00",
+      note: "Tish og'rig'i kuchaygan, konsultatsiya kerak.",
+      status: "pending"
+    },
+    {
+      id: "demo-appointment-pending-2",
+      doctor: "demo-doctor",
+      full_name: "Javohir Abdullayev",
+      phone: "+998933334455",
+      gender: "Erkak",
+      age: 34,
+      appointment_date: isoDate(1),
+      appointment_time: "11:00:00",
+      note: "Implant bo'yicha ko'rikdan o'tmoqchi.",
+      status: "pending"
+    },
+    {
+      id: "demo-appointment-confirmed-1",
+      doctor: "demo-doctor",
+      full_name: "Dilshod Rahmonov",
+      phone: "+998977778899",
+      gender: "Erkak",
+      age: 41,
+      appointment_date: isoDate(2),
+      appointment_time: "15:30:00",
+      note: "Plomba almashtirish uchun keladi.",
+      status: "doctor_confirmed"
+    },
+    {
+      id: "demo-appointment-completed-1",
+      doctor: "demo-doctor",
+      full_name: "Sevara To'xtayeva",
+      phone: "+998945556677",
+      gender: "Ayol",
+      age: 25,
+      appointment_date: isoDate(-1),
+      appointment_time: "10:00:00",
+      note: "Profilaktik tekshiruv yakunlangan.",
+      status: "completed"
+    }
+  ];
+}
 
 export function DoctorAppointmentRequests({
   appointments = [],
@@ -58,16 +117,19 @@ export function DoctorAppointmentRequests({
 }: {
   appointments: ApiAppointment[];
   loading?: boolean;
-  onAppointmentAction: (a: ApiAppointment, action: Action, reason?: string) => Promise<void> | void;
+  onAppointmentAction: (a: ApiAppointment, action: DoctorAppointmentAction, reason?: string) => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [reasons, setReasons] = useState<Record<string, string>>({});
-
-  const countFor = (key: FilterKey) =>
-    key === "all" ? appointments.length : appointments.filter((item) => item.status === key).length;
-
   const filtered = filter === "all" ? appointments : appointments.filter((item) => item.status === filter);
   const empty = EMPTY[filter];
+
+  function runAction(appointment: ApiAppointment, action: DoctorAppointmentAction, reason?: string) {
+    if (action === "reject" && !reason?.trim()) {
+      return;
+    }
+    void onAppointmentAction(appointment, action, reason?.trim());
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -84,18 +146,9 @@ export function DoctorAppointmentRequests({
       >
         {FILTERS.map((item) => {
           const active = filter === item.key;
-          const count = countFor(item.key);
           return (
             <Chip key={item.key} active={active} onClick={() => setFilter(item.key)} className="shrink-0">
               {item.label}
-              <span
-                className={cn(
-                  "inline-flex min-w-5 items-center justify-center rounded-pill px-1.5 text-xs font-bold tabular-nums",
-                  active ? "bg-white/25 text-white" : "bg-surface-100 text-ink-500"
-                )}
-              >
-                {count}
-              </span>
             </Chip>
           );
         })}
@@ -114,6 +167,7 @@ export function DoctorAppointmentRequests({
             const isPending = appointment.status === "pending";
             const isConfirmed = appointment.status === "doctor_confirmed";
             const reason = reasons[appointment.id] ?? "";
+            const rejectReasonValid = reason.trim().length >= 3;
 
             return (
               <Card key={appointment.id} as="article" className="flex flex-col gap-3.5">
@@ -178,19 +232,22 @@ export function DoctorAppointmentRequests({
                 {isPending && (
                   <div className="flex flex-col gap-3 border-t border-surface-100 pt-3.5">
                     <Field
-                      label="Rad etish sababi"
+                      label="Rad etish sababi *"
                       value={reason}
                       onChange={(event) =>
                         setReasons((prev) => ({ ...prev, [appointment.id]: event.target.value }))
                       }
-                      placeholder={DEFAULT_REJECT_REASON}
+                      placeholder={REJECT_REASON_PLACEHOLDER}
+                      required
+                      minLength={3}
+                      error={reason.length > 0 && !rejectReasonValid}
                     />
                     <div className="flex flex-wrap gap-2.5">
                       <Button
                         type="button"
                         size="sm"
                         className="min-w-32 flex-1"
-                        onClick={() => void onAppointmentAction(appointment, "confirm")}
+                        onClick={() => runAction(appointment, "confirm")}
                       >
                         <CheckCircle2 size={16} />
                         Tasdiqlash
@@ -200,9 +257,8 @@ export function DoctorAppointmentRequests({
                         variant="danger"
                         size="sm"
                         className="min-w-32 flex-1"
-                        onClick={() =>
-                          void onAppointmentAction(appointment, "reject", reason.trim() || DEFAULT_REJECT_REASON)
-                        }
+                        disabled={!rejectReasonValid}
+                        onClick={() => runAction(appointment, "reject", reason)}
                       >
                         <XCircle size={16} />
                         Rad etish
@@ -217,7 +273,7 @@ export function DoctorAppointmentRequests({
                       type="button"
                       size="sm"
                       className="min-w-32 flex-1"
-                      onClick={() => void onAppointmentAction(appointment, "complete")}
+                      onClick={() => runAction(appointment, "complete")}
                     >
                       <CheckCircle2 size={16} />
                       Yakunlandi
@@ -227,7 +283,7 @@ export function DoctorAppointmentRequests({
                       variant="danger"
                       size="sm"
                       className="min-w-32 flex-1"
-                      onClick={() => void onAppointmentAction(appointment, "mark_no_show")}
+                      onClick={() => runAction(appointment, "mark_no_show")}
                     >
                       <XCircle size={16} />
                       Kelmadi

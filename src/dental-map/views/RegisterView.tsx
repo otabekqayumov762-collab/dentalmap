@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import type { RegisterRole, ViewId } from "../types";
 import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
-import { DoctorPaymentView } from "./payment/DoctorPaymentView";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
@@ -10,27 +9,23 @@ export function RegisterView({
   role,
   userRegistered,
   doctorRegistrationSent,
-  doctorSubscriptionPaid,
   submitting,
   doctorStep,
   onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
-  onDoctorPaid,
   onNavigate
 }: {
   role: RegisterRole;
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
-  doctorSubscriptionPaid: boolean;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPaid: () => void;
   onNavigate: (view: ViewId) => void;
 }) {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
@@ -90,7 +85,9 @@ export function RegisterView({
           )}
 
           {doctorRegistrationSent && (
-            <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={onDoctorPaid} />
+            <div className="rounded-card border border-success/20 bg-success/10 p-4 text-sm font-medium text-ink-700">
+              Arizangiz yuborildi. Administrator tekshirgandan keyin profilingiz saytda ko&apos;rinadi.
+            </div>
           )}
         </>
       )}

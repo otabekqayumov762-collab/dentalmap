@@ -39,7 +39,13 @@ export function buildLocalAccount(formData: FormData, role: "user" | "doctor"): 
     role,
     doctor_profile:
       role === "doctor"
-        ? { id: `local-doc-${Date.now()}`, approval_status: "pending", is_published: false, subscription_expires_at: null }
+        ? {
+            id: `local-doc-${Date.now()}`,
+            approval_status: "approved",
+            is_published: true,
+            subscription_expires_at: null,
+            is_subscription_active: true
+          }
         : null
   };
 }

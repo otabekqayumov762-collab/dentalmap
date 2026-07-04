@@ -29,8 +29,8 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
-import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
+import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 function DentalMapAppInner() {
@@ -81,7 +81,6 @@ function DentalMapAppInner() {
   const [doctorStep, setDoctorStep] = useState(1);
   // Synchronous guard: blocks the rapid re-tap storm before React re-renders.
   const submittingRef = useRef(false);
-  const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -158,7 +157,7 @@ function DentalMapAppInner() {
   const isAppointmentSuccess = activeView === "appointment" && consultationSent;
   const showBottomNav = !isMapView && !isAppointmentSuccess;
   const navTabs = isDoctorAccount ? doctorTabs : tabs;
-  const doctorViews: ViewId[] = ["profile", "doctorRequests", "doctorSchedule", "doctorEdit"];
+  const doctorViews: ViewId[] = ["profile", "doctorRequests", "doctorSchedule"];
 
   const activeTabId: ViewId | null = isDoctorAccount
     ? doctorViews.includes(activeView)
@@ -224,11 +223,12 @@ function DentalMapAppInner() {
 
   const submitDoctorRegistration = useCallback(() => {
     setDoctorRegistrationSent(true);
+    changeView("profile");
     window.requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     });
     webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [scrollRef, webApp]);
+  }, [changeView, scrollRef, webApp]);
 
   function openAppointment(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
@@ -264,7 +264,6 @@ function DentalMapAppInner() {
     setConsultationSent(false);
     setUserRegistered(false);
     setDoctorRegistrationSent(false);
-    setDoctorSubscriptionPaid(false);
     setRegisterRole("user");
     setDoctorStep(1);
     setAuthMode("login");
@@ -399,6 +398,7 @@ function DentalMapAppInner() {
     const clinicName = String(formData.get("clinic_name") || "").trim();
     const clinicDistrict = String(formData.get("clinic_district") || "").trim();
     const clinicAddress = String(formData.get("clinic_address") || "").trim();
+    const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
     const rawExperience = String(formData.get("experience_years") || "").trim();
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
     const password = String(formData.get("password") || "");
@@ -410,6 +410,10 @@ function DentalMapAppInner() {
     }
     if (!specialty || !clinicName || !clinicDistrict || !clinicAddress) {
       toast.error("Mutaxassislik, klinika nomi, tuman va manzilni to'ldiring.");
+      return;
+    }
+    if (!isSupportedMapLink(clinicLocationUrl)) {
+      toast.error("Google yoki Yandex Maps linkini kiriting.");
       return;
     }
     if (password.length < 8) {
@@ -429,10 +433,8 @@ function DentalMapAppInner() {
     formData.set("clinic_name", clinicName);
     formData.set("clinic_district", clinicDistrict);
     formData.set("clinic_address", clinicAddress);
+    formData.set("clinic_location_url", clinicLocationUrl);
     formData.set("experience_years", experienceYears);
-    // clinic_location_url is no longer collected — the location is sent to the
-    // doctor via the Telegram bot after admin approval (backend treats it optional).
-    formData.delete("clinic_location_url");
     formData.delete("password_confirm");
 
     if (submittingRef.current) {
@@ -452,35 +454,7 @@ function DentalMapAppInner() {
     }
   }
 
-  // The receipt upload itself lives in DoctorPaymentView (see views/payment).
-  // Once a receipt is submitted (or the offline demo completes), this unlocks
-  // entry into the app while the admin reviews the receipt asynchronously.
-  const handleDoctorPaid = useCallback(() => {
-    setDoctorSubscriptionPaid(true);
-    webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [webApp]);
-
-  // SERVER-DERIVED subscription truth. The payment gate must NOT rely on the
-  // ephemeral `doctorRegistrationSent` local flag (it resets to false on reload,
-  // which previously let an unpaid-but-registered doctor walk past the gate).
-  // `/api/doctors/me/` (doctorProfile) and the nested `doctor_profile` on
-  // `/api/users/me/` (currentUser) are both re-fetched on every reload, so the
-  // gate is fully governed by the backend. A future-dated expiry is treated as
-  // active as a fallback when the boolean flag is absent.
-  const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
-  const isFutureDate = (value?: string | null) =>
-    value ? new Date(value).getTime() > Date.now() : false;
-  const subscriptionActive =
-    Boolean(doctorProfile?.is_subscription_active) ||
-    Boolean(nestedDoctorProfile?.is_subscription_active) ||
-    isFutureDate(doctorProfile?.subscription_expires_at) ||
-    isFutureDate(nestedDoctorProfile?.subscription_expires_at);
-  // `doctorSubscriptionPaid` is kept ONLY as an additive same-session unlock right
-  // after onPaid; it resets on reload so the server governs across sessions — this
-  // is what closes the exploit (on reopen both local flags are false and the
-  // server subscription is inactive → the doctor stays blocked).
-  const doctorRegistrationPending = isDoctorAccount && !subscriptionActive && !doctorSubscriptionPaid;
-  const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
+  const isAuthenticated = Boolean(currentUser);
   const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
 
   useEffect(() => {
@@ -531,7 +505,6 @@ function DentalMapAppInner() {
     selectedDoctor,
     userRegistered,
     doctorRegistrationSent,
-    doctorSubscriptionPaid,
     submitting: isSubmitting,
     doctorStep,
     showBack: showPageBack,
@@ -558,38 +531,11 @@ function DentalMapAppInner() {
   }
 
   // Auth wall: no entry without logging in or registering (as patient/doctor).
-  // A doctor mid-registration must finish the subscription payment before entry.
   if (!isAuthenticated) {
-    // Fail-closed: hold the spinner while a returning doctor's server
-    // subscription state is still resolving so we neither flash the pay screen
-    // nor briefly leak the app. The freshly-registered same-session case
-    // (doctorRegistrationSent) skips this and goes straight to the pay step.
-    if (
-      authStatus === "loading" ||
-      (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile)
-    ) {
+    if (authStatus === "loading") {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
           <Loader2 size={26} className="animate-spin text-brand-500" />
-        </main>
-      );
-    }
-    // An already-authenticated doctor who has not cleared the subscription gate
-    // must land on the payment view — NOT the login wall (which would be a
-    // dead-end for a logged-in account). DoctorPaymentView self-fetches receipts
-    // + subscription, so a pending-receipt doctor sees the wait screen and an
-    // unpaid doctor sees the pay form; both self-recover across reloads.
-    if (currentUser && doctorRegistrationPending) {
-      return (
-        <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
-          <section
-            className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-100"
-            aria-label="Shifokor obunasi"
-          >
-            <div className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5 py-6">
-              <DoctorPaymentView paid={doctorSubscriptionPaid} onPaid={handleDoctorPaid} />
-            </div>
-          </section>
         </main>
       );
     }
@@ -601,14 +547,12 @@ function DentalMapAppInner() {
         role={registerRole}
         userRegistered={userRegistered}
         doctorRegistrationSent={doctorRegistrationSent}
-        doctorSubscriptionPaid={doctorSubscriptionPaid}
         submitting={isSubmitting}
         doctorStep={doctorStep}
         onDoctorStepChange={setDoctorStep}
         onRoleChange={handleRoleChange}
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
-        onDoctorPaid={handleDoctorPaid}
       />
     );
   }
@@ -855,14 +799,12 @@ function DentalMapAppInner() {
               role={registerRole}
               userRegistered={userRegistered}
               doctorRegistrationSent={doctorRegistrationSent}
-              doctorSubscriptionPaid={doctorSubscriptionPaid}
               submitting={isSubmitting}
               doctorStep={doctorStep}
               onDoctorStepChange={setDoctorStep}
               onRoleChange={handleRoleChange}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
-              onDoctorPaid={handleDoctorPaid}
               onNavigate={navigate}
             />
           )}
@@ -876,7 +818,6 @@ function DentalMapAppInner() {
               <ProfileView
                 currentUser={currentUser}
                 doctorRegistrationSent={doctorRegistrationSent}
-                doctorSubscriptionPaid={doctorSubscriptionPaid}
                 onNavigate={navigate}
                 onLogout={handleLogout}
                 onSaveProfile={updateUserProfile}

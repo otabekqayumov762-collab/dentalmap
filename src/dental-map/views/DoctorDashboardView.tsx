@@ -1,8 +1,11 @@
 import { CalendarCheck2, ChevronRight, LogOut, MessageCircle, XCircle } from "lucide-react";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type { ApiAppointment, ApiDoctor, ApiUser, ApiWeeklyAvailability, ViewId } from "../types";
-import { formatDate } from "./doctor/common";
-import { DoctorAppointmentRequests } from "./doctor/DoctorAppointmentRequests";
+import {
+  createDemoAppointments,
+  DoctorAppointmentRequests,
+  type DoctorAppointmentAction
+} from "./doctor/DoctorAppointmentRequests";
 import { DoctorHeaderCard } from "./doctor/DoctorHeaderCard";
 import { DoctorProfileForm } from "./doctor/DoctorProfileForm";
 import { DoctorScheduleManager } from "./doctor/DoctorScheduleManager";
@@ -45,10 +48,39 @@ export function DoctorDashboardView({
   onNavigate: (view: ViewId) => void;
   onLogout: () => void;
 }) {
-  const pendingCount = appointments.filter((a) => a.status === "pending").length;
-  const confirmedCount = appointments.filter((a) => a.status === "doctor_confirmed").length;
-  const completedCount = appointments.filter((a) => a.status === "completed").length;
+  const [demoAppointments, setDemoAppointments] = useState<ApiAppointment[]>(() => createDemoAppointments());
+  const usingDemoAppointments = appointments.length === 0;
+  const visibleAppointments = usingDemoAppointments ? demoAppointments : appointments;
+  const pendingCount = visibleAppointments.filter((a) => a.status === "pending").length;
+  const confirmedCount = visibleAppointments.filter((a) => a.status === "doctor_confirmed").length;
+  const completedCount = visibleAppointments.filter((a) => a.status === "completed").length;
   const approvalStatus = profile?.approval_status || user?.doctor_profile?.approval_status;
+
+  function handleAppointmentAction(appointment: ApiAppointment, action: DoctorAppointmentAction, reason?: string) {
+    if (!usingDemoAppointments) {
+      return onAppointmentAction(appointment, action, reason);
+    }
+
+    const nextStatusByAction: Record<DoctorAppointmentAction, ApiAppointment["status"]> = {
+      confirm: "doctor_confirmed",
+      reject: "doctor_rejected",
+      complete: "completed",
+      mark_no_show: "no_show"
+    };
+
+    setDemoAppointments((current) =>
+      current.map((item) =>
+        item.id === appointment.id
+          ? {
+              ...item,
+              status: nextStatusByAction[action],
+              reject_reason: action === "reject" ? reason?.trim() || "" : item.reject_reason
+            }
+          : item
+      )
+    );
+    return Promise.resolve();
+  }
 
   const errorBanner = error ? (
     <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
@@ -61,7 +93,11 @@ export function DoctorDashboardView({
     return (
       <div className="flex flex-col gap-4">
         {errorBanner}
-        <DoctorAppointmentRequests appointments={appointments} loading={loading} onAppointmentAction={onAppointmentAction} />
+        <DoctorAppointmentRequests
+          appointments={visibleAppointments}
+          loading={loading}
+          onAppointmentAction={handleAppointmentAction}
+        />
       </div>
     );
   }
@@ -119,9 +155,9 @@ export function DoctorDashboardView({
         approvalStatus={approvalStatus}
         isPublished={Boolean(profile?.is_published)}
         isSubscriptionActive={Boolean(profile?.is_subscription_active)}
-        subscriptionExpiry={formatDate(profile?.subscription_expires_at)}
         loading={loading}
         onRefresh={onRefresh}
+        onEdit={() => onNavigate("doctorEdit")}
       />
       {errorBanner}
       <DoctorStatsRow

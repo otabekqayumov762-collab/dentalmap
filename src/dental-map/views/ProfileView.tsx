@@ -3,7 +3,6 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  Clock,
   LogOut,
   MessageCircle,
   Save,
@@ -99,14 +98,12 @@ function MenuRow({
 export function ProfileView({
   currentUser,
   doctorRegistrationSent,
-  doctorSubscriptionPaid,
   onNavigate,
   onLogout,
   onSaveProfile
 }: {
   currentUser?: ApiUser | null;
   doctorRegistrationSent: boolean;
-  doctorSubscriptionPaid: boolean;
   onNavigate: (view: ViewId) => void;
   onLogout: () => void;
   /** Persist the profile. Returns "" on success, else a status/error message. */
@@ -311,25 +308,14 @@ export function ProfileView({
       </section>
 
       {doctorRegistrationSent && (
-        <Card
-          className={cn(
-            "flex items-start gap-3",
-            doctorSubscriptionPaid
-              ? "border-success/20 bg-success/10"
-              : "border-warning/20 bg-warning/10"
-          )}
-        >
-          <span className={cn("mt-0.5 shrink-0", doctorSubscriptionPaid ? "text-success" : "text-warning")}>
-            {doctorSubscriptionPaid ? <CheckCircle2 size={18} /> : <Clock size={18} />}
+        <Card className="flex items-start gap-3 border-success/20 bg-success/10">
+          <span className="mt-0.5 shrink-0 text-success">
+            <CheckCircle2 size={18} />
           </span>
           <span className="min-w-0">
-            <strong className="block font-semibold text-ink-900">
-              {doctorSubscriptionPaid ? "Shifokor obunasi yuborildi" : "Shifokor obunasi kutilmoqda"}
-            </strong>
+            <strong className="block font-semibold text-ink-900">Shifokor arizasi yuborildi</strong>
             <small className="mt-0.5 block text-xs text-ink-500">
-              {doctorSubscriptionPaid
-                ? "Administrator to'lov chekini tasdiqlaydi."
-                : "Administrator tekshiruvi uchun to'lov cheki kutiladi."}
+              Administrator tekshirgandan keyin profilingiz saytda ko&apos;rinadi.
             </small>
           </span>
         </Card>

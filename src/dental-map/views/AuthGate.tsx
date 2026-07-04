@@ -18,14 +18,12 @@ export type AuthGateProps = {
   role: RegisterRole;
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
-  doctorSubscriptionPaid: boolean;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onDoctorPaid: () => void;
 };
 
 /**
@@ -39,14 +37,12 @@ export function AuthGate({
   role,
   userRegistered,
   doctorRegistrationSent,
-  doctorSubscriptionPaid,
   submitting,
   doctorStep,
   onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
-  onDoctorSubmit,
-  onDoctorPaid
+  onDoctorSubmit
 }: AuthGateProps) {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -116,14 +112,12 @@ export function AuthGate({
             role={role}
             userRegistered={userRegistered}
             doctorRegistrationSent={doctorRegistrationSent}
-            doctorSubscriptionPaid={doctorSubscriptionPaid}
             submitting={submitting}
             doctorStep={doctorStep}
             onDoctorStepChange={onDoctorStepChange}
             onRoleChange={onRoleChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}
-            onDoctorPaid={onDoctorPaid}
             onNavigate={() => onModeChange("login")}
           />
         )}

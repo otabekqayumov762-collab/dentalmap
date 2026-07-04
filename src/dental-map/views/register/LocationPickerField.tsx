@@ -53,11 +53,9 @@ export function LocationPickerField({
           className="min-w-0 flex-1 bg-transparent text-base font-semibold text-ink-900 outline-none placeholder:text-ink-400"
         />
       </label>
-      <small className={cn("block text-xs font-medium", supported ? "text-ink-500" : "text-danger")}>
-        {supported
-          ? "Klinika lokatsiyasini Maps ilovasidan ulashish orqali oling."
-          : "Faqat Yandex yoki Google Maps linki kiritiladi."}
-      </small>
+      {!supported && (
+        <small className="block text-xs font-medium text-danger">Faqat Yandex yoki Google Maps linki kiritiladi.</small>
+      )}
     </div>
   );
 }
