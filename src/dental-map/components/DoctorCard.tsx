@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { Heart, MapPin, ShieldCheck, Star, Stethoscope } from "lucide-react";
+import { Heart, MapPin, Star, Stethoscope } from "lucide-react";
 import { Button, Card, cn } from "../ui";
 import { doctorAccentClass } from "./accent";
 import type { Doctor } from "../types";
@@ -81,14 +81,6 @@ export function DoctorCard({
         >
           <Heart size={16} className={isSaved ? "fill-current" : undefined} />
         </button>
-        <span
-          className={cn(
-            "absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-0/90 shadow-card backdrop-blur",
-            tone.text
-          )}
-        >
-          <ShieldCheck size={13} />
-        </span>
       </div>
 
       <div className="flex min-w-0 flex-col gap-1">

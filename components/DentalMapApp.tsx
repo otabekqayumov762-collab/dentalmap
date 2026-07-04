@@ -18,6 +18,7 @@ import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
 import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
 import { DoctorsView } from "@/src/dental-map/views/DoctorsView";
+import { SavedDoctorsView } from "@/src/dental-map/views/SavedDoctorsView";
 import { FeedbackView } from "@/src/dental-map/views/FeedbackView";
 import { AuthGate, type AuthMode } from "@/src/dental-map/views/AuthGate";
 import { HomeView } from "@/src/dental-map/views/HomeView";
@@ -875,6 +876,16 @@ function DentalMapAppInner() {
               doctors={filteredDoctors}
               loading={dataLoading}
               dataError={dataError}
+              onAppointment={openAppointment}
+              onOpenDoctor={openDoctor}
+              savedDoctorIds={savedDoctorIds}
+              onToggleSaved={toggleSavedDoctor}
+            />
+          )}
+
+          {activeView === "saved" && (
+            <SavedDoctorsView
+              doctors={apiDoctors.filter((doctor) => savedDoctorIds.includes(doctor.id))}
               onAppointment={openAppointment}
               onOpenDoctor={openDoctor}
               savedDoctorIds={savedDoctorIds}

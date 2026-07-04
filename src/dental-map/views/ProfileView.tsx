@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Heart,
   LogOut,
   MessageCircle,
   Save,
@@ -236,6 +237,12 @@ export function ProfileView({
             title="Qabulga yozilish"
             subtitle="Shifokor uchun kun va vaqt tanlash"
             onClick={() => onNavigate("appointment")}
+          />
+          <MenuRow
+            Icon={Heart}
+            title="Saqlangan shifokorlar"
+            subtitle="Yoqqan shifokorlaringiz ro'yxati"
+            onClick={() => onNavigate("saved")}
           />
         </div>
       </section>
