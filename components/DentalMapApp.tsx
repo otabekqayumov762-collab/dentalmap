@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bell, Loader2, Moon, Search, Stethoscope, Sun, X } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Moon, Search, SlidersHorizontal, Stethoscope, Sun, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
 import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
@@ -101,6 +101,14 @@ function DentalMapAppInner() {
   // A chosen district narrows to it; a chosen region narrows to its districts;
   // survivors are then ranked selected-district → same-region → rest (nearest-first).
   const hasDistrict = district !== "Barchasi";
+  const filtersActive = region !== null || hasDistrict || genderFilter !== "" || clinicFilter !== "";
+  const resetFilters = useCallback(() => {
+    filterTouchedRef.current = true;
+    setRegion(null);
+    setDistrict("Barchasi");
+    setGenderFilter("");
+    setClinicFilter("");
+  }, []);
 
   const matchesLocation = useCallback(
     (itemDistrict: string) => {
@@ -773,6 +781,24 @@ function DentalMapAppInner() {
               {showDiscoveryControls && (
                 <section className="mt-4 grid grid-cols-1 gap-3">
                   <div className="flex flex-col gap-3 rounded-card bg-surface-0 p-4 shadow-card">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-sm font-bold text-ink-900">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                          <SlidersHorizontal size={15} />
+                        </span>
+                        Shifokorni tanlash
+                      </span>
+                      {filtersActive && (
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="inline-flex items-center gap-1 rounded-pill bg-surface-100 px-3 py-1 text-xs font-semibold text-ink-600 transition-colors hover:bg-surface-200"
+                        >
+                          <X size={13} />
+                          Tozalash
+                        </button>
+                      )}
+                    </div>
                     <RegionDistrictField
                       mode="filter"
                       region={region}
@@ -802,6 +828,9 @@ function DentalMapAppInner() {
                         options={clinicOptions}
                       />
                     </div>
+                    <p className="border-t border-surface-100 pt-2.5 text-xs text-ink-400">
+                      <b className="text-brand-600">{filteredDoctors.length}</b> ta shifokor topildi
+                    </p>
                   </div>
                   <div className="grid grid-cols-3 gap-2.5" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (
