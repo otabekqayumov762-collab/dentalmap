@@ -1,4 +1,4 @@
-import { Building2, CalendarCheck2, CalendarDays, Home, LayoutGrid, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
+import { Building2, CalendarCheck2, CalendarDays, Home, LayoutGrid, SlidersHorizontal, Stethoscope, User } from "lucide-react";
 import type { Clinic, Doctor, DoctorReview, Shortcut } from "./types";
 
 // Backend regions/districts are still empty, so the hudud → tuman tree is
@@ -201,8 +201,7 @@ export const fallbackReviews: DoctorReview[] = [
 export const shortcuts: Shortcut[] = [
   { id: "services", label: "Xizmat", Icon: SlidersHorizontal },
   { id: "clinics", label: "Klinika", Icon: Building2 },
-  { id: "appointment", label: "Qabul", Icon: CalendarDays },
-  { id: "map", label: "Xarita", Icon: MapPin }
+  { id: "appointment", label: "Qabul", Icon: CalendarDays }
 ];
 
 export const tabs: Shortcut[] = [
