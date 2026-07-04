@@ -1,19 +1,19 @@
 "use client";
 
-import { ArrowLeft, Bell, Loader2, Search, Stethoscope, Sun, X } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Moon, Search, Stethoscope, Sun, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
-import { doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
+import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
-import { cn } from "@/src/dental-map/ui";
+import { cn, RegionDistrictField } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
 import { useViewNavigation } from "@/src/dental-map/hooks/useViewNavigation";
-import { BrandLogo, DistrictFilter, EmptyState, TelegramStatus } from "@/src/dental-map/components/common";
+import { BrandLogo, EmptyState, TelegramStatus } from "@/src/dental-map/components/common";
 import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
 import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
@@ -31,7 +31,6 @@ import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
-import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 export default function DentalMapApp() {
@@ -68,6 +67,7 @@ export default function DentalMapApp() {
   } = useDentalData({ webApp, telegramUser, telegramInitialized });
 
   const [query, setQuery] = useState("");
+  const [region, setRegion] = useState<string | null>(null);
   const [district, setDistrict] = useState("Barchasi");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("14:30");
@@ -90,29 +90,65 @@ export default function DentalMapApp() {
 
   const isTelegram = Boolean(webApp);
 
+  // Region+district aware filtering with recommendation ordering. Doctors and
+  // clinics only carry a `district`, so the region is derived via districtToRegion.
+  // A chosen district narrows to it; a chosen region narrows to its districts;
+  // survivors are then ranked selected-district → same-region → rest (nearest-first).
+  const hasDistrict = district !== "Barchasi";
+
+  const matchesLocation = useCallback(
+    (itemDistrict: string) => {
+      if (hasDistrict) {
+        return itemDistrict === district;
+      }
+      if (region) {
+        return districtToRegion[itemDistrict] === region;
+      }
+      return true;
+    },
+    [hasDistrict, district, region]
+  );
+
+  const locationRank = useCallback(
+    (itemDistrict: string) => {
+      if (hasDistrict && itemDistrict === district) {
+        return 0;
+      }
+      if (region && districtToRegion[itemDistrict] === region) {
+        return 1;
+      }
+      return 2;
+    },
+    [hasDistrict, district, region]
+  );
+
   const filteredDoctors = useMemo(() => {
     const search = query.trim().toLowerCase();
-    const allDistricts = district === "Barchasi";
 
-    return apiDoctors.filter((doctor) => {
+    const matched = apiDoctors.filter((doctor) => {
       const text = `${doctor.name} ${doctor.specialty} ${doctor.clinic} ${doctor.district}`.toLowerCase();
-      const matchesDistrict = allDistricts || doctor.district === district;
-
-      return matchesDistrict && text.includes(search);
+      return matchesLocation(doctor.district) && text.includes(search);
     });
-  }, [apiDoctors, district, query]);
+
+    if (!hasDistrict && !region) {
+      return matched;
+    }
+    return [...matched].sort((a, b) => locationRank(a.district) - locationRank(b.district));
+  }, [apiDoctors, query, matchesLocation, locationRank, hasDistrict, region]);
 
   const filteredClinics = useMemo(() => {
     const search = query.trim().toLowerCase();
-    const allDistricts = district === "Barchasi";
 
-    return apiClinics.filter((clinic) => {
+    const matched = apiClinics.filter((clinic) => {
       const text = `${clinic.name} ${clinic.district} ${clinic.address}`.toLowerCase();
-      const matchesDistrict = allDistricts || clinic.district === district;
-
-      return matchesDistrict && text.includes(search);
+      return matchesLocation(clinic.district) && text.includes(search);
     });
-  }, [apiClinics, district, query]);
+
+    if (!hasDistrict && !region) {
+      return matched;
+    }
+    return [...matched].sort((a, b) => locationRank(a.district) - locationRank(b.district));
+  }, [apiClinics, query, matchesLocation, locationRank, hasDistrict, region]);
 
   const isDoctorAccount = currentUser?.role === "doctor" || Boolean(currentUser?.doctor_profile) || doctorRegistrationSent;
   const homeView: ViewId = isDoctorAccount ? "profile" : "home";
@@ -379,7 +415,6 @@ export default function DentalMapApp() {
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
     const password = String(formData.get("password") || "");
     const passwordConfirm = String(formData.get("password_confirm") || "");
-    const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
 
     if (fullName.length < 2 || phone.replace(/\D/g, "").length < 12) {
       setRegistrationError("Shifokor F.I.O. va telefon raqamni to'liq kiriting.");
@@ -397,14 +432,6 @@ export default function DentalMapApp() {
       setRegistrationError("Parollar bir xil emas.");
       return;
     }
-    if (!clinicLocationUrl) {
-      setRegistrationError("Klinika uchun Google yoki Yandex Maps linkini kiriting.");
-      return;
-    }
-    if (!isSupportedMapLink(clinicLocationUrl)) {
-      setRegistrationError("Faqat Google yoki Yandex Maps linkini kiriting.");
-      return;
-    }
 
     formData.set("role", "doctor");
     formData.set("full_name", fullName);
@@ -415,7 +442,9 @@ export default function DentalMapApp() {
     formData.set("clinic_district", clinicDistrict);
     formData.set("clinic_address", clinicAddress);
     formData.set("experience_years", experienceYears);
-    formData.set("clinic_location_url", clinicLocationUrl);
+    // clinic_location_url is no longer collected — the location is sent to the
+    // doctor via the Telegram bot after admin approval (backend treats it optional).
+    formData.delete("clinic_location_url");
     formData.delete("password_confirm");
 
     if (submittingRef.current) {
@@ -639,7 +668,7 @@ export default function DentalMapApp() {
                           : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
                       )}
                     >
-                      <Sun size={18} />
+                      {isDarkTheme ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
                     <button
                       type="button"
@@ -685,7 +714,17 @@ export default function DentalMapApp() {
 
               {showDiscoveryControls && (
                 <section className="mt-4 grid grid-cols-1 gap-3">
-                  <DistrictFilter value={district} onChange={setDistrict} />
+                  <div className="rounded-card bg-surface-0 p-4 shadow-card">
+                    <RegionDistrictField
+                      region={region}
+                      district={district === "Barchasi" ? null : district}
+                      onSelect={(selection) => {
+                        setRegion(selection.region);
+                        setDistrict(selection.district ?? "Barchasi");
+                      }}
+                      placeholder="Barcha hududlar"
+                    />
+                  </div>
                   <div className="flex min-w-0 gap-2.5 overflow-x-auto no-scrollbar pb-1" aria-label="Bo'limlar">
                     {shortcuts.map(({ id, label, Icon }) => (
                       <button
@@ -873,6 +912,7 @@ export default function DentalMapApp() {
               onSubmitReview={(appointment, rating, text) =>
                 submitDoctorReview(appointment.doctor, rating, text, appointment.id)
               }
+              onBook={() => navigate("doctors")}
             />
           )}
         </div>

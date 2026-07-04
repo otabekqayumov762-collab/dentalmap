@@ -1,24 +1,28 @@
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
-import { districts, genderOptions } from "../../catalog";
-import { Button, Field, OptionGrid, PhoneField, Select } from "../../ui";
+import { genderOptions } from "../../catalog";
+import { Button, Field, OptionGrid, PhoneField, RegionDistrictField } from "../../ui";
 
 export function UserRegistrationForm({
   userGender,
+  userRegion,
   userDistrict,
   userRegistered,
   submitting,
   registrationError,
   onGenderChange,
+  onRegionChange,
   onDistrictChange,
   onSubmit
 }: {
   userGender: string;
+  userRegion: string | null;
   userDistrict: string;
   userRegistered: boolean;
   submitting: boolean;
   registrationError: string;
   onGenderChange: (gender: string) => void;
+  onRegionChange: (region: string | null) => void;
   onDistrictChange: (district: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
@@ -66,12 +70,15 @@ export function UserRegistrationForm({
         />
       </fieldset>
       <Field label="Yoshi" name="age" type="number" min="1" max="100" placeholder="Yosh" />
-      <Select
+      <RegionDistrictField
         label="Tuman"
         name="district"
-        value={userDistrict}
-        options={districts.slice(1).map((district) => ({ value: district, label: district }))}
-        onChange={onDistrictChange}
+        region={userRegion}
+        district={userDistrict || null}
+        onSelect={(selection) => {
+          onRegionChange(selection.region);
+          onDistrictChange(selection.district ?? "");
+        }}
         placeholder="Tumanni tanlang"
       />
       {registrationError && (

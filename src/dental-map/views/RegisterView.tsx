@@ -38,8 +38,10 @@ export function RegisterView({
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
   const [photoFileName, setPhotoFileName] = useState("");
   const [userGender, setUserGender] = useState("");
+  const [userRegion, setUserRegion] = useState<string | null>(null);
   const [userDistrict, setUserDistrict] = useState("");
   const [doctorSpecialty, setDoctorSpecialty] = useState("");
+  const [doctorRegion, setDoctorRegion] = useState<string | null>(null);
   const [doctorDistrict, setDoctorDistrict] = useState("");
 
   function toggleService(serviceId: string) {
@@ -59,11 +61,13 @@ export function RegisterView({
       {role === "user" ? (
         <UserRegistrationForm
           userGender={userGender}
+          userRegion={userRegion}
           userDistrict={userDistrict}
           userRegistered={userRegistered}
           submitting={submitting}
           registrationError={registrationError}
           onGenderChange={setUserGender}
+          onRegionChange={setUserRegion}
           onDistrictChange={setUserDistrict}
           onSubmit={onUserSubmit}
         />
@@ -74,12 +78,14 @@ export function RegisterView({
               step={doctorStep}
               submitting={submitting}
               doctorSpecialty={doctorSpecialty}
+              doctorRegion={doctorRegion}
               doctorDistrict={doctorDistrict}
               selectedServiceIds={selectedServiceIds}
               photoFileName={photoFileName}
               registrationError={registrationError}
               onStepChange={onDoctorStepChange}
               onSpecialtyChange={setDoctorSpecialty}
+              onRegionChange={setDoctorRegion}
               onDistrictChange={setDoctorDistrict}
               onToggleService={toggleService}
               onPhotoFileChange={setPhotoFileName}

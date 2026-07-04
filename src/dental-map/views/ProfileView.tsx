@@ -13,10 +13,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
-import { districts } from "../catalog";
-import { ThemeToggle } from "../components/ThemeToggle";
+import { districtToRegion } from "../catalog";
 import type { ApiUser, ViewId } from "../types";
-import { Button, Card, Field, PhoneField, Select, TextareaField, cn } from "../ui";
+import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
 
 type ProfileForm = {
   name: string;
@@ -114,6 +113,7 @@ export function ProfileView({
   onSaveProfile: (payload: ProfileForm) => Promise<string>;
 }) {
   const [profile, setProfile] = useState<ProfileForm>(defaultProfile);
+  const [region, setRegion] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -261,12 +261,15 @@ export function ProfileView({
               value={profile.phone}
               onValueChange={(value) => updateProfile("phone", value)}
             />
-            <Select
+            <RegionDistrictField
               name="district"
               label="Tuman"
-              value={profile.district}
-              options={districts.slice(1).map((district) => ({ value: district, label: district }))}
-              onChange={(value) => updateProfile("district", value)}
+              region={region ?? (profile.district ? districtToRegion[profile.district] ?? null : null)}
+              district={profile.district || null}
+              onSelect={(selection) => {
+                setRegion(selection.region);
+                updateProfile("district", selection.district ?? "");
+              }}
               placeholder="Tumanni tanlang"
             />
             <TextareaField
@@ -305,18 +308,6 @@ export function ProfileView({
             onClick={() => onNavigate("feedback")}
           />
         </div>
-      </section>
-
-      {/* Appearance */}
-      <section>
-        <GroupLabel>Ko&apos;rinish</GroupLabel>
-        <Card className="flex items-center justify-between gap-3">
-          <span className="min-w-0">
-            <strong className="block text-sm font-semibold text-ink-900">Mavzu</strong>
-            <small className="block text-xs text-ink-500">Kunduzgi yoki tungi ko&apos;rinishni tanlang</small>
-          </span>
-          <ThemeToggle />
-        </Card>
       </section>
 
       {doctorRegistrationSent && (

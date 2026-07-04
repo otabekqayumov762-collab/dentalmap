@@ -1,8 +1,7 @@
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, Upload, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Info, Loader2, Upload, XCircle } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
-import { districts, serviceItems, specialtyOptions } from "../../catalog";
-import { Button, Field, MultiSelectSheet, PhoneField, Select, TextareaField, cn } from "../../ui";
-import { isSupportedMapLink, LocationPickerField } from "./LocationPickerField";
+import { serviceItems, specialtyOptions } from "../../catalog";
+import { Button, Field, MultiSelectSheet, PhoneField, RegionDistrictField, Select, TextareaField, cn } from "../../ui";
 import { WorkTimeField } from "./WorkTimeField";
 
 const STEP_TITLES = ["Shaxsiy ma'lumotlar", "Mutaxassislik", "Klinika"] as const;
@@ -38,12 +37,14 @@ export function DoctorRegistrationForm({
   step,
   submitting,
   doctorSpecialty,
+  doctorRegion,
   doctorDistrict,
   selectedServiceIds,
   photoFileName,
   registrationError,
   onStepChange,
   onSpecialtyChange,
+  onRegionChange,
   onDistrictChange,
   onToggleService,
   onPhotoFileChange,
@@ -52,12 +53,14 @@ export function DoctorRegistrationForm({
   step: number;
   submitting: boolean;
   doctorSpecialty: string;
+  doctorRegion: string | null;
   doctorDistrict: string;
   selectedServiceIds: string[];
   photoFileName: string;
   registrationError: string;
   onStepChange: (step: number) => void;
   onSpecialtyChange: (specialty: string) => void;
+  onRegionChange: (region: string | null) => void;
   onDistrictChange: (district: string) => void;
   onToggleService: (serviceId: string) => void;
   onPhotoFileChange: (fileName: string) => void;
@@ -107,13 +110,6 @@ export function DoctorRegistrationForm({
     if (target === 3) {
       if (!value("clinic_name") || !value("clinic_district") || !value("clinic_address")) {
         return "Klinika nomi, tuman va manzilni to'ldiring.";
-      }
-      const locationUrl = value("clinic_location_url");
-      if (!locationUrl) {
-        return "Klinika uchun Google yoki Yandex Maps linkini kiriting.";
-      }
-      if (!isSupportedMapLink(locationUrl)) {
-        return "Faqat Google yoki Yandex Maps linkini kiriting.";
       }
       return "";
     }
@@ -256,12 +252,15 @@ export function DoctorRegistrationForm({
       <div className={cn(step !== 3 && "hidden")}>
         <Section step={3} title="Klinika">
           <Field label="Ishlaydigan klinika nomi" name="clinic_name" placeholder="Klinika nomi" required />
-          <Select
+          <RegionDistrictField
             label="Klinika tumani"
             name="clinic_district"
-            value={doctorDistrict}
-            options={districts.slice(1).map((district) => ({ value: district, label: district }))}
-            onChange={onDistrictChange}
+            region={doctorRegion}
+            district={doctorDistrict || null}
+            onSelect={(selection) => {
+              onRegionChange(selection.region);
+              onDistrictChange(selection.district ?? "");
+            }}
             placeholder="Tumanni tanlang"
           />
           <Field
@@ -270,7 +269,10 @@ export function DoctorRegistrationForm({
             placeholder="Ko'cha va uy raqami (masalan: Bunyodkor 9)"
             required
           />
-          <LocationPickerField name="clinic_location_url" label="Klinika lokatsiyasi linki" required />
+          <div className="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3.5 text-sm text-ink-700">
+            <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
+            <p>Klinika lokatsiyasi Telegram bot orqali yuboriladi. Shifokor tasdiqlagandan so&apos;ng sizga xabar beramiz.</p>
+          </div>
         </Section>
       </div>
 

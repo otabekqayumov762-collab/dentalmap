@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Loader2, RefreshCcw, Star, Stethoscope, XCircle } from "lucide-react";
+import { CalendarDays, Clock, Loader2, Plus, RefreshCcw, Star, Stethoscope, XCircle } from "lucide-react";
 import { useState } from "react";
 import { appointmentStatusLabel } from "../api/dentalMapApi";
 import { EmptyState } from "../components/common";
@@ -34,7 +34,8 @@ export function PatientAppointmentsView({
   reviewedAppointmentIds = [],
   onRefresh,
   onCancel,
-  onSubmitReview
+  onSubmitReview,
+  onBook
 }: {
   appointments: ApiAppointment[];
   loading: boolean;
@@ -43,6 +44,7 @@ export function PatientAppointmentsView({
   onRefresh?: () => void;
   onCancel?: (appointment: ApiAppointment) => void;
   onSubmitReview?: (appointment: ApiAppointment, rating: number, text: string) => Promise<string | void>;
+  onBook?: () => void;
 }) {
   const [reviewFor, setReviewFor] = useState<ApiAppointment | null>(null);
   const [rating, setRating] = useState(5);
@@ -110,11 +112,19 @@ export function PatientAppointmentsView({
           <span className="text-sm text-ink-500">Qabullar yuklanmoqda...</span>
         </Card>
       ) : appointments.length === 0 ? (
-        <EmptyState
-          Icon={CalendarDays}
-          title="Hozircha qabul yo'q"
-          text="Shifokorni tanlab, birinchi qabulingizni bron qiling."
-        />
+        <div className="flex flex-col gap-4">
+          <EmptyState
+            Icon={CalendarDays}
+            title="Hozircha qabul yo'q"
+            text="Shifokorni tanlab, birinchi qabulingizni bron qiling."
+          />
+          {onBook && (
+            <Button type="button" size="lg" className="w-full" onClick={onBook}>
+              <Plus size={18} />
+              Qabulga yozilish
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {appointments.map((appointment) => {

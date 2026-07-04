@@ -1,21 +1,51 @@
 import { Building2, CalendarCheck2, CalendarDays, Home, LayoutGrid, MapPin, SlidersHorizontal, Stethoscope, User } from "lucide-react";
 import type { Clinic, Doctor, DoctorReview, Shortcut } from "./types";
 
-export const districts = [
-  "Barchasi",
-  "Mirzo Ulugbek",
-  "Yakkasaroy",
-  "Almazor",
-  "Bektemir",
-  "Mirobod",
-  "Sergili",
-  "Chilonzor",
-  "Shayxontohur",
-  "Yunusobod",
-  "Yashnobod",
-  "Uchtepa",
-  "Yangi hayot"
-];
+// Backend regions/districts are still empty, so the hudud → tuman tree is
+// hardcoded for now. `regionDistricts` is the source of truth; the flat
+// `districts` list is derived from it for back-compat with the chip rows.
+export const regions = ["Toshkent shahri", "Toshkent viloyati"];
+
+export const regionDistricts: Record<string, string[]> = {
+  "Toshkent shahri": [
+    "Mirzo Ulugbek",
+    "Yakkasaroy",
+    "Almazor",
+    "Bektemir",
+    "Mirobod",
+    "Sergili",
+    "Chilonzor",
+    "Shayxontohur",
+    "Yunusobod",
+    "Yashnobod",
+    "Uchtepa",
+    "Yangi hayot"
+  ],
+  "Toshkent viloyati": [
+    "Bekobod",
+    "Bo'ka",
+    "Bo'stonliq",
+    "Chinoz",
+    "Qibray",
+    "Ohangaron",
+    "Oqqo'rg'on",
+    "Parkent",
+    "Piskent",
+    "Yangiyo'l",
+    "Zangiota",
+    "Chirchiq"
+  ]
+};
+
+// Flat list (leading "Barchasi" + every district) kept for the DistrictFilter /
+// MapView chip rows that still read a single flat array.
+export const districts = ["Barchasi", ...Object.values(regionDistricts).flat()];
+
+// Reverse map: tuman → hudud, so callers that only carry a district can derive
+// its region (used for region-aware filtering + recommendation ordering).
+export const districtToRegion: Record<string, string> = Object.fromEntries(
+  Object.entries(regionDistricts).flatMap(([region, list]) => list.map((district) => [district, region]))
+);
 
 export const fallbackDoctors: Doctor[] = [
   {
