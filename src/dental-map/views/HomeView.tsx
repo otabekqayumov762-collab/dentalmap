@@ -28,7 +28,7 @@ export function HomeView({
   onNavigate: (view: ViewId) => void;
 }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mt-5 flex flex-col gap-6">
       <section className="flex flex-col gap-3">
         <SectionTitle
           title="Tavsiya etilgan shifokorlar"

@@ -554,23 +554,6 @@ function DentalMapAppInner() {
     });
   }, [apiDoctors]);
 
-  // Seed the Home location filter from the signed-in user's saved district once,
-  // so they immediately see doctors/clinics near where they live. Never overrides
-  // a manual pick (filterTouchedRef), and only applies for a district we can map
-  // to a region — unknown/free-text districts fall back to "Barchasi".
-  useEffect(() => {
-    const saved = currentUser?.profile?.district;
-    if (!saved || filterTouchedRef.current) {
-      return;
-    }
-    const derived = districtToRegion[saved];
-    if (!derived) {
-      return;
-    }
-    setRegion(derived);
-    setDistrict(saved);
-  }, [currentUser?.profile?.district]);
-
   // First time a session resolves, send doctors straight to their dashboard.
   useEffect(() => {
     if (currentUser && !landedRef.current) {

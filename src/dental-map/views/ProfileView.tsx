@@ -7,14 +7,17 @@ import {
   LogOut,
   MessageCircle,
   Save,
-  ShieldCheck,
   User,
   type LucideIcon
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
 import { districtToRegion } from "../catalog";
+import { openExternal } from "../lib/url";
 import type { ApiUser, ViewId } from "../types";
+
+// Support/help-desk Telegram account. Override via NEXT_PUBLIC_SUPPORT_URL.
+const SUPPORT_TELEGRAM_URL = process.env.NEXT_PUBLIC_SUPPORT_URL || "https://t.me/dentalmap_support";
 import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
 
 type ProfileForm = {
@@ -188,10 +191,6 @@ export function ProfileView({
             <strong className="block truncate text-lg font-bold leading-tight">
               {profile.name.trim() || "Foydalanuvchi"}
             </strong>
-            <span className="mt-1.5 inline-flex items-center gap-1 rounded-pill bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
-              <ShieldCheck size={13} />
-              Bemor
-            </span>
           </div>
           {isSaved && completionPercent === 100 && (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/20" aria-hidden="true">
@@ -304,9 +303,9 @@ export function ProfileView({
           <MenuRow
             first
             Icon={MessageCircle}
-            title="Taklif va shikoyat"
-            subtitle="Administratorga xabar yuborish"
-            onClick={() => onNavigate("feedback")}
+            title="Yordam markazi bilan bog'lanish"
+            subtitle="Telegram orqali savol bering"
+            onClick={() => openExternal(SUPPORT_TELEGRAM_URL)}
           />
         </div>
       </section>
