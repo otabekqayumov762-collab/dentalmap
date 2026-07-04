@@ -87,10 +87,10 @@ export function DoctorPaymentView({
         <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
         <span>
           <strong className="block text-sm font-semibold text-ink-900">
-            Shifokor ma&apos;lumotlari yuborildi
+            Ro&apos;yxatdan o&apos;tish muvaffaqiyatli — ma&apos;lumotlaringiz qabul qilindi
           </strong>
           <small className="block text-xs text-ink-500">
-            Obunani faollashtirish uchun to&apos;lovni amalga oshiring va chekni yuklang.
+            Endi obunani faollashtirish uchun to&apos;lovni amalga oshiring va chekni yuklang.
           </small>
         </span>
       </div>

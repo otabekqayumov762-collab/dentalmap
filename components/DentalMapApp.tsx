@@ -77,6 +77,10 @@ export default function DentalMapApp() {
   const [registerRole, setRegisterRole] = useState<RegisterRole>("user");
   const [userRegistered, setUserRegistered] = useState(false);
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [doctorStep, setDoctorStep] = useState(1);
+  // Synchronous guard: blocks the rapid re-tap storm before React re-renders.
+  const submittingRef = useRef(false);
   const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
@@ -222,9 +226,19 @@ export default function DentalMapApp() {
     setDoctorRegistrationSent(false);
     setDoctorSubscriptionPaid(false);
     setRegisterRole("user");
+    setDoctorStep(1);
     setAuthMode("login");
     landedRef.current = false;
     changeView("home");
+  }
+
+  function handleRoleChange(role: RegisterRole) {
+    setRegistrationError("");
+    setRegisterRole(role);
+    // Reset the doctor wizard when leaving the doctor path so it re-enters at step 1.
+    if (role !== "doctor") {
+      setDoctorStep(1);
+    }
   }
 
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
@@ -331,13 +345,21 @@ export default function DentalMapApp() {
       formData.delete("age");
     }
 
+    if (submittingRef.current) {
+      return;
+    }
     try {
+      submittingRef.current = true;
+      setIsSubmitting(true);
       setRegistrationError("");
       await registerUser(formData);
       submitUserRegistration();
     } catch (error) {
       setRegistrationError(error instanceof Error ? error.message : "Profil backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -393,13 +415,21 @@ export default function DentalMapApp() {
     formData.set("clinic_location_url", clinicLocationUrl);
     formData.delete("password_confirm");
 
+    if (submittingRef.current) {
+      return;
+    }
     try {
+      submittingRef.current = true;
+      setIsSubmitting(true);
       setRegistrationError("");
       await registerDoctor(formData);
       submitDoctorRegistration();
     } catch (error) {
       setRegistrationError(error instanceof Error ? error.message : "Ma'lumotlar backendga yuborilmadi.");
       webApp?.HapticFeedback?.notificationOccurred("error");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -447,6 +477,8 @@ export default function DentalMapApp() {
     userRegistered,
     doctorRegistrationSent,
     doctorSubscriptionPaid,
+    submitting: isSubmitting,
+    doctorStep,
     showBack: showPageBack,
     onBack: () => navigate(homeView),
     changeView,
@@ -490,10 +522,10 @@ export default function DentalMapApp() {
         doctorRegistrationSent={doctorRegistrationSent}
         doctorSubscriptionPaid={doctorSubscriptionPaid}
         registrationError={registrationError}
-        onRoleChange={(role) => {
-          setRegistrationError("");
-          setRegisterRole(role);
-        }}
+        submitting={isSubmitting}
+        doctorStep={doctorStep}
+        onDoctorStepChange={setDoctorStep}
+        onRoleChange={handleRoleChange}
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
         onDoctorPaid={handleDoctorPaid}
@@ -731,10 +763,10 @@ export default function DentalMapApp() {
               doctorRegistrationSent={doctorRegistrationSent}
               doctorSubscriptionPaid={doctorSubscriptionPaid}
               registrationError={registrationError}
-              onRoleChange={(role) => {
-                setRegistrationError("");
-                setRegisterRole(role);
-              }}
+              submitting={isSubmitting}
+              doctorStep={doctorStep}
+              onDoctorStepChange={setDoctorStep}
+              onRoleChange={handleRoleChange}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
               onDoctorPaid={handleDoctorPaid}

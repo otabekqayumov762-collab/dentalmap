@@ -20,6 +20,9 @@ export type AuthGateProps = {
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
   registrationError: string;
+  submitting: boolean;
+  doctorStep: number;
+  onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -39,6 +42,9 @@ export function AuthGate({
   doctorRegistrationSent,
   doctorSubscriptionPaid,
   registrationError,
+  submitting,
+  doctorStep,
+  onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
@@ -114,6 +120,9 @@ export function AuthGate({
             doctorRegistrationSent={doctorRegistrationSent}
             doctorSubscriptionPaid={doctorSubscriptionPaid}
             registrationError={registrationError}
+            submitting={submitting}
+            doctorStep={doctorStep}
+            onDoctorStepChange={onDoctorStepChange}
             onRoleChange={onRoleChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}

@@ -11,6 +11,8 @@ type UseTelegramButtonsArgs = {
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
+  submitting: boolean;
+  doctorStep: number;
   showBack: boolean;
   onBack: () => void;
   changeView: (view: ViewId) => void;
@@ -29,6 +31,8 @@ export function useTelegramButtons({
   userRegistered,
   doctorRegistrationSent,
   doctorSubscriptionPaid,
+  submitting,
+  doctorStep,
   showBack,
   onBack,
   changeView,
@@ -60,6 +64,11 @@ export function useTelegramButtons({
     }
 
     const handleMainButton = () => {
+      // While a submit is in flight, the button shows a spinner and is disabled;
+      // ignore any stray taps so we never fire a duplicate registration POST.
+      if (submitting) {
+        return;
+      }
       if (activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") {
         if (selectedDoctor) {
           changeView("appointment");
@@ -87,9 +96,17 @@ export function useTelegramButtons({
       if (activeView === "register" && registerRole === "user" && userRegistered) {
         return;
       }
+      if (activeView === "register" && registerRole === "doctor") {
+        // The wizard owns validate/advance/submit behind one stable button —
+        // click it (like the payment step) instead of blindly submitting.
+        const advanceButton = document.getElementById("doctor-register-advance");
+        if (advanceButton instanceof HTMLButtonElement) {
+          advanceButton.click();
+        }
+        return;
+      }
       if (activeView === "register") {
-        const formId = registerRole === "doctor" ? "doctor-register-form" : "user-register-form";
-        const registerForm = document.getElementById(formId);
+        const registerForm = document.getElementById("user-register-form");
         if (registerForm instanceof HTMLFormElement) {
           registerForm.requestSubmit();
         }
@@ -102,7 +119,9 @@ export function useTelegramButtons({
         : activeView === "register" && registerRole === "doctor" && doctorRegistrationSent && !doctorSubscriptionPaid
           ? "Chekni yuborish"
           : activeView === "register" && registerRole === "doctor"
-            ? "To'lovga o'tish"
+            ? doctorStep < 3
+              ? "Keyingi"
+              : "To'lovga o'tish"
             : activeView === "register"
               ? "Profil yaratish"
               : "Qabulga yozilish";
@@ -121,9 +140,15 @@ export function useTelegramButtons({
       mainButton.hide();
     } else {
       mainButton.setText(buttonText);
-      mainButton.enable();
       mainButton.show();
       mainButton.onClick(handleMainButton);
+      if (submitting) {
+        mainButton.showProgress?.();
+        mainButton.disable();
+      } else {
+        mainButton.hideProgress?.();
+        mainButton.enable();
+      }
     }
 
     return () => {
@@ -134,9 +159,11 @@ export function useTelegramButtons({
     changeView,
     doctorRegistrationSent,
     doctorSubscriptionPaid,
+    doctorStep,
     registerRole,
     selectedDoctor,
     submitConsultation,
+    submitting,
     userRegistered,
     webApp
   ]);

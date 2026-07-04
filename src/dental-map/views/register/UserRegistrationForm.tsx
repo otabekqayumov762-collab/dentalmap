@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import type { FormEvent } from "react";
 import { districts, genderOptions } from "../../catalog";
 import { Button, Field, OptionGrid, PhoneField, Select } from "../../ui";
@@ -7,6 +7,7 @@ export function UserRegistrationForm({
   userGender,
   userDistrict,
   userRegistered,
+  submitting,
   registrationError,
   onGenderChange,
   onDistrictChange,
@@ -15,6 +16,7 @@ export function UserRegistrationForm({
   userGender: string;
   userDistrict: string;
   userRegistered: boolean;
+  submitting: boolean;
   registrationError: string;
   onGenderChange: (gender: string) => void;
   onDistrictChange: (district: string) => void;
@@ -81,9 +83,9 @@ export function UserRegistrationForm({
           </span>
         </div>
       )}
-      <Button type="submit" size="lg">
-        <CheckCircle2 size={18} />
-        Profil yaratish
+      <Button type="submit" size="lg" disabled={submitting}>
+        {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+        {submitting ? "Yuborilmoqda…" : "Profil yaratish"}
       </Button>
     </form>
   );

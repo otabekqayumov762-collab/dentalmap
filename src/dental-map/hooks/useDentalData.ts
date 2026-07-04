@@ -432,10 +432,20 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
       formData.set("role", "user");
-      const response = await fetch(getApiUrl("/api/auth/register/"), {
-        method: "POST",
-        body: formData
-      });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 30000);
+      const response = await (async () => {
+        try {
+          return await fetch(getApiUrl("/api/auth/register/"), {
+            method: "POST",
+            cache: "no-store",
+            signal: controller.signal,
+            body: formData
+          });
+        } finally {
+          window.clearTimeout(timeout);
+        }
+      })();
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(parseApiError(payload, "Profil backendga yuborilmadi."));
@@ -458,10 +468,20 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
       formData.set("role", "doctor");
-      const response = await fetch(getApiUrl("/api/auth/register/"), {
-        method: "POST",
-        body: formData
-      });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 30000);
+      const response = await (async () => {
+        try {
+          return await fetch(getApiUrl("/api/auth/register/"), {
+            method: "POST",
+            cache: "no-store",
+            signal: controller.signal,
+            body: formData
+          });
+        } finally {
+          window.clearTimeout(timeout);
+        }
+      })();
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(parseApiError(payload, "Ma'lumotlar backendga yuborilmadi."));

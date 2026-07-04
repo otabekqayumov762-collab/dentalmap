@@ -12,6 +12,9 @@ export function RegisterView({
   doctorRegistrationSent,
   doctorSubscriptionPaid,
   registrationError,
+  submitting,
+  doctorStep,
+  onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
   onDoctorSubmit,
@@ -23,6 +26,9 @@ export function RegisterView({
   doctorRegistrationSent: boolean;
   doctorSubscriptionPaid: boolean;
   registrationError: string;
+  submitting: boolean;
+  doctorStep: number;
+  onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -55,6 +61,7 @@ export function RegisterView({
           userGender={userGender}
           userDistrict={userDistrict}
           userRegistered={userRegistered}
+          submitting={submitting}
           registrationError={registrationError}
           onGenderChange={setUserGender}
           onDistrictChange={setUserDistrict}
@@ -64,11 +71,14 @@ export function RegisterView({
         <>
           {!doctorRegistrationSent && (
             <DoctorRegistrationForm
+              step={doctorStep}
+              submitting={submitting}
               doctorSpecialty={doctorSpecialty}
               doctorDistrict={doctorDistrict}
               selectedServiceIds={selectedServiceIds}
               photoFileName={photoFileName}
               registrationError={registrationError}
+              onStepChange={onDoctorStepChange}
               onSpecialtyChange={setDoctorSpecialty}
               onDistrictChange={setDoctorDistrict}
               onToggleService={toggleService}
@@ -83,7 +93,13 @@ export function RegisterView({
         </>
       )}
 
-      <Button variant="secondary" size="lg" type="button" onClick={() => onNavigate("profile")}>
+      <Button
+        variant="secondary"
+        size="lg"
+        type="button"
+        disabled={submitting}
+        onClick={() => onNavigate("profile")}
+      >
         Kirishga qaytish
       </Button>
     </div>
