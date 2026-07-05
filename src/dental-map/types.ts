@@ -12,6 +12,7 @@ export type ViewId =
   | "login"
   | "profile"
   | "myAppointments"
+  | "appointmentDetail"
   | "saved"
   | "feedback"
   | "notifications"

@@ -875,7 +875,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   );
 
   const cancelAppointment = useCallback(
-    async (appointment: ApiAppointment) => {
+    async (appointment: ApiAppointment, reason = "") => {
       if (isOfflineMode()) {
         setAppointments(updateLocalAppointment(appointment.id, { status: "user_cancelled" }));
         webApp?.HapticFeedback?.notificationOccurred("success");
@@ -891,9 +891,11 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       try {
         setPrivateLoading(true);
         setDoctorActionError("");
+        const trimmedReason = reason.trim();
         const next = await apiRequest<ApiAppointment>(`/api/appointments/${appointment.id}/cancel/`, {
           token,
-          method: "POST"
+          method: "POST",
+          body: trimmedReason ? JSON.stringify({ reason: trimmedReason }) : undefined
         });
         setAppointments((current) => current.map((item) => (item.id === next.id ? next : item)));
         webApp?.HapticFeedback?.notificationOccurred("success");

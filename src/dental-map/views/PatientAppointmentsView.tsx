@@ -5,27 +5,7 @@ import { EmptyState } from "../components/common";
 import { formatUzDate } from "../lib/date";
 import type { ApiAppointment } from "../types";
 import { Badge, Button, Card, Modal, TextareaField, cn } from "../ui";
-
-type AppointmentStatus = ApiAppointment["status"];
-type Tone = "brand" | "success" | "warning" | "danger" | "neutral";
-
-function statusTone(status: AppointmentStatus): Tone {
-  if (status === "pending") {
-    return "warning";
-  }
-  if (status === "doctor_confirmed") {
-    return "brand";
-  }
-  if (status === "completed") {
-    return "success";
-  }
-  if (status === "doctor_rejected" || status === "user_cancelled" || status === "no_show") {
-    return "danger";
-  }
-  return "neutral";
-}
-
-const cancellableStatuses: AppointmentStatus[] = ["pending", "doctor_confirmed"];
+import { CancelAppointmentSheet, cancellableStatuses, statusTone } from "./AppointmentDetailView";
 
 export function PatientAppointmentsView({
   appointments,
@@ -33,6 +13,7 @@ export function PatientAppointmentsView({
   error,
   reviewedAppointmentIds = [],
   onRefresh,
+  onOpenDetail,
   onCancel,
   onSubmitReview,
   onBook
@@ -42,10 +23,12 @@ export function PatientAppointmentsView({
   error?: string;
   reviewedAppointmentIds?: string[];
   onRefresh?: () => void;
-  onCancel?: (appointment: ApiAppointment) => void;
+  onOpenDetail?: (appointment: ApiAppointment) => void;
+  onCancel?: (appointment: ApiAppointment, reason: string) => void;
   onSubmitReview?: (appointment: ApiAppointment, rating: number, text: string) => Promise<string | void>;
   onBook?: () => void;
 }) {
+  const [cancelFor, setCancelFor] = useState<ApiAppointment | null>(null);
   const [reviewFor, setReviewFor] = useState<ApiAppointment | null>(null);
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
@@ -133,7 +116,25 @@ export function PatientAppointmentsView({
             const canReview = onSubmitReview && appointment.status === "completed" && !isReviewed;
 
             return (
-              <Card key={appointment.id} as="article" className="flex flex-col gap-3">
+              <Card
+                key={appointment.id}
+                as="article"
+                interactive={Boolean(onOpenDetail)}
+                className="flex flex-col gap-3"
+                {...(onOpenDetail
+                  ? {
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: () => onOpenDetail(appointment),
+                      onKeyDown: (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onOpenDetail(appointment);
+                        }
+                      }
+                    }
+                  : {})}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
@@ -180,7 +181,14 @@ export function PatientAppointmentsView({
                 {(canCancel || canReview || (appointment.status === "completed" && isReviewed)) && (
                   <div className="flex flex-wrap items-center gap-2 border-t border-surface-100 pt-3">
                     {canReview && (
-                      <Button type="button" size="sm" onClick={() => openReview(appointment)}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openReview(appointment);
+                        }}
+                      >
                         <Star size={16} />
                         Shifokorni baholang
                       </Button>
@@ -192,7 +200,15 @@ export function PatientAppointmentsView({
                       </span>
                     )}
                     {canCancel && (
-                      <Button variant="danger" size="sm" type="button" onClick={() => onCancel(appointment)}>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setCancelFor(appointment);
+                        }}
+                      >
                         <XCircle size={16} />
                         Bekor qilish
                       </Button>
@@ -262,6 +278,12 @@ export function PatientAppointmentsView({
           </div>
         </div>
       </Modal>
+
+      <CancelAppointmentSheet
+        appointment={cancelFor}
+        onClose={() => setCancelFor(null)}
+        onConfirm={(appointment, reason) => onCancel?.(appointment, reason)}
+      />
     </div>
   );
 }

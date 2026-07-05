@@ -14,6 +14,7 @@ import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
 import { useViewNavigation } from "@/src/dental-map/hooks/useViewNavigation";
 import { BrandLogo, EmptyState, TelegramStatus } from "@/src/dental-map/components/common";
+import { AppointmentDetailView } from "@/src/dental-map/views/AppointmentDetailView";
 import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
 import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
@@ -33,7 +34,7 @@ import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { DoctorPendingApprovalView } from "@/src/dental-map/views/DoctorPendingApprovalView";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
-import type { Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
+import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 function DentalMapAppInner() {
   const { toast } = useToast();
@@ -79,6 +80,7 @@ function DentalMapAppInner() {
   const [genderFilter, setGenderFilter] = useState<"" | "male" | "female">("");
   const [clinicFilter, setClinicFilter] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<ApiAppointment | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [consultationSent, setConsultationSent] = useState(false);
   // Which doctor the pending request was actually sent for — the boolean alone
@@ -220,7 +222,10 @@ function DentalMapAppInner() {
         ? "doctors"
         : activeView === "services" || activeView === "clinics"
           ? "home"
-          : activeView === "feedback" || activeView === "myAppointments" || activeView === "notifications"
+          : activeView === "feedback" ||
+              activeView === "myAppointments" ||
+              activeView === "appointmentDetail" ||
+              activeView === "notifications"
             ? "profile"
             : null;
   const showAppHeader = !isMapView && !isAppointmentSuccess;
@@ -229,6 +234,22 @@ function DentalMapAppInner() {
   // Top-level tab screens don't get a back button — only genuine sub-pages do.
   const tabViews: ViewId[] = ["home", "map", "doctors", "profile", ...doctorViews];
   const showPageBack = !isMapView && !tabViews.includes(activeView);
+  // The appointment detail renders its OWN in-page back button, so suppress the
+  // chrome fallback back button there (avoids a visible duplicate) while still
+  // letting the Telegram native BackButton stay wired via showPageBack.
+  const ownsBackButton = activeView === "appointmentDetail";
+  // The detail view belongs to the "Mening qabullarim" flow, so back returns there.
+  const backTarget: ViewId = activeView === "appointmentDetail" ? "myAppointments" : homeView;
+
+  // The appointment shown in the detail view, re-resolved from the live list so a
+  // cancellation (or any status change) is reflected immediately, plus its doctor
+  // from the loaded catalog (may be undefined → the view degrades gracefully).
+  const detailAppointment = selectedAppointment
+    ? appointments.find((item) => item.id === selectedAppointment.id) ?? selectedAppointment
+    : null;
+  const detailDoctor = detailAppointment
+    ? apiDoctors.find((item) => item.id === detailAppointment.doctor)
+    : undefined;
 
   useEffect(() => {
     setIsDarkTheme(isDarkActive());
@@ -303,6 +324,12 @@ function DentalMapAppInner() {
     // Lazily pull this doctor's approved public reviews for the detail view.
     void loadDoctorReviews(doctor.id);
     changeView("doctorDetail");
+  }
+
+  function openAppointmentDetail(appointment: ApiAppointment) {
+    webApp?.HapticFeedback?.selectionChanged();
+    setSelectedAppointment(appointment);
+    changeView("appointmentDetail");
   }
 
   function navigate(view: ViewId) {
@@ -610,7 +637,7 @@ function DentalMapAppInner() {
     submitting: isSubmitting || appointmentSubmitting,
     doctorStep,
     showBack: showPageBack,
-    onBack: () => navigate(homeView),
+    onBack: () => navigate(backTarget),
     // Route through navigate() so the appointment view always enters via the
     // fresh-booking reset (stale success screen fix) — never raw changeView.
     changeView: navigate
@@ -882,11 +909,11 @@ function DentalMapAppInner() {
               discovery controls or back button (doctor tabs, profile, etc.). */}
           {showAppHeader && !showDiscoveryControls && !showPageBack && <div className="h-4" aria-hidden="true" />}
 
-          {showPageBack && !webApp?.BackButton && !isAppointmentSuccess && (
+          {showPageBack && !ownsBackButton && !webApp?.BackButton && !isAppointmentSuccess && (
             <button
               className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"
               type="button"
-              onClick={() => navigate(homeView)}
+              onClick={() => navigate(backTarget)}
             >
               <ArrowLeft size={17} />
               <span>Ortga</span>
@@ -1057,11 +1084,21 @@ function DentalMapAppInner() {
                 .map((review) => review.appointmentId)
                 .filter((id): id is string => Boolean(id))}
               onRefresh={() => void refreshPrivateData()}
-              onCancel={(appointment) => void cancelAppointment(appointment)}
+              onOpenDetail={openAppointmentDetail}
+              onCancel={(appointment, reason) => void cancelAppointment(appointment, reason)}
               onSubmitReview={(appointment, rating, text) =>
                 submitDoctorReview(appointment.doctor, rating, text, appointment.id)
               }
               onBook={() => navigate("doctors")}
+            />
+          )}
+
+          {activeView === "appointmentDetail" && detailAppointment && (
+            <AppointmentDetailView
+              appointment={detailAppointment}
+              doctor={detailDoctor}
+              onBack={() => navigate("myAppointments")}
+              onCancel={(appointment, reason) => void cancelAppointment(appointment, reason)}
             />
           )}
         </div>
