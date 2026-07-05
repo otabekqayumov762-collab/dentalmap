@@ -68,7 +68,7 @@ export function RegionDistrictSheet({
           {mode === "filter" && (
             <button
               type="button"
-              aria-selected={isAllSelected}
+              aria-pressed={isAllSelected}
               onClick={() => choose({ region: null, district: null })}
               className={cn(rowBase, isAllSelected ? rowActive : rowIdle)}
             >
@@ -120,7 +120,7 @@ export function RegionDistrictSheet({
           {mode === "filter" && (
             <button
               type="button"
-              aria-selected={selected?.region === activeRegion && !selected?.district}
+              aria-pressed={selected?.region === activeRegion && !selected?.district}
               onClick={() => choose({ region: activeRegion, district: null })}
               className={cn(
                 rowBase,

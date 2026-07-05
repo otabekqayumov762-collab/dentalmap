@@ -895,7 +895,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         const next = await apiRequest<ApiAppointment>(`/api/appointments/${appointment.id}/cancel/`, {
           token,
           method: "POST",
-          body: trimmedReason ? JSON.stringify({ reason: trimmedReason }) : undefined
+          body: trimmedReason ? JSON.stringify({ reject_reason: trimmedReason }) : undefined
         });
         setAppointments((current) => current.map((item) => (item.id === next.id ? next : item)));
         webApp?.HapticFeedback?.notificationOccurred("success");

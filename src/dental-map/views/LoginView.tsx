@@ -3,24 +3,24 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { ViewId } from "../types";
 import { Button, Field, PhoneField, useToast } from "../ui";
 
-// Draft key so the login inputs survive a Telegram mini-app reload. Kept in
-// sessionStorage (per-tab, cleared on close) and wiped on a successful login.
+// Draft key so the phone input survives a Telegram mini-app reload. Passwords
+// are never persisted in browser storage.
 const loginDraftKey = "dentalmap_login_draft";
 
-function readLoginDraft(): { phone: string; password: string } {
+function readLoginDraft(): { phone: string } {
   try {
     const raw = window.sessionStorage.getItem(loginDraftKey);
-    const parsed = raw ? (JSON.parse(raw) as { phone?: string; password?: string }) : {};
-    return { phone: parsed.phone || "", password: parsed.password || "" };
+    const parsed = raw ? (JSON.parse(raw) as { phone?: string }) : {};
+    return { phone: parsed.phone || "" };
   } catch {
-    return { phone: "", password: "" };
+    return { phone: "" };
   }
 }
 
-function writeLoginDraft(phone: string, password: string) {
+function writeLoginDraft(phone: string) {
   try {
-    if (phone || password) {
-      window.sessionStorage.setItem(loginDraftKey, JSON.stringify({ phone, password }));
+    if (phone) {
+      window.sessionStorage.setItem(loginDraftKey, JSON.stringify({ phone }));
     } else {
       window.sessionStorage.removeItem(loginDraftKey);
     }
@@ -50,9 +50,6 @@ export function LoginView({
     if (draft.phone) {
       setPhone(draft.phone);
     }
-    if (draft.password) {
-      setPassword(draft.password);
-    }
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -74,7 +71,7 @@ export function LoginView({
     if (message) {
       toast.error(message);
     } else {
-      writeLoginDraft("", "");
+      writeLoginDraft("");
     }
   }
 
@@ -88,7 +85,7 @@ export function LoginView({
           error={invalidField === "phone"}
           onValueChange={(value) => {
             setPhone(value);
-            writeLoginDraft(value, password);
+            writeLoginDraft(value);
             setInvalidField((current) => (current === "phone" ? null : current));
           }}
         />
@@ -102,7 +99,6 @@ export function LoginView({
           error={invalidField === "password"}
           onChange={(event) => {
             setPassword(event.target.value);
-            writeLoginDraft(phone, event.target.value);
             setInvalidField((current) => (current === "password" ? null : current));
           }}
         />

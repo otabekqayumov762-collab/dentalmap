@@ -99,7 +99,6 @@ function DentalMapAppInner() {
   const [doctorStep, setDoctorStep] = useState(1);
   // Synchronous guard: blocks the rapid re-tap storm before React re-renders.
   const submittingRef = useRef(false);
-  const [doctorSubscriptionPaid, setDoctorSubscriptionPaid] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -365,7 +364,6 @@ function DentalMapAppInner() {
     setConsultationSentFor(null);
     setUserRegistered(false);
     setDoctorRegistrationSent(false);
-    setDoctorSubscriptionPaid(false);
     setRegisterRole("user");
     setDoctorStep(1);
     setAuthMode("login");
@@ -476,6 +474,8 @@ function DentalMapAppInner() {
     const phone = String(formData.get("phone") || "").trim();
     const city = String(formData.get("city") || "").trim() || "Toshkent";
     const age = String(formData.get("age") || "").trim();
+    const password = String(formData.get("password") || "");
+    const passwordConfirm = String(formData.get("password_confirm") || "");
 
     if (fullName.length < 2) {
       toast.error("F.I.O. ni to'liq kiriting.");
@@ -485,11 +485,18 @@ function DentalMapAppInner() {
       toast.error("Telefon raqamni to'liq kiriting.");
       return;
     }
+    if (password.length < 8) {
+      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      toast.error("Parollar bir xil emas.");
+      return;
+    }
     formData.set("role", "user");
     formData.set("full_name", fullName);
     formData.set("phone", phone);
     formData.set("city", city);
-    formData.delete("password");
     formData.delete("password_confirm");
     const gender = normalizeGender(String(formData.get("gender") || ""));
     if (gender) {
@@ -585,28 +592,15 @@ function DentalMapAppInner() {
     }
   }
 
-  // SERVER-DERIVED subscription truth. The payment gate must NOT rely on the
-  // ephemeral `doctorRegistrationSent` local flag (it resets to false on reload,
-  // which previously let an unpaid-but-registered doctor walk past the gate).
-  // `/api/doctors/me/` (doctorProfile) and the nested `doctor_profile` on
-  // `/api/users/me/` (currentUser) are both re-fetched on every reload, so the
-  // gate is fully governed by the backend. A future-dated expiry is treated as
-  // active as a fallback when the boolean flag is absent.
+  // Doctor entry is governed by backend approval only. Billing/payment is
+  // intentionally disabled in the current release; keep doctors on this pending
+  // screen until admin approves and publishes them.
   const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
-  const isFutureDate = (value?: string | null) =>
-    value ? new Date(value).getTime() > Date.now() : false;
-  const subscriptionActive =
-    Boolean(doctorProfile?.is_subscription_active) ||
-    Boolean(nestedDoctorProfile?.is_subscription_active) ||
-    isFutureDate(doctorProfile?.subscription_expires_at) ||
-    isFutureDate(nestedDoctorProfile?.subscription_expires_at);
-  // `doctorSubscriptionPaid` is kept ONLY as an additive same-session unlock. With
-  // in-app payment temporarily hidden it has no trigger yet, so the gate is purely
-  // server-driven; it resets on reload so the server governs across sessions — this
-  // is what closes the exploit (on reopen both local flags are false and the
-  // server subscription is inactive → the doctor stays blocked until admin approval).
-  const doctorRegistrationPending = isDoctorAccount && !subscriptionActive && !doctorSubscriptionPaid;
-  const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
+  const doctorApprovalStatus = doctorProfile?.approval_status ?? nestedDoctorProfile?.approval_status ?? "";
+  const doctorPublished = doctorProfile?.is_published ?? nestedDoctorProfile?.is_published ?? false;
+  const doctorApproved = doctorApprovalStatus === "approved" && doctorPublished;
+  const doctorAccessBlocked = isDoctorAccount && !doctorApproved;
+  const isAuthenticated = Boolean(currentUser) && !doctorAccessBlocked;
   const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
 
   // Most-recent COMPLETED-but-unreviewed appointment (the map is keyed by doctor
@@ -734,7 +728,7 @@ function DentalMapAppInner() {
       // immediately) but currentUser is still being fetched — hold the spinner so a
       // reload on Home doesn't flash the login/register wall as if logged out.
       (authStatus === "authenticated" && !currentUser && privateLoading) ||
-      (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile)
+      (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile && !nestedDoctorProfile)
     ) {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
@@ -742,12 +736,10 @@ function DentalMapAppInner() {
         </main>
       );
     }
-    // An already-authenticated doctor who has not cleared the subscription gate
+    // An already-authenticated doctor who has not cleared the approval gate
     // must land on the pending-approval screen — NOT the login wall (a dead-end
-    // for a logged-in account). Payment is temporarily hidden (billing not ready):
-    // the doctor waits for admin approval and the app opens automatically once the
-    // subscription becomes active on the next refresh.
-    if (currentUser && doctorRegistrationPending) {
+    // for a logged-in account).
+    if (currentUser && doctorAccessBlocked) {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
           <section

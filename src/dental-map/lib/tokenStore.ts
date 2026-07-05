@@ -1,6 +1,7 @@
 import type { ApiUser } from "../types";
 
 const AUTH_STORAGE_KEY = "dentalmap_auth_tokens";
+const LEGACY_AUTH_STORAGE_KEY = AUTH_STORAGE_KEY;
 
 export type AuthPayload = {
   user?: ApiUser;
@@ -18,7 +19,12 @@ export function storeAuthTokens(payload: AuthPayload) {
     refresh: payload.tokens?.refresh
   };
   try {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authTokens));
+    if (authTokens.access || authTokens.refresh) {
+      window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authTokens));
+    } else {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    }
   } catch {
     // Auth still works for the current session.
   }
@@ -34,8 +40,9 @@ export function getRefreshToken() {
 
 export function restoreAuthTokens() {
   try {
-    const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    const rawValue = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
     if (!rawValue) {
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
       return "";
     }
     const parsedValue = JSON.parse(rawValue) as NonNullable<AuthPayload["tokens"]>;

@@ -6,7 +6,8 @@ export const metadata: Metadata = {
 };
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "http://localhost:8000";
-const adminSuperstatUrl = `${configuredApiUrl}/admin/superstat/`;
+const configuredAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim().replace(/^\/+|\/+$/g, "") || "admin";
+const adminSuperstatUrl = `${configuredApiUrl}/${configuredAdminPath}/superstat/`;
 
 export default function SuperstatPage() {
   return (
