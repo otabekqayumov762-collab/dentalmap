@@ -121,6 +121,10 @@ export function DoctorAppointmentRequests({
 }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  // Appointment id with an action currently in flight — disables that card's
+  // buttons so a double-tap can't fire duplicate confirm/reject POSTs (the
+  // second one 400s and overwrote the success with an error banner).
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const filtered = filter === "all" ? appointments : appointments.filter((item) => item.status === filter);
   const empty = EMPTY[filter];
 
@@ -128,7 +132,13 @@ export function DoctorAppointmentRequests({
     if (action === "reject" && !reason?.trim()) {
       return;
     }
-    void onAppointmentAction(appointment, action, reason?.trim());
+    if (pendingActionId) {
+      return;
+    }
+    setPendingActionId(appointment.id);
+    void Promise.resolve(onAppointmentAction(appointment, action, reason?.trim())).finally(() => {
+      setPendingActionId(null);
+    });
   }
 
   return (
@@ -168,6 +178,7 @@ export function DoctorAppointmentRequests({
             const isConfirmed = appointment.status === "doctor_confirmed";
             const reason = reasons[appointment.id] ?? "";
             const rejectReasonValid = reason.trim().length >= 3;
+            const actionPending = pendingActionId === appointment.id;
 
             return (
               <Card key={appointment.id} as="article" className="flex flex-col gap-3.5">
@@ -247,9 +258,10 @@ export function DoctorAppointmentRequests({
                         type="button"
                         size="sm"
                         className="min-w-32 flex-1"
+                        disabled={actionPending}
                         onClick={() => runAction(appointment, "confirm")}
                       >
-                        <CheckCircle2 size={16} />
+                        {actionPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                         Tasdiqlash
                       </Button>
                       <Button
@@ -257,7 +269,7 @@ export function DoctorAppointmentRequests({
                         variant="danger"
                         size="sm"
                         className="min-w-32 flex-1"
-                        disabled={!rejectReasonValid}
+                        disabled={!rejectReasonValid || actionPending}
                         onClick={() => runAction(appointment, "reject", reason)}
                       >
                         <XCircle size={16} />
@@ -273,9 +285,10 @@ export function DoctorAppointmentRequests({
                       type="button"
                       size="sm"
                       className="min-w-32 flex-1"
+                      disabled={actionPending}
                       onClick={() => runAction(appointment, "complete")}
                     >
-                      <CheckCircle2 size={16} />
+                      {actionPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                       Yakunlandi
                     </Button>
                     <Button
@@ -283,6 +296,7 @@ export function DoctorAppointmentRequests({
                       variant="danger"
                       size="sm"
                       className="min-w-32 flex-1"
+                      disabled={actionPending}
                       onClick={() => runAction(appointment, "mark_no_show")}
                     >
                       <XCircle size={16} />

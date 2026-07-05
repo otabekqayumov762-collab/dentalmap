@@ -39,13 +39,14 @@ function DentalMapAppInner() {
   const { toast } = useToast();
   const { webApp, telegramUser, initialized: telegramInitialized } = useTelegram();
   const { activeView, viewLoading, changeView, scrollRef } = useViewNavigation();
-  const { savedDoctorIds, toggleSavedDoctor } = useSavedDoctors(webApp);
+  const { savedDoctorIds, toggleSavedDoctor, clearSavedDoctors } = useSavedDoctors(webApp);
   const {
     apiDoctors,
     apiClinics,
     dataLoading,
     dataError,
     doctorReviews,
+    publicDoctorReviews,
     appointments,
     doctorProfile,
     doctorSchedule,
@@ -57,6 +58,7 @@ function DentalMapAppInner() {
     authStatus,
     authMessage,
     refreshPrivateData,
+    loadDoctorReviews,
     loginWithPassword,
     logout,
     createAppointment,
@@ -77,8 +79,11 @@ function DentalMapAppInner() {
   const [genderFilter, setGenderFilter] = useState<"" | "male" | "female">("");
   const [clinicFilter, setClinicFilter] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState("14:30");
+  const [selectedSlot, setSelectedSlot] = useState("");
   const [consultationSent, setConsultationSent] = useState(false);
+  // Which doctor the pending request was actually sent for — the boolean alone
+  // made Home label ANY selected doctor as "Administrator tasdiqini kutmoqda".
+  const [consultationSentFor, setConsultationSentFor] = useState<string | null>(null);
   const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
   // Backend booking-conflict message (2-hour rule / slot already taken), surfaced
   // inline in the appointment form. Cleared on a fresh booking or a slot change.
@@ -260,8 +265,9 @@ function DentalMapAppInner() {
 
   const submitConsultation = useCallback(() => {
     setConsultationSent(true);
+    setConsultationSentFor(selectedDoctor?.id ?? null);
     webApp?.HapticFeedback?.notificationOccurred("success");
-  }, [webApp]);
+  }, [selectedDoctor, webApp]);
 
   const submitUserRegistration = useCallback(() => {
     setUserRegistered(true);
@@ -284,6 +290,9 @@ function DentalMapAppInner() {
     // showed a stale "So'rov yuborildi" success and blocked a new request.
     setConsultationSent(false);
     setAppointmentError(null);
+    // Every booking starts with no pre-selected time (a previous doctor's pick
+    // could otherwise leak into the new form in offline mode).
+    setSelectedSlot("");
     setSelectedDoctor(doctor);
     changeView("appointment");
   }
@@ -291,14 +300,23 @@ function DentalMapAppInner() {
   function openDoctor(doctor: Doctor) {
     webApp?.HapticFeedback?.selectionChanged();
     setSelectedDoctor(doctor);
+    // Lazily pull this doctor's approved public reviews for the detail view.
+    void loadDoctorReviews(doctor.id);
     changeView("doctorDetail");
   }
 
   function navigate(view: ViewId) {
     webApp?.HapticFeedback?.selectionChanged();
-    if (view === "appointment" && !selectedDoctor) {
-      changeView("doctors");
-      return;
+    if (view === "appointment") {
+      if (!selectedDoctor) {
+        changeView("doctors");
+        return;
+      }
+      // EVERY entry into the appointment view starts a fresh booking. The
+      // Telegram MainButton and notification paths previously skipped this
+      // reset, resurrecting a stale success screen that blocked re-booking.
+      setConsultationSent(false);
+      setAppointmentError(null);
     }
     changeView(view);
   }
@@ -309,7 +327,9 @@ function DentalMapAppInner() {
 
   function handleLogout() {
     logout();
+    clearSavedDoctors();
     setConsultationSent(false);
+    setConsultationSentFor(null);
     setUserRegistered(false);
     setDoctorRegistrationSent(false);
     setDoctorSubscriptionPaid(false);
@@ -331,6 +351,14 @@ function DentalMapAppInner() {
   async function sendConsultation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // Synchronous re-entry guard (same pattern as the registration handlers):
+    // the Telegram MainButton fires requestSubmit() even while the in-form button
+    // is disabled, so rapid taps produced duplicate POST /api/appointments/.
+    if (submittingRef.current) {
+      return;
+    }
+    submittingRef.current = true;
+    try {
     if (selectedDoctor) {
       const formData = new FormData(event.currentTarget);
       const profile = currentUser?.profile;
@@ -401,6 +429,9 @@ function DentalMapAppInner() {
       persistAppointmentLead(lead);
     }
     submitConsultation();
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   async function sendUserRegistration(event: FormEvent<HTMLFormElement>) {
@@ -576,12 +607,15 @@ function DentalMapAppInner() {
     selectedDoctor,
     userRegistered,
     doctorRegistrationSent,
-    submitting: isSubmitting,
+    consultationSent,
+    // Booking submits must also disable the MainButton (spinner + no re-taps).
+    submitting: isSubmitting || appointmentSubmitting,
     doctorStep,
     showBack: showPageBack,
     onBack: () => navigate(homeView),
-    changeView,
-    submitConsultation
+    // Route through navigate() so the appointment view always enters via the
+    // fresh-booking reset (stale success screen fix) — never raw changeView.
+    changeView: navigate
   });
 
   // Telegram-only mode (off by default so the app stays browsable). Flip
@@ -867,7 +901,7 @@ function DentalMapAppInner() {
               doctor={selectedDoctor}
               loading={dataLoading}
               dataError={dataError}
-              consultationSent={consultationSent}
+              consultationSent={consultationSent && consultationSentFor === selectedDoctor?.id}
               onAppointment={openAppointment}
               onOpenDoctor={openDoctor}
               savedDoctorIds={savedDoctorIds}
@@ -923,9 +957,17 @@ function DentalMapAppInner() {
           {activeView === "doctorDetail" && selectedDoctor && (
             <DoctorDetailView
               doctor={selectedDoctor}
-              reviews={doctorReviews.filter(
-                (review) => review.doctorId === selectedDoctor.id && review.status === "approved"
-              )}
+              // Lazily-loaded PUBLIC reviews for this doctor merged with the
+              // session's own reviews (offline/fallback included), deduped by id.
+              reviews={(() => {
+                const merged = [...publicDoctorReviews, ...doctorReviews].filter(
+                  (review) => review.doctorId === selectedDoctor.id && review.status === "approved"
+                );
+                const seen = new Set<string>();
+                return merged.filter((review) =>
+                  seen.has(review.id) ? false : (seen.add(review.id), true)
+                );
+              })()}
               isSaved={savedDoctorIds.includes(selectedDoctor.id)}
               onAppointment={openAppointment}
               onToggleSaved={() => toggleSavedDoctor(selectedDoctor.id)}
@@ -1001,7 +1043,7 @@ function DentalMapAppInner() {
               sent={consultationSent}
               isDoctor={isDoctorAccount}
               pendingCount={appointments.filter((a) => a.status === "pending").length}
-              onOpenAppointment={() => navigate("appointment")}
+              onOpenAppointment={() => navigate("myAppointments")}
               onOpenRequests={() => navigate("doctorRequests")}
             />
           )}

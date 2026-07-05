@@ -28,10 +28,13 @@ type ProfileForm = {
 };
 
 const PROFILE_STORAGE_KEY = "dental-map-user-profile";
+// district intentionally starts EMPTY: silently pre-selecting "Mirzo Ulugbek"
+// counted as a completed field and got persisted for users who never chose it,
+// corrupting the location data used for doctor recommendations.
 const defaultProfile: ProfileForm = {
   name: "",
   phone: "",
-  district: "Mirzo Ulugbek",
+  district: "",
   address: ""
 };
 
@@ -42,7 +45,7 @@ function cleanProfile(value: Partial<ProfileForm>): ProfileForm {
   return {
     name: typeof value.name === "string" ? value.name : "",
     phone: typeof value.phone === "string" ? value.phone : "",
-    district: typeof value.district === "string" && value.district ? value.district : defaultProfile.district,
+    district: typeof value.district === "string" ? value.district : "",
     address: typeof value.address === "string" ? value.address : ""
   };
 }

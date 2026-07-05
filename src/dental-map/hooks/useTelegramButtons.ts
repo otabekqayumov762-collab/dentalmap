@@ -10,12 +10,12 @@ type UseTelegramButtonsArgs = {
   selectedDoctor: Doctor | null;
   userRegistered: boolean;
   doctorRegistrationSent: boolean;
+  consultationSent: boolean;
   submitting: boolean;
   doctorStep: number;
   showBack: boolean;
   onBack: () => void;
   changeView: (view: ViewId) => void;
-  submitConsultation: () => void;
 };
 
 /**
@@ -29,12 +29,12 @@ export function useTelegramButtons({
   selectedDoctor,
   userRegistered,
   doctorRegistrationSent,
+  consultationSent,
   submitting,
   doctorStep,
   showBack,
   onBack,
-  changeView,
-  submitConsultation
+  changeView
 }: UseTelegramButtonsArgs) {
   useEffect(() => {
     if (!webApp?.BackButton) {
@@ -79,9 +79,10 @@ export function useTelegramButtons({
         const appointmentForm = document.getElementById("appointment-form");
         if (appointmentForm instanceof HTMLFormElement) {
           appointmentForm.requestSubmit();
-        } else {
-          submitConsultation();
         }
+        // No fallback: the old submitConsultation() call here flipped a fake
+        // "So'rov yuborildi" success WITHOUT creating an appointment when the
+        // form wasn't in the DOM (e.g. the doctor dropped out of the list).
         return;
       }
       if (activeView === "register" && registerRole === "user" && userRegistered) {
@@ -115,17 +116,19 @@ export function useTelegramButtons({
               ? "Profil yaratish"
               : "Qabulga yozilish";
 
-    if (
-      activeView === "profile" ||
-      activeView === "login" ||
-      activeView === "more" ||
-      activeView === "feedback" ||
-      activeView === "doctorDetail" ||
+    // ALLOWLIST: the MainButton is shown only on views its handler actually
+    // implements. The old blocklist missed myAppointments/saved/notifications/
+    // services and the doctor dashboard views, showing a dead "Qabulga yozilish"
+    // button whose taps were silent no-ops.
+    const showMainButton =
+      (activeView === "appointment" && !consultationSent) ||
+      (activeView === "register" &&
+        !(registerRole === "user" && userRegistered) &&
+        !(registerRole === "doctor" && doctorRegistrationSent)) ||
       ((activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") &&
-        !selectedDoctor) ||
-      (activeView === "register" && registerRole === "user" && userRegistered) ||
-      (activeView === "register" && registerRole === "doctor" && doctorRegistrationSent)
-    ) {
+        Boolean(selectedDoctor));
+
+    if (!showMainButton) {
       mainButton.hide();
     } else {
       mainButton.setText(buttonText);
@@ -146,11 +149,11 @@ export function useTelegramButtons({
   }, [
     activeView,
     changeView,
+    consultationSent,
     doctorRegistrationSent,
     doctorStep,
     registerRole,
     selectedDoctor,
-    submitConsultation,
     submitting,
     userRegistered,
     webApp

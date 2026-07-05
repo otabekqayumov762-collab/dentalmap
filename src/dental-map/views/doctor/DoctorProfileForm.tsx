@@ -47,10 +47,13 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
       <section>
         <GroupLabel>Shaxsiy</GroupLabel>
         <Card className="flex flex-col gap-4">
+          {/* full_name is READ-ONLY on the backend (DoctorSelfUpdateSerializer):
+              an editable input here was a "saved but not saved" trap — the PATCH
+              returned 200 and the success haptic fired, but the name never changed. */}
           <Field
-            name="full_name"
             label="Ism familiya"
-            placeholder="Masalan, Anvar Karimov"
+            readOnly
+            hint="Ismni o'zgartirish uchun administratorga murojaat qiling."
             defaultValue={profile?.full_name || user?.full_name || ""}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -158,6 +161,7 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
             type="url"
             label="Xarita havolasi"
             placeholder="https://maps..."
+            hint="Yandex yoki Google Maps havolasi — bemorlarga klinika lokatsiyasini yuborish uchun kerak."
             defaultValue={profile?.clinic_location_url || ""}
           />
           <TextareaField

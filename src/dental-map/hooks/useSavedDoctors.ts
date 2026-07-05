@@ -52,5 +52,11 @@ export function useSavedDoctors(webApp: TelegramWebApp | null) {
     [webApp]
   );
 
-  return { savedDoctorIds, toggleSavedDoctor };
+  // Called on logout so the next account on a shared device doesn't inherit the
+  // previous person's saved doctors (also re-persists an empty list).
+  const clearSavedDoctors = useCallback(() => {
+    setSavedDoctorIds([]);
+  }, []);
+
+  return { savedDoctorIds, toggleSavedDoctor, clearSavedDoctors };
 }

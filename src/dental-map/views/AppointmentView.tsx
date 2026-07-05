@@ -1,8 +1,9 @@
-import { AlertCircle, CalendarDays, CheckCircle2, Clock, Home, Loader2, RotateCw } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, Clock, Home, Loader2, MapPin, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import { upcomingDays, type DaySlots } from "../lib/schedule";
+import { openExternal } from "../lib/url";
 import type { Doctor } from "../types";
 import { Button, Card, TextareaField, cn, useToast } from "../ui";
 
@@ -117,6 +118,33 @@ export function AppointmentView({
     }
   }, [daySlots, selectedSlot, onSelectSlot]);
 
+  // A booking rejection (slot just taken / 2-hour rule) means the grid is stale:
+  // refetch availability and drop the failed slot so the user picks from fresh
+  // data instead of re-submitting the same taken slot into the same error.
+  useEffect(() => {
+    if (!submitError) {
+      return;
+    }
+    onSelectSlot("");
+    if (!offline) {
+      setRetryNonce((nonce) => nonce + 1);
+    }
+  }, [submitError, offline, onSelectSlot]);
+
+  // Success: clear the persisted note draft so the previous complaint never
+  // pre-fills the NEXT booking (possibly for a different doctor/problem).
+  useEffect(() => {
+    if (!sent) {
+      return;
+    }
+    setNote("");
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      // storage may be unavailable
+    }
+  }, [sent]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedDate) {
@@ -154,6 +182,30 @@ export function AppointmentView({
             {selectedDayLabel}
             <em className="not-italic font-semibold text-brand-600">{selectedSlot}</em>
           </b>
+        </Card>
+        {/* Guaranteed in-app clinic location: the patient gets the address here
+            even if the Telegram bot can't message them. */}
+        <Card className="mt-3 flex w-full max-w-xs flex-col gap-2 text-left">
+          <span className="flex items-center gap-2 text-sm font-bold text-ink-900">
+            <MapPin size={16} className="shrink-0 text-brand-500" />
+            Klinika manzili
+          </span>
+          <span className="text-sm font-medium text-ink-700">{doctor.clinic}</span>
+          <small className="text-xs leading-relaxed text-ink-500">
+            {[doctor.address, doctor.district].filter(Boolean).join(", ") || doctor.district}
+          </small>
+          {doctor.locationUrl && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="mt-1 w-full"
+              onClick={() => openExternal(doctor.locationUrl)}
+            >
+              <MapPin size={16} />
+              Lokatsiyani ochish
+            </Button>
+          )}
         </Card>
         <Button type="button" size="lg" className="mt-6 w-full max-w-xs" onClick={onBackToMenu}>
           <Home size={18} />

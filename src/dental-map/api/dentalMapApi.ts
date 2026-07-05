@@ -268,14 +268,36 @@ export function normalizeSchedule(items: { results?: ApiWeeklyAvailability[] } |
  * error look identical to a doctor with no availability.
  */
 export async function fetchDoctorDaySlots(doctorId: string): Promise<DaySlots[]> {
-  const response = await fetch(getApiUrl(`/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}`), {
-    cache: "no-store"
-  });
-  if (!response.ok) {
-    throw new Error(`Bo'sh vaqtlarni yuklab bo'lmadi (${response.status}).`);
-  }
-  const data = await response.json();
-  const list = Array.isArray(data) ? data : (data?.results ?? []);
+  // The endpoint is paginated ({count, page, pages, results}, page_size max 100).
+  // Reading only page 1 silently truncated the schedule to the first ~3 days, so
+  // later days looked like the doctor had no availability. Fetch every page.
+  type SlotPage = {
+    results?: Array<{ date?: string; start_time?: string }>;
+    pages?: number;
+  };
+  const list: Array<{ date?: string; start_time?: string }> = [];
+  let page = 1;
+  let pages = 1;
+  const MAX_PAGES = 10; // safety cap: 1000 slots is far beyond the booking window
+  do {
+    const response = await fetch(
+      getApiUrl(
+        `/api/availability/slots/active/?doctor=${encodeURIComponent(doctorId)}&page=${page}&page_size=100`
+      ),
+      { cache: "no-store" }
+    );
+    if (!response.ok) {
+      throw new Error(`Bo'sh vaqtlarni yuklab bo'lmadi (${response.status}).`);
+    }
+    const data = (await response.json()) as SlotPage | Array<{ date?: string; start_time?: string }>;
+    if (Array.isArray(data)) {
+      list.push(...data);
+      break;
+    }
+    list.push(...(data.results ?? []));
+    pages = Number(data.pages ?? 1);
+    page += 1;
+  } while (page <= pages && page <= MAX_PAGES);
   return groupSlots(list);
 }
 
