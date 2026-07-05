@@ -323,9 +323,9 @@ export function ProfileView({
             <CheckCircle2 size={18} />
           </span>
           <span className="min-w-0">
-            <strong className="block font-semibold text-ink-900">Shifokor arizasi yuborildi</strong>
+            <strong className="block font-semibold text-ink-900">Shifokor profili faollashtirildi</strong>
             <small className="mt-0.5 block text-xs text-ink-500">
-              Administrator tekshirgandan keyin profilingiz saytda ko&apos;rinadi.
+              Profilingiz saytda ko&apos;rinadi va bemorlar qabulga yozila oladi.
             </small>
           </span>
         </Card>

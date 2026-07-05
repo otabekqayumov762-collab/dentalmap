@@ -77,7 +77,7 @@ export function HomeView({
               <strong className="truncate text-[0.95rem] font-bold text-ink-900">{doctor.name}</strong>
               <small className="truncate text-sm text-ink-500">{doctor.clinic}</small>
               <em className="truncate text-xs font-medium not-italic text-brand-600">
-                {consultationSent ? "Administrator tasdiqini kutmoqda" : "Qabulga yozilish tayyor"}
+                {consultationSent ? "Shifokor tasdig'i kutilmoqda" : "Qabulga yozilish tayyor"}
               </em>
             </span>
             <ChevronRight size={18} className="shrink-0 text-ink-400" />

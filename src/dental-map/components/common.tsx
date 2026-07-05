@@ -216,11 +216,11 @@ export function NotificationPanel({ sent, onOpenAppointment }: { sent: boolean; 
         </span>
         <span className="min-w-0">
           <strong className="block text-sm font-semibold text-ink-900">
-            {sent ? "Administrator tasdiqi kutilmoqda" : "Qabul formasi tayyor"}
+            {sent ? "Shifokor tasdig'i kutilmoqda" : "Qabul formasi tayyor"}
           </strong>
           <small className="block text-xs text-ink-500">
             {sent
-              ? "Administrator so'rovingizni ko'rib chiqmoqda."
+              ? "Shifokor so'rovingizni ko'rib chiqadi."
               : "F.I.O, telefon, kun va vaqtni kiriting."}
           </small>
         </span>

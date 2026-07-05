@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Image as ImageIcon, Loader2, X } from "lucide-react";
-import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
+import { PhotoUploadField } from "../../components/PhotoUploadField";
 import type { Service, Specialty } from "../../types";
 import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
 import { isSupportedMapLink, LocationPickerField } from "./LocationPickerField";
@@ -76,41 +77,7 @@ export function DoctorRegistrationForm({
 }) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<DoctorField | null>(null);
-
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    if (!file) {
-      return;
-    }
-    if (!file.type.startsWith("image/")) {
-      toast.error("Faqat rasm yuklang (JPG, PNG yoki WebP).");
-      event.currentTarget.value = "";
-      return;
-    }
-    setPhotoPreview((prev) => {
-      if (prev) {
-        URL.revokeObjectURL(prev);
-      }
-      return URL.createObjectURL(file);
-    });
-    onPhotoFileChange(file.name);
-  }
-
-  function clearPhoto() {
-    if (photoInputRef.current) {
-      photoInputRef.current.value = "";
-    }
-    setPhotoPreview((prev) => {
-      if (prev) {
-        URL.revokeObjectURL(prev);
-      }
-      return null;
-    });
-    onPhotoFileChange("");
-  }
 
   // Admin-managed lists when available, else the offline catalog fallback.
   const specialtyChoices = specialties.length
@@ -302,63 +269,12 @@ export function DoctorRegistrationForm({
               error={invalidField === "doctor_gender"}
             />
           </fieldset>
-          <div>
-            <span className="mb-1.5 block text-sm font-medium text-ink-700">Shifokor rasmi</span>
-            {/* The input stays mounted in both states so the form always submits photo_file. */}
-            <input
-              ref={photoInputRef}
-              type="file"
-              name="photo_file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              onChange={handlePhotoChange}
-            />
-            {photoFileName ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 p-2.5">
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-100 ring-1 ring-surface-200"
-                  aria-label="Rasmni almashtirish"
-                >
-                  {photoPreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoPreview} alt="Tanlangan rasm" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-brand-400">
-                      <ImageIcon size={24} />
-                    </span>
-                  )}
-                </button>
-                <span className="min-w-0 flex-1">
-                  <strong className="block truncate text-sm font-semibold text-ink-900">{photoFileName}</strong>
-                  <small className="mt-0.5 flex items-center gap-1 text-xs font-medium text-emerald-600">
-                    <CheckCircle2 size={13} /> Rasm tanlandi
-                  </small>
-                </span>
-                <button
-                  type="button"
-                  onClick={clearPhoto}
-                  aria-label="Rasmni o'chirish"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-500 shadow-sm ring-1 ring-surface-200 transition-colors hover:bg-danger/10 hover:text-danger active:scale-95"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50"
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
-                  <Camera size={22} />
-                </span>
-                <span className="text-sm font-semibold text-ink-900">Rasm yuklash</span>
-                <small className="text-xs text-ink-500">JPG, PNG yoki WebP</small>
-              </button>
-            )}
-          </div>
+          <PhotoUploadField
+            name="photo_file"
+            label="Shifokor rasmi"
+            fileName={photoFileName}
+            onFileNameChange={onPhotoFileChange}
+          />
         </Section>
       </div>
 
