@@ -161,6 +161,7 @@ export type ApiUser = {
   phone?: string;
   email?: string;
   role?: "user" | "doctor" | "admin";
+  telegram_id?: number | null;
   telegram_username?: string;
   /** Nested patient profile from `/api/users/me/` (read-only server-side today). */
   profile?: {

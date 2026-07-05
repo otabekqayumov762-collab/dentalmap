@@ -81,6 +81,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   // refreshPrivateData from the PREVIOUS session can never resurrect its state
   // (ghost session on a shared device after logout).
   const sessionRef = useRef(0);
+  // One link-telegram attempt per session (see the healing effect below).
+  const linkAttemptedRef = useRef(false);
 
   const reviewableAppointmentByDoctor = useMemo(() => {
     const reviewedAppointmentIds = new Set(
@@ -378,6 +380,37 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setDoctorReviews([...getLocalReviews().map(mapReview), ...fallbackReviews]);
     }
   }, [currentUser]);
+
+  // Heal pre-fix accounts: users who registered via the form before init_data
+  // was attached have telegram_id=NULL, so the bot can't message them (the
+  // clinic-location file never arrives). When the app runs inside Telegram and
+  // the signed-in user has no telegram_id, link it once per session — the
+  // backend HMAC-verifies init_data before trusting the id.
+  useEffect(() => {
+    if (
+      linkAttemptedRef.current ||
+      !webApp?.initData ||
+      isOfflineMode() ||
+      !currentUser ||
+      currentUser.telegram_id
+    ) {
+      return;
+    }
+    const token = getAccessToken();
+    if (!token) {
+      return;
+    }
+    linkAttemptedRef.current = true;
+    void apiRequest<ApiUser>("/api/auth/link-telegram/", {
+      token,
+      method: "POST",
+      body: JSON.stringify({ init_data: webApp.initData })
+    })
+      .then((linked) => setCurrentUser(linked))
+      .catch(() => {
+        // Fail-soft: a conflict/invalid signature must never disturb the session.
+      });
+  }, [webApp, currentUser]);
 
   const loginWithPassword = useCallback(
     async (login: string, password: string) => {
