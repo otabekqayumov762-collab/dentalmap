@@ -489,7 +489,6 @@ function DentalMapAppInner() {
     const specialty = String(formData.get("specialty") || "").trim();
     const clinicName = String(formData.get("clinic_name") || "").trim();
     const clinicDistrict = String(formData.get("clinic_district") || "").trim();
-    const clinicAddress = String(formData.get("clinic_address") || "").trim();
     const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
     const rawExperience = String(formData.get("experience_years") || "").trim();
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
@@ -500,8 +499,8 @@ function DentalMapAppInner() {
       toast.error("Shifokor F.I.O. va telefon raqamni to'liq kiriting.");
       return;
     }
-    if (!specialty || !clinicName || !clinicDistrict || !clinicAddress) {
-      toast.error("Mutaxassislik, klinika nomi, tuman va manzilni to'ldiring.");
+    if (!specialty || !clinicName || !clinicDistrict) {
+      toast.error("Mutaxassislik, klinika nomi va tumanni to'ldiring.");
       return;
     }
     if (!isSupportedMapLink(clinicLocationUrl)) {
@@ -524,7 +523,6 @@ function DentalMapAppInner() {
     formData.set("specialty", specialty);
     formData.set("clinic_name", clinicName);
     formData.set("clinic_district", clinicDistrict);
-    formData.set("clinic_address", clinicAddress);
     formData.set("clinic_location_url", clinicLocationUrl);
     formData.set("experience_years", experienceYears);
     // Normalize the collected gender (Erkak/Ayol → male/female) to mirror the

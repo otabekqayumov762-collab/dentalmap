@@ -19,7 +19,6 @@ type DoctorField =
   | "experience_years"
   | "clinic_name"
   | "clinic_district"
-  | "clinic_address"
   | "clinic_location_url";
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
@@ -136,9 +135,6 @@ export function DoctorRegistrationForm({
       if (!value("clinic_district")) {
         return { field: "clinic_district", message: "Klinika tumanini tanlang." };
       }
-      if (!value("clinic_address")) {
-        return { field: "clinic_address", message: "Klinika manzilini kiriting." };
-      }
       if (!isSupportedMapLink(value("clinic_location_url"))) {
         return { field: "clinic_location_url", message: "Google yoki Yandex Maps linkini kiriting." };
       }
@@ -164,9 +160,22 @@ export function DoctorRegistrationForm({
     onStepChange(Math.max(step - 1, 1));
   }
 
+  function submitForm() {
+    // Route the final step through the form's native submit so onSubmit receives
+    // a real FormEvent (the app reads FormData from event.currentTarget).
+    formRef.current?.requestSubmit();
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    // Step 3 native submit — guard once more before handing off to the app.
-    const result = validateStep(3);
+    // Registration may only ever fire from the final step. Any submit event that
+    // arrives earlier (stray Enter key, a programmatic requestSubmit) is ignored
+    // so the success screen never shows before a real step-3 submission.
+    if (step !== TOTAL_STEPS) {
+      event.preventDefault();
+      return;
+    }
+    // Step 3 submit — guard once more before handing off to the app.
+    const result = validateStep(TOTAL_STEPS);
     if (result) {
       event.preventDefault();
       setInvalidField(result.field);
@@ -344,14 +353,6 @@ export function DoctorRegistrationForm({
             placeholder="Tumanni tanlang"
             error={invalidField === "clinic_district"}
           />
-          <Field
-            label="Klinika manzili"
-            name="clinic_address"
-            placeholder="Ko'cha va uy raqami (masalan: Bunyodkor 9)"
-            required
-            error={invalidField === "clinic_address"}
-            onChange={() => clear("clinic_address")}
-          />
           <LocationPickerField name="clinic_location_url" required />
         </Section>
       </div>
@@ -372,11 +373,11 @@ export function DoctorRegistrationForm({
         )}
         <Button
           id="doctor-register-advance"
-          type={step === TOTAL_STEPS ? "submit" : "button"}
+          type="button"
           size="lg"
           className="flex-1"
           disabled={submitting}
-          onClick={step === TOTAL_STEPS ? undefined : advance}
+          onClick={step === TOTAL_STEPS ? submitForm : advance}
         >
           {step === TOTAL_STEPS ? (
             <>
