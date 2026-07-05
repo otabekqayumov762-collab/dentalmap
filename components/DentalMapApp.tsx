@@ -1126,10 +1126,10 @@ function DentalMapAppInner() {
 
           {activeView === "notifications" && (
             <NotificationsView
-              sent={consultationSent}
+              appointments={appointments}
               isDoctor={isDoctorAccount}
               pendingCount={appointments.filter((a) => a.status === "pending").length}
-              onOpenAppointment={() => navigate("myAppointments")}
+              onOpenAppointment={openAppointmentDetail}
               onOpenRequests={() => navigate("doctorRequests")}
             />
           )}
