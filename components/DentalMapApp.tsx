@@ -32,6 +32,7 @@ import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { DoctorPendingApprovalView } from "@/src/dental-map/views/DoctorPendingApprovalView";
+import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
@@ -58,6 +59,7 @@ function DentalMapAppInner() {
     services,
     authStatus,
     authMessage,
+    reviewableAppointmentByDoctor,
     refreshPrivateData,
     loadDoctorReviews,
     loginWithPassword,
@@ -101,7 +103,11 @@ function DentalMapAppInner() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [ratingPromptOpen, setRatingPromptOpen] = useState(false);
   const landedRef = useRef(false);
+  // One rating prompt per session: set once the auto-prompt has been shown so a
+  // dismissal or a submit never re-triggers it (reset on logout via handleLogout).
+  const ratingPromptShownRef = useRef(false);
   // Tracks a manual Home-filter change so the saved-district seeding effect
   // never clobbers a pick the user made themselves.
   const filterTouchedRef = useRef(false);
@@ -364,6 +370,8 @@ function DentalMapAppInner() {
     setDoctorStep(1);
     setAuthMode("login");
     landedRef.current = false;
+    ratingPromptShownRef.current = false;
+    setRatingPromptOpen(false);
     changeView("home");
   }
 
@@ -600,6 +608,59 @@ function DentalMapAppInner() {
   const doctorRegistrationPending = isDoctorAccount && !subscriptionActive && !doctorSubscriptionPaid;
   const isAuthenticated = Boolean(currentUser) && !doctorRegistrationPending;
   const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
+
+  // Most-recent COMPLETED-but-unreviewed appointment (the map is keyed by doctor
+  // and built from the already `-created_at` ordered list, so we pick the newest
+  // by created_at to prompt for the freshest visit first).
+  const pendingReviewAppointment = useMemo(() => {
+    const items = Array.from(reviewableAppointmentByDoctor.values());
+    if (items.length === 0) {
+      return null;
+    }
+    const createdMs = (item: ApiAppointment) => {
+      const time = item.created_at ? new Date(item.created_at).getTime() : 0;
+      return Number.isNaN(time) ? 0 : time;
+    };
+    return items.reduce((latest, item) => (createdMs(item) > createdMs(latest) ? item : latest));
+  }, [reviewableAppointmentByDoctor]);
+
+  // Auto-open the rating prompt ONCE per session: only for a patient who is past
+  // the auth wall, sitting on a main tab (never mid-booking / detail flow), with a
+  // pending reviewable visit. The ref guard makes it fire a single time.
+  const ratingPromptViews: ViewId[] = ["home", "doctors", "clinics", "services", "map", "saved", "profile", "myAppointments"];
+  useEffect(() => {
+    if (
+      ratingPromptShownRef.current ||
+      !isAuthenticated ||
+      isDoctorAccount ||
+      !pendingReviewAppointment ||
+      !ratingPromptViews.includes(activeView)
+    ) {
+      return;
+    }
+    ratingPromptShownRef.current = true;
+    setRatingPromptOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isDoctorAccount, pendingReviewAppointment, activeView]);
+
+  const handleRatingSubmit = useCallback(
+    async (rating: number, comment: string) => {
+      if (!pendingReviewAppointment) {
+        return "";
+      }
+      const result = await submitDoctorReview(
+        pendingReviewAppointment.doctor,
+        rating,
+        comment,
+        pendingReviewAppointment.id
+      );
+      if (!result) {
+        setRatingPromptOpen(false);
+      }
+      return result;
+    },
+    [pendingReviewAppointment, submitDoctorReview]
+  );
 
   useEffect(() => {
     if (apiDoctors.length === 0) {
@@ -1150,6 +1211,13 @@ function DentalMapAppInner() {
             ))}
           </nav>
         )}
+
+        <RatingPromptSheet
+          open={ratingPromptOpen && Boolean(pendingReviewAppointment)}
+          doctorName={pendingReviewAppointment?.doctor_name || "Shifokor"}
+          onSubmit={handleRatingSubmit}
+          onDismiss={() => setRatingPromptOpen(false)}
+        />
       </section>
     </main>
   );
