@@ -593,15 +593,25 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setAppointments(addLocalAppointment(local));
       return local;
     }
-    await ensureTelegramLinked(token);
+    const bodyWithTelegram = webApp?.initData ? { ...body, init_data: webApp.initData } : body;
+    try {
+      await ensureTelegramLinked(token);
+    } catch (error) {
+      if (!webApp?.initData) {
+        throw error;
+      }
+      // Appointment creation also verifies init_data and links Telegram in the
+      // same transaction. This fallback prevents a lost booking notification if
+      // the preflight link request fails while signed init_data is still present.
+    }
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
       token,
       method: "POST",
-      body: JSON.stringify(body)
+      body: JSON.stringify(bodyWithTelegram)
     });
     setAppointments((current) => [appointment, ...current]);
     return appointment;
-  }, [ensureTelegramLinked]);
+  }, [ensureTelegramLinked, webApp]);
 
   const registerUser = useCallback(
     async (formData: FormData) => {

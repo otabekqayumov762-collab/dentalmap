@@ -349,6 +349,7 @@ function DentalMapAppInner() {
       // reset, resurrecting a stale success screen that blocked re-booking.
       setConsultationSent(false);
       setAppointmentError(null);
+      setSelectedSlot("");
     }
     changeView(view);
   }

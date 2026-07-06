@@ -47,6 +47,9 @@ export function isLocalMode() {
 
 /** Single decision point for "use local/offline behaviour instead of the API". */
 export function isOfflineMode() {
+  if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+    return isLocalMode();
+  }
   return isLocalMode() || isStaticPreviewHost();
 }
 
