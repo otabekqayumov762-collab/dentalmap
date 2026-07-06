@@ -42,12 +42,12 @@ export function isBackendConfigured() {
 /** When true, the app creates/uses local accounts instead of calling the backend
  *  (set NEXT_PUBLIC_LOCAL_MODE=true). Keeps backend code intact for later. */
 export function isLocalMode() {
-  return process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+  return process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 }
 
 /** Single decision point for "use local/offline behaviour instead of the API". */
 export function isOfflineMode() {
-  return isLocalMode() || !isBackendConfigured() || isStaticPreviewHost();
+  return isLocalMode() || isStaticPreviewHost();
 }
 
 export function getApiUrl(path: string) {

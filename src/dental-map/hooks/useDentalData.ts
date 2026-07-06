@@ -9,7 +9,6 @@ import {
   getApiUrl,
   isBackendConfigured,
   isStaticPreviewHost,
-  isLocalMode,
   mapDoctor,
   mapReview,
   normalizeApiList,
@@ -57,12 +56,13 @@ type UseDentalDataArgs = {
  * of network and session concerns.
  */
 export function useDentalData({ webApp, telegramUser, telegramInitialized }: UseDentalDataArgs) {
-  const [apiDoctors, setApiDoctors] = useState<Doctor[]>(fallbackDoctors);
-  const [apiClinics, setApiClinics] = useState<Clinic[]>(fallbackClinics);
+  const demoCatalogEnabled = isOfflineMode();
+  const [apiDoctors, setApiDoctors] = useState<Doctor[]>(() => (demoCatalogEnabled ? fallbackDoctors : []));
+  const [apiClinics, setApiClinics] = useState<Clinic[]>(() => (demoCatalogEnabled ? fallbackClinics : []));
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState("");
   // The signed-in user's OWN reviews (dedupe source for "already reviewed").
-  const [doctorReviews, setDoctorReviews] = useState<DoctorReview[]>(fallbackReviews);
+  const [doctorReviews, setDoctorReviews] = useState<DoctorReview[]>(() => (demoCatalogEnabled ? fallbackReviews : []));
   // Approved PUBLIC reviews of the doctor currently open in the detail view.
   // Kept separate from doctorReviews so a detail-view load never clobbers the
   // user's own review list (which would re-offer already-reviewed appointments).
@@ -314,12 +314,20 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     const controller = new AbortController();
 
     async function loadBackendData() {
-      if (isOfflineMode()) {
+      if (demoCatalogEnabled) {
         setApiDoctors(fallbackDoctors);
         setApiClinics(fallbackClinics);
         setAppointments(getLocalAppointments());
         setDoctorReviews([...getLocalReviews().map(mapReview), ...fallbackReviews]);
-        setDataError(isStaticPreviewHost() || isLocalMode() ? "" : "Backend URL sozlanmagan. 24/7 ko'rish rejimi ishlayapti.");
+        setDataError("");
+        setDataLoading(false);
+        return;
+      }
+
+      if (!isBackendConfigured()) {
+        setApiDoctors([]);
+        setApiClinics([]);
+        setDataError("Backend URL sozlanmagan. Real doktorlar yuklanmadi.");
         setDataLoading(false);
         return;
       }
@@ -358,9 +366,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setApiClinics(flattenClinics(normalizeApiList(clinicPayload)));
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setDataError("Backend vaqtincha ulanmagan. 24/7 ko'rish rejimi ishlayapti.");
-          setApiDoctors(fallbackDoctors);
-          setApiClinics(fallbackClinics);
+          setDataError("Backend vaqtincha ulanmagan. Real doktorlar yuklanmadi.");
+          setApiDoctors([]);
+          setApiClinics([]);
         }
       } finally {
         setDataLoading(false);
@@ -370,7 +378,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     void loadBackendData();
 
     return () => controller.abort();
-  }, []);
+  }, [demoCatalogEnabled]);
 
   // Offline: reload local appointments/reviews when the signed-in account changes
   // (e.g. switching between the patient and doctor local accounts).
@@ -411,6 +419,32 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         // Fail-soft: a conflict/invalid signature must never disturb the session.
       });
   }, [webApp, currentUser]);
+
+  const ensureTelegramLinked = useCallback(
+    async (token: string) => {
+      if (isOfflineMode()) {
+        return currentUser;
+      }
+      if (currentUser?.telegram_id) {
+        return currentUser;
+      }
+      if (!webApp?.initData) {
+        throw new Error("Bot xabari yuborilishi uchun mini appni Telegram bot ichidan oching.");
+      }
+
+      const linked = await apiRequest<ApiUser>("/api/auth/link-telegram/", {
+        token,
+        method: "POST",
+        body: JSON.stringify({ init_data: webApp.initData })
+      });
+      if (!linked.telegram_id) {
+        throw new Error("Telegram profilingiz ulanmagan. Botni qayta ochib urinib ko'ring.");
+      }
+      setCurrentUser(linked);
+      return linked;
+    },
+    [currentUser, webApp]
+  );
 
   const loginWithPassword = useCallback(
     async (login: string, password: string) => {
@@ -559,6 +593,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setAppointments(addLocalAppointment(local));
       return local;
     }
+    await ensureTelegramLinked(token);
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
       token,
       method: "POST",
@@ -566,7 +601,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     });
     setAppointments((current) => [appointment, ...current]);
     return appointment;
-  }, []);
+  }, [ensureTelegramLinked]);
 
   const registerUser = useCallback(
     async (formData: FormData) => {

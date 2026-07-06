@@ -390,9 +390,13 @@ function DentalMapAppInner() {
     if (submittingRef.current) {
       return;
     }
+    if (!selectedDoctor) {
+      setAppointmentError("Avval shifokor tanlang.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
+      return;
+    }
     submittingRef.current = true;
     try {
-    if (selectedDoctor) {
       const formData = new FormData(event.currentTarget);
       const profile = currentUser?.profile;
       const fullName = String(currentUser?.full_name || "").trim();
@@ -430,16 +434,21 @@ function DentalMapAppInner() {
         note: lead.note
       };
 
-      // Online + backend configured but no auth token: a real booking cannot be
-      // created. Block instead of falling through to the offline lead-save path,
-      // which would flip a fake "So'rov yuborildi" success without booking anything.
-      if (!isOfflineMode() && isBackendConfigured() && !isStaticPreviewHost() && !token) {
+      // Online mode must create a REAL backend appointment. Otherwise the UI would
+      // show "So'rov yuborildi" while no bot notification/location can be sent.
+      if (!isOfflineMode() && (!isBackendConfigured() || isStaticPreviewHost())) {
+        setAppointmentError("Backend ulanmagan. Qabul so'rovi yuborilmadi.");
+        webApp?.HapticFeedback?.notificationOccurred("error");
+        return;
+      }
+
+      if (!isOfflineMode() && !token) {
         setAppointmentError("Avtorizatsiya talab qilinadi. Iltimos, ilovani qayta oching.");
         webApp?.HapticFeedback?.notificationOccurred("error");
         return;
       }
 
-      if (isOfflineMode() || (token && isBackendConfigured() && !isStaticPreviewHost())) {
+      if (isOfflineMode() || token) {
         try {
           setAppointmentSubmitting(true);
           setAppointmentError(null);
@@ -459,9 +468,8 @@ function DentalMapAppInner() {
         }
       }
 
-      persistAppointmentLead(lead);
-    }
-    submitConsultation();
+      setAppointmentError("Qabul so'rovini yuborib bo'lmadi. Ilovani qayta ochib urinib ko'ring.");
+      webApp?.HapticFeedback?.notificationOccurred("error");
     } finally {
       submittingRef.current = false;
     }
