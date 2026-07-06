@@ -15,34 +15,59 @@ export function useTelegram() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp ?? null;
-    setWebApp(tg);
+    let cancelled = false;
+    let retryTimer: number | undefined;
+    let cleanupTheme: (() => void) | undefined;
+    const startedAt = Date.now();
 
-    if (!tg) {
-      applyTheme(resolveIsDark(null));
+    const setup = (tg: TelegramWebApp | null) => {
+      if (cancelled) {
+        return;
+      }
+      setWebApp(tg);
+
+      if (!tg) {
+        applyTheme(resolveIsDark(null));
+        setInitialized(true);
+        return;
+      }
+
+      tg.ready();
+      tg.expand();
+      tg.disableVerticalSwipes?.();
+
+      // Initial theme: saved preference → Telegram colorScheme → system.
+      applyTheme(resolveIsDark(tg), tg);
+
+      // Follow the host only while the user hasn't set an explicit preference.
+      const applyTelegramTheme = () => {
+        if (getStoredPreference()) return;
+        applyTheme(tg.colorScheme === "dark", tg);
+      };
+      tg.onEvent?.("themeChanged", applyTelegramTheme);
+      cleanupTheme = () => tg.offEvent?.("themeChanged", applyTelegramTheme);
+
+      setTelegramUser(tg.initDataUnsafe?.user ?? null);
       setInitialized(true);
-      return;
-    }
-
-    tg.ready();
-    tg.expand();
-    tg.disableVerticalSwipes?.();
-
-    // Initial theme: saved preference → Telegram colorScheme → system.
-    applyTheme(resolveIsDark(tg), tg);
-
-    // Follow the host only while the user hasn't set an explicit preference.
-    const applyTelegramTheme = () => {
-      if (getStoredPreference()) return;
-      applyTheme(tg.colorScheme === "dark", tg);
     };
-    tg.onEvent?.("themeChanged", applyTelegramTheme);
 
-    setTelegramUser(tg.initDataUnsafe?.user ?? null);
-    setInitialized(true);
+    const detect = () => {
+      const tg = window.Telegram?.WebApp ?? null;
+      if (tg || Date.now() - startedAt > 2500) {
+        setup(tg);
+        return;
+      }
+      retryTimer = window.setTimeout(detect, 50);
+    };
+
+    detect();
 
     return () => {
-      tg.offEvent?.("themeChanged", applyTelegramTheme);
+      cancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
+      cleanupTheme?.();
     };
   }, []);
 

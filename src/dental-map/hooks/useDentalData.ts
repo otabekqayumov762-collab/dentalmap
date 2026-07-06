@@ -18,6 +18,7 @@ import {
 } from "../api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
+import { getTelegramInitData } from "../lib/telegramInitData";
 import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import {
   addLocalAppointment,
@@ -239,7 +240,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
 
-      if (!telegramApp.initData && !telegramUser) {
+      const initData = getTelegramInitData(telegramApp);
+      if (!initData && !telegramUser) {
         setAuthStatus("guest");
         setAuthMessage("Telegram foydalanuvchisi aniqlanmadi. Bot ichidan oching.");
         return;
@@ -253,7 +255,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
       // Only ever send SIGNED initData — never an unsigned telegram_user object
       // (that path is spoofable and is an account-takeover vector).
-      if (!telegramApp.initData) {
+      if (!initData) {
         setAuthStatus("guest");
         setAuthMessage("Telegram imzosi topilmadi.");
         return;
@@ -263,7 +265,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setAuthStatus("loading");
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 8000);
-        const authBody = { init_data: telegramApp.initData };
+        const authBody = { init_data: initData };
         const response = await (async () => {
           try {
             return await fetch(getApiUrl("/api/auth/telegram/"), {
@@ -397,7 +399,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   useEffect(() => {
     if (
       linkAttemptedRef.current ||
-      !webApp?.initData ||
+      !getTelegramInitData(webApp) ||
       isOfflineMode() ||
       !currentUser ||
       currentUser.telegram_id
@@ -409,10 +411,11 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       return;
     }
     linkAttemptedRef.current = true;
+    const initData = getTelegramInitData(webApp);
     void apiRequest<ApiUser>("/api/auth/link-telegram/", {
       token,
       method: "POST",
-      body: JSON.stringify({ init_data: webApp.initData })
+      body: JSON.stringify({ init_data: initData })
     })
       .then((linked) => setCurrentUser(linked))
       .catch(() => {
@@ -428,14 +431,15 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       if (currentUser?.telegram_id) {
         return currentUser;
       }
-      if (!webApp?.initData) {
+      const initData = getTelegramInitData(webApp);
+      if (!initData) {
         throw new Error("Bot xabari yuborilishi uchun mini appni Telegram bot ichidan oching.");
       }
 
       const linked = await apiRequest<ApiUser>("/api/auth/link-telegram/", {
         token,
         method: "POST",
-        body: JSON.stringify({ init_data: webApp.initData })
+        body: JSON.stringify({ init_data: initData })
       });
       if (!linked.telegram_id) {
         throw new Error("Telegram profilingiz ulanmagan. Botni qayta ochib urinib ko'ring.");
@@ -593,11 +597,12 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setAppointments(addLocalAppointment(local));
       return local;
     }
-    const bodyWithTelegram = webApp?.initData ? { ...body, init_data: webApp.initData } : body;
+    const initData = getTelegramInitData(webApp);
+    const bodyWithTelegram = initData ? { ...body, init_data: initData } : body;
     try {
       await ensureTelegramLinked(token);
     } catch (error) {
-      if (!webApp?.initData) {
+      if (!initData) {
         throw error;
       }
       // Appointment creation also verifies init_data and links Telegram in the
@@ -628,8 +633,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       // account. Without it the user row has telegram_id=NULL, the bot can never
       // message the patient (clinic-location file is skipped), and the next
       // /api/auth/telegram/ call silently creates a second empty account.
-      if (webApp?.initData) {
-        formData.set("init_data", webApp.initData);
+      const initData = getTelegramInitData(webApp);
+      if (initData) {
+        formData.set("init_data", initData);
       }
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 30000);
@@ -675,8 +681,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       // Same telegram_id linking as registerUser — the bot must be able to
       // notify doctors too, and reopening inside Telegram must resolve to THIS
       // account instead of provisioning a second empty one.
-      if (webApp?.initData) {
-        formData.set("init_data", webApp.initData);
+      const initData = getTelegramInitData(webApp);
+      if (initData) {
+        formData.set("init_data", initData);
       }
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 30000);
