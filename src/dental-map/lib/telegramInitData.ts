@@ -24,10 +24,25 @@ function writeSessionInitData(initData: string) {
 }
 
 export function getTelegramInitData(webApp?: TelegramWebApp | null) {
-  const fresh = webApp?.initData || window.Telegram?.WebApp?.initData || "";
+  const fresh = getFreshTelegramInitData(webApp);
   if (fresh) {
-    writeSessionInitData(fresh);
     return fresh;
   }
   return readSessionInitData();
+}
+
+export function getFreshTelegramInitData(webApp?: TelegramWebApp | null) {
+  const fresh = webApp?.initData || window.Telegram?.WebApp?.initData || "";
+  if (fresh) {
+    writeSessionInitData(fresh);
+  }
+  return fresh;
+}
+
+export function clearCachedTelegramInitData() {
+  try {
+    window.sessionStorage.removeItem(INIT_DATA_SESSION_KEY);
+  } catch {
+    // Ignore storage failures; the live Telegram object is still authoritative.
+  }
 }

@@ -362,6 +362,8 @@ function DentalMapAppInner() {
     setConsultationSentFor(null);
     setUserRegistered(false);
     setDoctorRegistrationSent(false);
+    setSelectedDoctor(null);
+    setSelectedSlot("");
     setRegisterRole("user");
     setDoctorStep(1);
     setAuthMode("login");
@@ -755,7 +757,7 @@ function DentalMapAppInner() {
             <div className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5 py-6">
               <DoctorPendingApprovalView
                 onRefresh={() => refreshPrivateData()}
-                onLogout={logout}
+                onLogout={handleLogout}
                 refreshing={privateLoading}
               />
             </div>
