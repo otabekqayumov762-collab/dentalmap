@@ -3,7 +3,7 @@ import { CheckCircle2, ChevronRight, MapPin, Stethoscope, type LucideIcon } from
 import { Chip, cn } from "../ui";
 import { doctorAccentClass } from "./accent";
 import { districts } from "../catalog";
-import type { Doctor, TelegramAuthStatus, TelegramUser } from "../types";
+import type { Doctor } from "../types";
 
 /** Maps the legacy accent class (from accent.ts) onto Tailwind token utilities. */
 const accentTone: Record<string, { text: string; softBg: string }> = {
@@ -36,54 +36,6 @@ export function BrandLogo({ className = "" }: { className?: string }) {
         draggable={false}
       />
     </span>
-  );
-}
-
-const statusDot: Record<TelegramAuthStatus, string> = {
-  loading: "bg-warning",
-  authenticated: "bg-success",
-  guest: "bg-ink-400",
-  error: "bg-danger"
-};
-
-export function TelegramStatus({
-  status,
-  message,
-  user,
-  isTelegram
-}: {
-  status: TelegramAuthStatus;
-  message: string;
-  user: TelegramUser | null;
-  isTelegram: boolean;
-}) {
-  if (!isTelegram) {
-    return null;
-  }
-
-  const name = user
-    ? [user.first_name, user.last_name].filter(Boolean).join(" ") || `@${user.username}` || `ID ${user.id}`
-    : "Telegram foydalanuvchisi aniqlanmadi";
-
-  return (
-    <section
-      className="flex items-center gap-3 rounded-card bg-surface-0 px-4 py-3 shadow-card"
-      aria-live="polite"
-    >
-      <span
-        className={cn(
-          "h-2.5 w-2.5 shrink-0 rounded-full",
-          statusDot[status],
-          status === "loading" && "animate-pulse"
-        )}
-      />
-      <div className="min-w-0">
-        <strong className="block truncate text-sm font-semibold text-ink-900">
-          {isTelegram ? name : "Brauzer ko'rinishi"}
-        </strong>
-        <small className="block truncate text-xs text-ink-500">{message}</small>
-      </div>
-    </section>
   );
 }
 

@@ -289,7 +289,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         storeAuthTokens(payload);
         setCurrentUser(payload.user || null);
         setAuthStatus("authenticated");
-        setAuthMessage("Telegram akkaunt backend bilan ulandi.");
+        setAuthMessage("Telegram sessiya tayyor.");
         void refreshPrivateData(payload.tokens?.access || "");
       } catch {
         // Telegram auth failed (network blip, 8s timeout, backend hiccup). Before

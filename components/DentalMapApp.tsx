@@ -13,7 +13,7 @@ import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
 import { useViewNavigation } from "@/src/dental-map/hooks/useViewNavigation";
-import { BrandLogo, EmptyState, TelegramStatus } from "@/src/dental-map/components/common";
+import { BrandLogo, EmptyState } from "@/src/dental-map/components/common";
 import { AppointmentDetailView } from "@/src/dental-map/views/AppointmentDetailView";
 import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
@@ -58,7 +58,6 @@ function DentalMapAppInner() {
     specialties,
     services,
     authStatus,
-    authMessage,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
     loadDoctorReviews,
@@ -110,8 +109,6 @@ function DentalMapAppInner() {
   // Tracks a manual Home-filter change so the saved-district seeding effect
   // never clobbers a pick the user made themselves.
   const filterTouchedRef = useRef(false);
-
-  const isTelegram = Boolean(webApp);
 
   // Region+district aware filtering with recommendation ordering. Doctors and
   // clinics only carry a `district`, so the region is derived via districtToRegion.
@@ -861,13 +858,6 @@ function DentalMapAppInner() {
                     </button>
                   </div>
                 </div>
-
-                <TelegramStatus
-                  status={authStatus}
-                  message={authMessage}
-                  user={telegramUser}
-                  isTelegram={isTelegram}
-                />
 
                 {showSearch && searchOpen && (
                   <label className="flex h-12 animate-[modal-in_0.15s_ease-out] items-center gap-2.5 rounded-2xl border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
