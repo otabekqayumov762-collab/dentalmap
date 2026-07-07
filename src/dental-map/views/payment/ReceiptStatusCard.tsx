@@ -4,8 +4,8 @@ import { cn } from "../../ui";
 
 const STATUS: Record<ReceiptStatus, { label: string; text: string; Icon: LucideIcon; wrap: string; icon: string }> = {
   pending: {
-    label: "Administrator tasdig'i kutilmoqda",
-    text: "Chek yuborildi. Administrator tekshiruvidan so'ng profil faollashadi.",
+    label: "Tekshiruv kutilmoqda",
+    text: "Chek yuborildi. Tekshiruvdan so'ng profil faollashadi.",
     Icon: Clock,
     wrap: "bg-warning/10 text-warning",
     icon: "text-warning"

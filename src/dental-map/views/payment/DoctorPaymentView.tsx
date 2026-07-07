@@ -13,6 +13,9 @@ function formatUzs(value: number) {
 }
 
 /**
+ * Payment flow is intentionally disabled for the current Dental Map release.
+ * Keep this component unmounted until Click/Payme/manual receipt rules are finalized.
+ *
  * Doctor subscription payment step: transfer the fee to an admin card, then
  * upload the receipt for admin approval. Replaces the old auto-"paid" flow.
  */
@@ -55,12 +58,12 @@ export function DoctorPaymentView({
           <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
           <span>
             <strong className="block text-sm font-semibold text-ink-900">
-              {approved ? "To'lov tasdiqlandi" : "Chek yuborildi — admin tasdig'ini kuting"}
+              {approved ? "To'lov tasdiqlandi" : "Chek yuborildi"}
             </strong>
             <small className="block text-xs text-ink-500">
               {approved
                 ? "Doktor kabinetidan foydalanishingiz mumkin."
-                : "Administrator chekni tekshirgandan keyin kabinet ochiladi."}
+                : "Chek tekshirilgandan keyin kabinet ochiladi."}
             </small>
           </span>
         </div>
@@ -74,7 +77,7 @@ export function DoctorPaymentView({
           </Button>
         ) : (
           <Button type="button" size="lg" disabled>
-            Admin tasdig&apos;i kutilmoqda
+            Tekshiruv kutilmoqda
           </Button>
         )}
       </div>

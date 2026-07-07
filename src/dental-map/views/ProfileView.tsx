@@ -104,13 +104,11 @@ function MenuRow({
 
 export function ProfileView({
   currentUser,
-  doctorRegistrationSent,
   onNavigate,
   onLogout,
   onSaveProfile
 }: {
   currentUser?: ApiUser | null;
-  doctorRegistrationSent: boolean;
   onNavigate: (view: ViewId) => void;
   onLogout: () => void;
   /** Persist the profile. Returns "" on success, else a status/error message. */
@@ -316,20 +314,6 @@ export function ProfileView({
           />
         </div>
       </section>
-
-      {doctorRegistrationSent && (
-        <Card className="flex items-start gap-3 border-success/20 bg-success/10">
-          <span className="mt-0.5 shrink-0 text-success">
-            <CheckCircle2 size={18} />
-          </span>
-          <span className="min-w-0">
-            <strong className="block font-semibold text-ink-900">Shifokor profili faollashtirildi</strong>
-            <small className="mt-0.5 block text-xs text-ink-500">
-              Profilingiz saytda ko&apos;rinadi va bemorlar qabulga yozila oladi.
-            </small>
-          </span>
-        </Card>
-      )}
 
       <button
         type="button"

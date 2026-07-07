@@ -41,7 +41,7 @@ export function DoctorsView({
       {doctors.length === 0 && (
         <EmptyState
           title={loading ? "Shifokorlar yuklanmoqda" : "Shifokor topilmadi"}
-          text={dataError || "Filterga mos yoki tasdiqlangan shifokor yo'q."}
+          text={dataError || "Filterga mos shifokor topilmadi."}
           Icon={Stethoscope}
         />
       )}

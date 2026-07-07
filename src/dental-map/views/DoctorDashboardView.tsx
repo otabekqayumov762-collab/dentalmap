@@ -193,7 +193,6 @@ export function DoctorDashboardView({
         profile={profile}
         approvalStatus={approvalStatus}
         isPublished={Boolean(profile?.is_published)}
-        isSubscriptionActive={Boolean(profile?.is_subscription_active)}
         loading={loading}
         onRefresh={onRefresh}
         onEdit={() => onNavigate("doctorEdit")}

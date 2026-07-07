@@ -90,7 +90,7 @@ export function approvalLabel(status?: string) {
   if (status === "rejected") {
     return "Rad etilgan";
   }
-  return "Tasdiq kutilmoqda";
+  return "Profil tayyorlanmoqda";
 }
 
 export function formatDate(value?: string | null) {

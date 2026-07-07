@@ -90,7 +90,6 @@ export function DoctorHeaderCard({
   profile,
   approvalStatus,
   isPublished,
-  isSubscriptionActive,
   loading,
   onRefresh,
   onEdit
@@ -99,7 +98,6 @@ export function DoctorHeaderCard({
   profile: ApiDoctor | null;
   approvalStatus?: string;
   isPublished: boolean;
-  isSubscriptionActive: boolean;
   loading: boolean;
   onRefresh: () => void;
   onEdit: () => void;
@@ -174,12 +172,6 @@ export function DoctorHeaderCard({
           title="Ilova holati"
           value={isPublished ? "Bemorlar ko'ra oladi" : "Hozircha ko'rinmaydi"}
           state={isPublished ? "ok" : "bad"}
-        />
-        <StatusRow
-          Icon={CheckCircle2}
-          title="To'lov"
-          value={isSubscriptionActive ? "To'langan" : "To'lov kutilmoqda"}
-          state={isSubscriptionActive ? "ok" : "pending"}
         />
       </div>
     </Card>

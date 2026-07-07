@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import type { RegisterRole, Service, Specialty, ViewId } from "../types";
 import { Button } from "../ui";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
-import { DoctorPendingApprovalView } from "./DoctorPendingApprovalView";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
@@ -11,7 +10,6 @@ export function RegisterView({
   specialties,
   services,
   userRegistered,
-  doctorRegistrationSent,
   submitting,
   doctorStep,
   onDoctorStepChange,
@@ -24,7 +22,6 @@ export function RegisterView({
   specialties: Specialty[];
   services: Service[];
   userRegistered: boolean;
-  doctorRegistrationSent: boolean;
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
@@ -53,9 +50,7 @@ export function RegisterView({
 
   return (
     <div className="flex flex-col gap-4">
-      {!userRegistered && !doctorRegistrationSent && (
-        <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />
-      )}
+      {!userRegistered && <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />}
 
       {role === "user" ? (
         <UserRegistrationForm
@@ -70,32 +65,26 @@ export function RegisterView({
           onSubmit={onUserSubmit}
         />
       ) : (
-        <>
-          {!doctorRegistrationSent && (
-            <DoctorRegistrationForm
-              step={doctorStep}
-              submitting={submitting}
-              specialties={specialties}
-              services={services}
-              doctorSpecialty={doctorSpecialty}
-              doctorGender={doctorGender}
-              doctorRegion={doctorRegion}
-              doctorDistrict={doctorDistrict}
-              selectedServiceIds={selectedServiceIds}
-              photoFileName={photoFileName}
-              onStepChange={onDoctorStepChange}
-              onSpecialtyChange={setDoctorSpecialty}
-              onDoctorGenderChange={setDoctorGender}
-              onRegionChange={setDoctorRegion}
-              onDistrictChange={setDoctorDistrict}
-              onToggleService={toggleService}
-              onPhotoFileChange={setPhotoFileName}
-              onSubmit={onDoctorSubmit}
-            />
-          )}
-
-          {doctorRegistrationSent && <DoctorPendingApprovalView />}
-        </>
+        <DoctorRegistrationForm
+          step={doctorStep}
+          submitting={submitting}
+          specialties={specialties}
+          services={services}
+          doctorSpecialty={doctorSpecialty}
+          doctorGender={doctorGender}
+          doctorRegion={doctorRegion}
+          doctorDistrict={doctorDistrict}
+          selectedServiceIds={selectedServiceIds}
+          photoFileName={photoFileName}
+          onStepChange={onDoctorStepChange}
+          onSpecialtyChange={setDoctorSpecialty}
+          onDoctorGenderChange={setDoctorGender}
+          onRegionChange={setDoctorRegion}
+          onDistrictChange={setDoctorDistrict}
+          onToggleService={toggleService}
+          onPhotoFileChange={setPhotoFileName}
+          onSubmit={onDoctorSubmit}
+        />
       )}
 
       <Button

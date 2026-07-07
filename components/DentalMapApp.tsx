@@ -31,7 +31,6 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
-import { DoctorPendingApprovalView } from "@/src/dental-map/views/DoctorPendingApprovalView";
 import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
@@ -600,15 +599,8 @@ function DentalMapAppInner() {
     }
   }
 
-  // Doctor entry is governed by backend approval only. Billing/payment is
-  // intentionally disabled in the current release; keep doctors on this pending
-  // screen until admin approves and publishes them.
   const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
-  const doctorApprovalStatus = doctorProfile?.approval_status ?? nestedDoctorProfile?.approval_status ?? "";
-  const doctorPublished = doctorProfile?.is_published ?? nestedDoctorProfile?.is_published ?? false;
-  const doctorApproved = doctorApprovalStatus === "approved" && doctorPublished;
-  const doctorAccessBlocked = isDoctorAccount && !doctorApproved;
-  const isAuthenticated = Boolean(currentUser) && !doctorAccessBlocked;
+  const isAuthenticated = Boolean(currentUser);
   const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
 
   // Most-recent COMPLETED-but-unreviewed appointment (the map is keyed by doctor
@@ -724,44 +716,20 @@ function DentalMapAppInner() {
   }
 
   // Auth wall: no entry without logging in or registering (as patient/doctor).
-  // A doctor mid-registration must clear the pending-approval gate before entry.
   if (!isAuthenticated) {
-    // Fail-closed: hold the spinner while a returning doctor's server
-    // subscription state is still resolving so we neither flash the pending
-    // screen nor briefly leak the app. The freshly-registered same-session case
-    // (doctorRegistrationSent) skips this and goes straight to the pending screen.
+    // Fail-closed: hold the spinner while a returning doctor's profile is still
+    // resolving so the dashboard does not render with incomplete data.
     if (
       authStatus === "loading" ||
       // Session restored from a stored token (authStatus flips to "authenticated"
       // immediately) but currentUser is still being fetched — hold the spinner so a
       // reload on Home doesn't flash the login/register wall as if logged out.
       (authStatus === "authenticated" && !currentUser && privateLoading) ||
-      (isDoctorAccount && !doctorRegistrationSent && privateLoading && !doctorProfile && !nestedDoctorProfile)
+      (isDoctorAccount && privateLoading && !doctorProfile && !nestedDoctorProfile)
     ) {
       return (
         <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100">
           <Loader2 size={26} className="animate-spin text-brand-500" />
-        </main>
-      );
-    }
-    // An already-authenticated doctor who has not cleared the approval gate
-    // must land on the pending-approval screen — NOT the login wall (a dead-end
-    // for a logged-in account).
-    if (currentUser && doctorAccessBlocked) {
-      return (
-        <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
-          <section
-            className="relative h-[var(--tg-viewport-height)] w-full max-w-[640px] overflow-hidden bg-surface-100"
-            aria-label="Shifokor tasdig'i"
-          >
-            <div className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5 py-6">
-              <DoctorPendingApprovalView
-                onRefresh={() => refreshPrivateData()}
-                onLogout={handleLogout}
-                refreshing={privateLoading}
-              />
-            </div>
-          </section>
         </main>
       );
     }
@@ -774,7 +742,6 @@ function DentalMapAppInner() {
         specialties={specialties}
         services={services}
         userRegistered={userRegistered}
-        doctorRegistrationSent={doctorRegistrationSent}
         submitting={isSubmitting}
         doctorStep={doctorStep}
         onDoctorStepChange={setDoctorStep}
@@ -1081,7 +1048,6 @@ function DentalMapAppInner() {
               specialties={specialties}
               services={services}
               userRegistered={userRegistered}
-              doctorRegistrationSent={doctorRegistrationSent}
               submitting={isSubmitting}
               doctorStep={doctorStep}
               onDoctorStepChange={setDoctorStep}
@@ -1100,7 +1066,6 @@ function DentalMapAppInner() {
             ) : (
               <ProfileView
                 currentUser={currentUser}
-                doctorRegistrationSent={doctorRegistrationSent}
                 onNavigate={navigate}
                 onLogout={handleLogout}
                 onSaveProfile={updateUserProfile}
