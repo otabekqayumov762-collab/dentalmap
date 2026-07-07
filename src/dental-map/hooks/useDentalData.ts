@@ -223,7 +223,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       if (local && isOfflineMode()) {
         setCurrentUser(local);
         setAuthStatus("authenticated");
-        setAuthMessage("Local akkaunt tiklandi.");
+        setAuthMessage("Avvalgi sessiya tiklandi.");
       } else {
         setAuthStatus("guest");
         setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
@@ -249,7 +249,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
       if (!isBackendConfigured()) {
         setAuthStatus("error");
-        setAuthMessage("Backend URL sozlanmagan.");
+        setAuthMessage("Ilova vaqtincha ulanmayapti. Keyinroq urinib ko'ring.");
         return;
       }
 
@@ -282,7 +282,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         })();
 
         if (!response.ok) {
-          throw new Error(`Telegram auth ${response.status}`);
+          throw new Error("Telegram orqali kirish vaqtincha ishlamadi.");
         }
 
         const payload = await response.json();
@@ -303,7 +303,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
           return;
         }
         setAuthStatus("error");
-        setAuthMessage("Telegram auth ishlamadi. Backend URL yoki bot tokenni tekshiring.");
+        setAuthMessage("Telegram orqali kirish vaqtincha ishlamadi. Ilovani qayta ochib urinib ko'ring.");
         telegramApp.HapticFeedback?.notificationOccurred("error");
       }
     }
@@ -458,10 +458,10 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         if (local) {
           setCurrentUser(local);
           setAuthStatus("authenticated");
-          setAuthMessage("Local akkaunt bilan kirildi.");
+          setAuthMessage("Tizimga kirildi.");
           return "";
         }
-        return "Avval ro'yxatdan o'ting (local rejim).";
+        return "Avval ro'yxatdan o'ting.";
       }
       try {
         // Backend login = SimpleJWT: POST /api/auth/token/ {phone,password} -> flat {access,refresh}.

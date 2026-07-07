@@ -190,7 +190,7 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    let message = `API request failed: ${response.status}`;
+    let message = "So'rov bajarilmadi. Qayta urinib ko'ring.";
     try {
       message = parseApiError(await response.json(), message);
     } catch {
