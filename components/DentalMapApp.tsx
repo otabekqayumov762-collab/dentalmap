@@ -680,6 +680,33 @@ function DentalMapAppInner() {
     }
   }, [currentUser, isDoctorAccount, changeView]);
 
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      isOfflineMode() ||
+      !["notifications", "myAppointments", "appointmentDetail"].includes(activeView)
+    ) {
+      return;
+    }
+
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== "hidden") {
+        void refreshPrivateData();
+      }
+    };
+
+    refreshVisibleData();
+    const interval = window.setInterval(refreshVisibleData, 15000);
+    document.addEventListener("visibilitychange", refreshVisibleData);
+    window.addEventListener("focus", refreshVisibleData);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+      window.removeEventListener("focus", refreshVisibleData);
+    };
+  }, [activeView, isAuthenticated, refreshPrivateData]);
+
   useTelegramButtons({
     webApp,
     activeView: telegramButtonView,
