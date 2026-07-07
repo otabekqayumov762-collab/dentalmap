@@ -18,7 +18,7 @@ import {
 } from "../api/dentalMapApi";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { getAccessToken, restoreAuthTokens, storeAuthTokens } from "../lib/tokenStore";
-import { clearCachedTelegramInitData, getFreshTelegramInitData, getTelegramInitData } from "../lib/telegramInitData";
+import { clearCachedTelegramInitData, getFreshTelegramInitData } from "../lib/telegramInitData";
 import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import {
   addLocalAppointment,
@@ -240,7 +240,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
 
-      const initData = getTelegramInitData(telegramApp);
+      const initData = getFreshTelegramInitData(telegramApp);
       if (!initData && !telegramUser) {
         setAuthStatus("guest");
         setAuthMessage("Telegram foydalanuvchisi aniqlanmadi. Bot ichidan oching.");
