@@ -48,7 +48,7 @@ export function getApiV1Url(path: string) {
     return `${configuredV1Base}${suffix}`;
   }
   if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is required before calling the billing API.");
+    throw new Error("Ilova server manzili sozlanmagan.");
   }
   return `${API_BASE_URL}${API_V1_PREFIX}${suffix}`;
 }

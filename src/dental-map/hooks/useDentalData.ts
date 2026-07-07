@@ -329,7 +329,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       if (!isBackendConfigured()) {
         setApiDoctors([]);
         setApiClinics([]);
-        setDataError("Backend URL sozlanmagan. Real doktorlar yuklanmadi.");
+        setDataError("Ma'lumotlar vaqtincha yuklanmadi. Ilovani qayta ochib urinib ko'ring.");
         setDataLoading(false);
         return;
       }
@@ -368,7 +368,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setApiClinics(flattenClinics(normalizeApiList(clinicPayload)));
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setDataError("Backend vaqtincha ulanmagan. Real doktorlar yuklanmadi.");
+          setDataError("Ma'lumotlar vaqtincha yuklanmadi. Ilovani qayta ochib urinib ko'ring.");
           setApiDoctors([]);
           setApiClinics([]);
         }
@@ -654,7 +654,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       })();
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(parseApiError(payload, "Profil backendga yuborilmadi."));
+        throw new Error(parseApiError(payload, "Profil yuborilmadi. Qayta urinib ko'ring."));
       }
       const payload = await response.json();
       sessionRef.current += 1;
@@ -702,7 +702,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       })();
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(parseApiError(payload, "Ma'lumotlar backendga yuborilmadi."));
+        throw new Error(parseApiError(payload, "Ma'lumotlar yuborilmadi. Qayta urinib ko'ring."));
       }
       const payload = await response.json();
       sessionRef.current += 1;
@@ -740,7 +740,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       const token = getAccessToken();
 
       if (!appointment || !token || isStaticPreviewHost() || !isBackendConfigured()) {
-        return "Sharh faqat yakunlangan qabuldan keyin backend orqali yuboriladi.";
+        return "Sharh faqat yakunlangan qabuldan keyin yuboriladi.";
       }
 
       try {

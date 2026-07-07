@@ -55,7 +55,7 @@ export function isOfflineMode() {
 
 export function getApiUrl(path: string) {
   if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is required before calling the backend API.");
+    throw new Error("Ilova server manzili sozlanmagan.");
   }
 
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;

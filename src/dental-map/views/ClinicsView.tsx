@@ -46,7 +46,7 @@ export function ClinicsView({
       {clinics.length === 0 && (
         <EmptyState
           title={loading ? "Klinikalar yuklanmoqda" : "Klinika topilmadi"}
-          text={dataError || "Backendda faol klinika ma'lumotlari yo'q."}
+          text={dataError || "Tanlangan hudud bo'yicha hozircha klinika topilmadi."}
           Icon={Building2}
         />
       )}

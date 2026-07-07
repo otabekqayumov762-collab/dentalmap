@@ -437,7 +437,7 @@ function DentalMapAppInner() {
       // Online mode must create a REAL backend appointment. Otherwise the UI would
       // show "So'rov yuborildi" while no bot notification/location can be sent.
       if (!isOfflineMode() && (!isBackendConfigured() || isStaticPreviewHost())) {
-        setAppointmentError("Backend ulanmagan. Qabul so'rovi yuborilmadi.");
+        setAppointmentError("Qabul so'rovi yuborilmadi. Ilovani qayta ochib urinib ko'ring.");
         webApp?.HapticFeedback?.notificationOccurred("error");
         return;
       }
@@ -523,7 +523,7 @@ function DentalMapAppInner() {
       await registerUser(formData);
       submitUserRegistration();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Profil backendga yuborilmadi.");
+      toast.error(error instanceof Error ? error.message : "Profil yuborilmadi. Qayta urinib ko'ring.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     } finally {
       submittingRef.current = false;
@@ -592,7 +592,7 @@ function DentalMapAppInner() {
       await registerDoctor(formData);
       submitDoctorRegistration();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ma'lumotlar backendga yuborilmadi.");
+      toast.error(error instanceof Error ? error.message : "Ma'lumotlar yuborilmadi. Qayta urinib ko'ring.");
       webApp?.HapticFeedback?.notificationOccurred("error");
     } finally {
       submittingRef.current = false;

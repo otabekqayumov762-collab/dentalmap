@@ -50,7 +50,7 @@ export function HomeView({
         {doctors.length === 0 && (
           <EmptyState
             title={loading ? "Shifokorlar yuklanmoqda" : "Shifokor topilmadi"}
-            text={dataError || "Backendda tasdiqlangan shifokorlar ko'rinmayapti."}
+            text={dataError || "Tanlangan hudud bo'yicha hozircha shifokor topilmadi."}
             Icon={Stethoscope}
           />
         )}

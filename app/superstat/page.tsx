@@ -16,7 +16,7 @@ export default function SuperstatPage() {
       <section className="max-w-sm rounded-card border border-surface-100 bg-surface-0 p-6 shadow-card">
         <h1 className="text-lg font-bold text-ink-900">Admin panelga yo&apos;naltirilmoqda</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-500">
-          SUPERSTAT faqat backend adminkada ochiladi.
+          SUPERSTAT faqat admin panelda ochiladi.
         </p>
         <a
           className="mt-5 inline-flex h-11 items-center justify-center rounded-pill bg-brand-500 px-5 text-sm font-semibold text-white"
