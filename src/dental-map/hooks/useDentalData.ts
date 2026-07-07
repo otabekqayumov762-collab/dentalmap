@@ -433,7 +433,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       }
       const initData = getFreshTelegramInitData(webApp);
       if (!initData) {
-        throw new Error("Bot xabari yuborilishi uchun mini appni Telegram bot ichidan oching.");
+        throw new Error("Qabul xabari borishi uchun Dental Mapni Telegram botdagi tugma orqali qayta oching.");
       }
 
       const linked = await apiRequest<ApiUser>("/api/auth/link-telegram/", {
@@ -600,15 +600,14 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     }
     const initData = getFreshTelegramInitData(webApp);
     const bodyWithTelegram = initData ? { ...body, init_data: initData } : body;
-    try {
-      await ensureTelegramLinked(token);
-    } catch (error) {
-      if (!initData) {
-        throw error;
+    if (initData) {
+      try {
+        await ensureTelegramLinked(token);
+      } catch {
+        // Appointment creation also verifies init_data and links Telegram in the
+        // same transaction. This fallback prevents a lost booking notification if
+        // the preflight link request fails while signed init_data is still present.
       }
-      // Appointment creation also verifies init_data and links Telegram in the
-      // same transaction. This fallback prevents a lost booking notification if
-      // the preflight link request fails while signed init_data is still present.
     }
     const appointment = await apiRequest<ApiAppointment>("/api/appointments/", {
       token,
