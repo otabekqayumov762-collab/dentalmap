@@ -965,6 +965,8 @@ function DentalMapAppInner() {
               onOpenDoctor={openDoctor}
               savedDoctorIds={savedDoctorIds}
               onToggleSaved={toggleSavedDoctor}
+              filtersActive={filtersActive}
+              onResetFilters={resetFilters}
             />
           )}
 
@@ -994,6 +996,7 @@ function DentalMapAppInner() {
               onDistrictChange={(nextDistrict) => {
                 filterTouchedRef.current = true;
                 setDistrict(nextDistrict);
+                setRegion(nextDistrict === "Barchasi" ? null : districtToRegion[nextDistrict] ?? null);
               }}
               onBack={() => navigate("home")}
               onAppointment={openAppointment}

@@ -354,7 +354,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         // doctor), so we intentionally skip the unfiltered /api/reviews/ fetch here
         // and load reviews lazily per doctor via loadDoctorReviews() on the detail view.
         const [doctorResponse, clinicResponse] = await Promise.all([
-          fetch(getApiUrl("/api/doctors/"), { cache: "no-store", signal: controller.signal }),
+          fetch(getApiUrl("/api/doctors/?ordering=-created_at"), { cache: "no-store", signal: controller.signal }),
           fetch(getApiUrl("/api/clinics/"), { cache: "no-store", signal: controller.signal })
         ]);
         if (!doctorResponse.ok || !clinicResponse.ok) {
