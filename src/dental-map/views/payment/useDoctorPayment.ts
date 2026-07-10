@@ -6,12 +6,26 @@ import {
   fetchCards,
   fetchReceipts,
   fetchSubscription,
+  initiatePayme,
   submitReceipt,
   type BillingCard,
   type Receipt
 } from "../../api/paymentsApi";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
+
+/** Open an external URL, preferring Telegram's in-app browser when present. */
+function openExternalLink(url: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const tg = (window as unknown as { Telegram?: { WebApp?: { openLink?: (u: string) => void } } }).Telegram?.WebApp;
+  if (tg?.openLink) {
+    tg.openLink(url);
+  } else {
+    window.open(url, "_blank", "noopener");
+  }
+}
 
 /** Two placeholder admin cards so offline/local demos still look real. */
 const DEMO_CARDS: BillingCard[] = [
@@ -41,6 +55,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   const [submitted, setSubmitted] = useState(false);
   const [latestReceipt, setLatestReceipt] = useState<Receipt | null>(null);
   const submittingRef = useRef(false);
+
+  const [payingWithPayme, setPayingWithPayme] = useState(false);
+  const [paymeError, setPaymeError] = useState("");
+  const [paymeStarted, setPaymeStarted] = useState(false);
 
   useEffect(() => {
     if (offline) {
@@ -182,6 +200,25 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     }
   }, [amount, cards, file, latestReceipt, note, offline, selectedCardId, submitted, subscriptionAmountUzs]);
 
+  const payWithPayme = useCallback(async () => {
+    if (offline) {
+      setPaymeError("Onlayn to'lov demo rejimida mavjud emas.");
+      return;
+    }
+    setPaymeError("");
+    setPayingWithPayme(true);
+    try {
+      const returnUrl = typeof window !== "undefined" ? window.location.href : "";
+      const checkout = await initiatePayme(returnUrl);
+      setPaymeStarted(true);
+      openExternalLink(checkout.checkout_url);
+    } catch (error) {
+      setPaymeError(error instanceof Error ? error.message : "Payme to'lovini boshlab bo'lmadi.");
+    } finally {
+      setPayingWithPayme(false);
+    }
+  }, [offline]);
+
   return {
     cards,
     cardsLoading,
@@ -199,6 +236,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     submitError,
     submitted,
     latestReceipt,
-    submit
+    submit,
+    payingWithPayme,
+    paymeError,
+    paymeStarted,
+    payWithPayme
   };
 }

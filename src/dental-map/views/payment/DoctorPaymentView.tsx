@@ -22,11 +22,13 @@ function formatUzs(value: number) {
 export function DoctorPaymentView({
   subscriptionAmountUzs = 2150000,
   paid,
-  onPaid
+  onPaid,
+  onRefresh
 }: {
   subscriptionAmountUzs?: number;
   paid: boolean;
   onPaid: () => void;
+  onRefresh?: () => void;
 }) {
   const {
     cards,
@@ -45,7 +47,11 @@ export function DoctorPaymentView({
     submitError,
     submitted,
     latestReceipt,
-    submit
+    submit,
+    payingWithPayme,
+    paymeError,
+    paymeStarted,
+    payWithPayme
   } = useDoctorPayment({ defaultAmountUzs: subscriptionAmountUzs });
 
   const approved = paid || latestReceipt?.status === "approved";
@@ -115,6 +121,49 @@ export function DoctorPaymentView({
           <strong className="text-base font-bold text-brand-600">{formatUzs(currentSubscriptionAmountUzs)}</strong>
         </div>
       </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+            <CreditCard size={18} />
+          </span>
+          <span className="min-w-0">
+            <strong className="block text-sm font-bold text-ink-900">Payme orqali onlayn to&apos;lov</strong>
+            <small className="block text-xs text-ink-500">
+              Darhol to&apos;lang — tasdiqlash avtomatik, chek yuklash shart emas.
+            </small>
+          </span>
+        </div>
+
+        {paymeError && (
+          <div role="alert" className="flex items-center gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
+            <AlertTriangle size={18} className="shrink-0" />
+            <small className="text-xs">{paymeError}</small>
+          </div>
+        )}
+
+        {paymeStarted ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-ink-500">
+              To&apos;lovni Payme sahifasida yakunlang, so&apos;ng tekshiring.
+            </p>
+            <Button type="button" variant="secondary" onClick={() => onRefresh?.()}>
+              To&apos;ladim — tekshirish
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" onClick={() => void payWithPayme()} disabled={payingWithPayme}>
+            {payingWithPayme ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
+            {payingWithPayme ? "Ochilmoqda…" : "Payme orqali to'lash"}
+          </Button>
+        )}
+      </Card>
+
+      <div className="flex items-center gap-3 py-1">
+        <span className="h-px flex-1 bg-surface-200" />
+        <span className="text-xs font-medium text-ink-400">yoki karta orqali</span>
+        <span className="h-px flex-1 bg-surface-200" />
+      </div>
 
       <div className="flex flex-col gap-2">
         <SectionTitle title="To'lov uchun karta" />

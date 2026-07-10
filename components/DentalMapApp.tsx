@@ -31,6 +31,7 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
+import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
@@ -776,6 +777,25 @@ function DentalMapAppInner() {
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
       />
+    );
+  }
+
+  // Doctor subscription payment gate: after registering (or whenever the
+  // subscription lapses) a doctor pays before the dashboard opens. Gated on
+  // is_subscription_active, which the backend reports `true` whenever a paid
+  // subscription is not required — so this stays a no-op unless billing is on.
+  const activeDoctorProfile = nestedDoctorProfile ?? doctorProfile;
+  if (isDoctorAccount && activeDoctorProfile?.is_subscription_active === false) {
+    return (
+      <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
+        <section className="w-full min-w-0 max-w-[640px] px-5 pb-12 pt-8">
+          <DoctorPaymentView
+            paid={false}
+            onPaid={() => void refreshPrivateData()}
+            onRefresh={() => void refreshPrivateData()}
+          />
+        </section>
+      </main>
     );
   }
 

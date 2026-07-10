@@ -123,3 +123,25 @@ export async function fetchReceipts(signal?: AbortSignal): Promise<Receipt[]> {
   const payload = await requestV1<{ results?: Receipt[] } | Receipt[]>("/billing/receipts/", { signal });
   return normalizeApiList(payload);
 }
+
+export type PaymeCheckout = {
+  provider: "payme";
+  checkout_url: string;
+  invoice_id: string | number;
+  amount_uzs: number;
+  currency: string;
+  account: Record<string, string>;
+};
+
+/**
+ * Start a Payme (Paycom) online payment. Returns the hosted Payme checkout URL
+ * to open; the subscription is granted asynchronously when Payme calls our
+ * webhook (PerformTransaction), so the caller should re-check the profile after
+ * the doctor returns.
+ */
+export function initiatePayme(returnUrl = ""): Promise<PaymeCheckout> {
+  return requestV1<PaymeCheckout>("/billing/payments/initiate/", {
+    method: "POST",
+    body: JSON.stringify({ method: "payme", return_url: returnUrl })
+  });
+}
