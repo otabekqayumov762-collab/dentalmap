@@ -59,8 +59,8 @@ export function AuthGate({
   }
 
   return (
-    <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
-      <section className="relative flex w-full min-w-0 max-w-[640px] flex-col gap-5 overflow-x-hidden px-5 pb-10 pt-6">
+    <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
+      <section className="relative flex h-full w-full min-w-0 max-w-[640px] flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] no-scrollbar">
         <button
           type="button"
           aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
