@@ -18,6 +18,7 @@ export function useTelegram() {
     let cancelled = false;
     let retryTimer: number | undefined;
     let cleanupTheme: (() => void) | undefined;
+    let cleanupViewport: (() => void) | undefined;
     const startedAt = Date.now();
 
     const setup = (tg: TelegramWebApp | null) => {
@@ -35,6 +36,22 @@ export function useTelegram() {
       tg.ready();
       tg.expand();
       tg.disableVerticalSwipes?.();
+
+      // Telegram Desktop and mobile clients expose the usable WebApp height.
+      // `100vh/100svh` can include host chrome, which made the auth form grow
+      // behind Telegram's header and forced the whole document to scroll.
+      const applyTelegramViewport = () => {
+        const height = tg.viewportStableHeight || tg.viewportHeight;
+        if (height && Number.isFinite(height) && height > 0) {
+          document.documentElement.style.setProperty("--tg-viewport-height", `${Math.round(height)}px`);
+        }
+      };
+      applyTelegramViewport();
+      tg.onEvent?.("viewportChanged", applyTelegramViewport);
+      cleanupViewport = () => {
+        tg.offEvent?.("viewportChanged", applyTelegramViewport);
+        document.documentElement.style.removeProperty("--tg-viewport-height");
+      };
 
       // Initial theme: saved preference → Telegram colorScheme → system.
       applyTheme(resolveIsDark(tg), tg);
@@ -68,6 +85,7 @@ export function useTelegram() {
         window.clearTimeout(retryTimer);
       }
       cleanupTheme?.();
+      cleanupViewport?.();
     };
   }, []);
 

@@ -183,7 +183,13 @@ export function RegionDistrictField({
   mode?: "filter" | "select";
 }) {
   const [open, setOpen] = useState(false);
-  const summary = district ? (region ? `${region} · ${district}` : district) : region ?? "";
+  // A field labelled "Tuman" should prioritise the selected district. Showing
+  // both region and district clipped the useful part on narrow Telegram views.
+  const summary = mode === "select"
+    ? district ?? region ?? ""
+    : district
+      ? (region ? `${region} · ${district}` : district)
+      : region ?? "";
 
   return (
     <div className="block">

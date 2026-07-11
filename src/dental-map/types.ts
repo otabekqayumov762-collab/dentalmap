@@ -48,7 +48,7 @@ export type TelegramWebApp = {
   colorScheme?: "light" | "dark";
   themeParams?: TelegramThemeParams;
   viewportHeight?: number;
-  stableViewportHeight?: number;
+  viewportStableHeight?: number;
   ready: () => void;
   expand: () => void;
   close: () => void;
