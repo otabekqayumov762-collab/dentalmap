@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
+import { useId, useRef, type PointerEvent, type ReactNode } from "react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 import { cn } from "./cn";
 
 export type SheetProps = {
@@ -17,23 +18,8 @@ export type SheetProps = {
 export function Sheet({ open, onClose, title, children, className }: SheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  const titleId = useId();
+  useDialogA11y(open, onClose, sheetRef);
 
   if (!open) {
     return null;
@@ -67,10 +53,15 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : "Tanlash oynasi"}
+        tabIndex={-1}
         className={cn(
           "relative z-10 flex max-h-[92vh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-t-sheet bg-surface-0 p-5 pb-7 shadow-float animate-[sheet-in_0.22s_ease-out] no-scrollbar",
           className
@@ -87,7 +78,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
           <span className="mx-auto block h-1.5 w-10 rounded-pill bg-surface-200" aria-hidden="true" />
         </div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          {title ? <h2 className="text-lg font-bold text-ink-900">{title}</h2> : <span />}
+          {title ? <h2 id={titleId} className="text-lg font-bold text-ink-900">{title}</h2> : <span />}
           <button
             type="button"
             aria-label="Yopish"

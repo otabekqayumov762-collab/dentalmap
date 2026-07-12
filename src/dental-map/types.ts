@@ -130,7 +130,6 @@ export type Clinic = {
   name: string;
   district: string;
   address: string;
-  workTime: string;
   rating: number;
   image?: string;
   /** Map coordinates (for partner clinics we place on the map). */
@@ -255,7 +254,6 @@ export type ApiClinicBranch = {
   district?: string;
   address?: string;
   phone?: string;
-  work_time?: string;
   is_active?: boolean;
   latitude?: string | number | null;
   longitude?: string | number | null;

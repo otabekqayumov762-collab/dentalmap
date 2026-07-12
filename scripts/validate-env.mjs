@@ -73,26 +73,26 @@ if (rawApiV1Url) {
   console.log(`Build API v1 URL validated: ${apiV1Url.origin}${apiV1Url.pathname.replace(/\/+$/, "")}`);
 }
 
-for (const name of ["NEXT_PUBLIC_SHEETS_WEBHOOK_URL", "NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL"]) {
-  const rawOptionalUrl = process.env[name]?.trim();
-  if (!rawOptionalUrl) {
-    continue;
-  }
+const rawMediaUrl = process.env.NEXT_PUBLIC_MEDIA_URL?.trim() || "";
+if (rawMediaUrl) {
+  const mediaUrl = validatePublicUrl("NEXT_PUBLIC_MEDIA_URL", rawMediaUrl);
+  console.log(`Build media origin validated: ${mediaUrl.origin}`);
+}
 
-  let optionalUrl;
-  try {
-    optionalUrl = new URL(rawOptionalUrl);
-  } catch {
-    fail(`${name} must be a valid absolute URL when provided.`);
+function validateTelegramUrl(name, rawValue) {
+  if (!rawValue) {
+    return;
   }
-
-  if (optionalUrl.protocol !== "https:") {
-    fail(`${name} must use https.`);
+  const url = validatePublicUrl(name, rawValue);
+  if (url.protocol !== "https:" || !["t.me", "telegram.me"].includes(url.hostname.toLowerCase())) {
+    fail(`${name} must use an official https://t.me or https://telegram.me URL.`);
   }
+}
 
-  if (optionalUrl.username || optionalUrl.password) {
-    fail(`${name} must not contain credentials.`);
-  }
+validateTelegramUrl("NEXT_PUBLIC_BOT_URL", process.env.NEXT_PUBLIC_BOT_URL?.trim());
+validateTelegramUrl("NEXT_PUBLIC_SUPPORT_URL", process.env.NEXT_PUBLIC_SUPPORT_URL?.trim());
 
-  console.log(`${name} origin validated: ${optionalUrl.origin}`);
+const rawAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim();
+if (rawAdminPath && !/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(rawAdminPath.replace(/^\/+|\/+$/g, ""))) {
+  fail("NEXT_PUBLIC_ADMIN_URL must be a same-origin path (for example: admin).");
 }

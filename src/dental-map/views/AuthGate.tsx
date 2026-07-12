@@ -13,6 +13,7 @@ export type AuthMode = "login" | "register";
 
 export type AuthGateProps = {
   mode: AuthMode;
+  registrationOnly?: boolean;
   onModeChange: (mode: AuthMode) => void;
   onLogin: (login: string, password: string) => Promise<string>;
   role: RegisterRole;
@@ -33,6 +34,7 @@ export type AuthGateProps = {
  */
 export function AuthGate({
   mode,
+  registrationOnly = false,
   onModeChange,
   onLogin,
   role,
@@ -84,30 +86,34 @@ export function AuthGate({
             </h1>
           </div>
           <p className="text-sm font-medium leading-relaxed text-ink-500">
-            Telefon raqam orqali kiring yoki yangi profil yarating
+            {registrationOnly
+              ? "Telegram profilingizni yakunlang va foydalanish turini tanlang"
+              : "Telefon raqam orqali kiring yoki yangi profil yarating"}
           </p>
         </header>
 
-        <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-surface-200 bg-surface-0 p-1.5 shadow-card dark:bg-surface-50">
-          {(["login", "register"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={mode === value}
-              onClick={() => onModeChange(value)}
-              className={cn(
-                "h-12 rounded-[19px] text-sm font-extrabold transition-colors",
-                mode === value
-                  ? "bg-brand-500 text-white shadow-card"
-                  : "text-ink-500 hover:text-ink-700"
-              )}
-            >
-              {value === "login" ? "Kirish" : "Ro'yxatdan o'tish"}
-            </button>
-          ))}
-        </div>
+        {!registrationOnly && (
+          <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-surface-200 bg-surface-0 p-1.5 shadow-card dark:bg-surface-50">
+            {(["login", "register"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={mode === value}
+                onClick={() => onModeChange(value)}
+                className={cn(
+                  "h-12 rounded-[19px] text-sm font-extrabold transition-colors",
+                  mode === value
+                    ? "bg-brand-500 text-white shadow-card"
+                    : "text-ink-500 hover:text-ink-700"
+                )}
+              >
+                {value === "login" ? "Kirish" : "Ro'yxatdan o'tish"}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {mode === "login" ? (
+        {!registrationOnly && mode === "login" ? (
           <LoginView onLogin={onLogin} onNavigate={() => onModeChange("register")} />
         ) : (
           <RegisterView
@@ -121,7 +127,6 @@ export function AuthGate({
             onRoleChange={onRoleChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}
-            onNavigate={() => onModeChange("login")}
           />
         )}
       </section>

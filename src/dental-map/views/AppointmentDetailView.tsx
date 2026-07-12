@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { appointmentStatusLabel } from "../api/dentalMapApi";
 import { DoctorAvatar } from "../components/common";
 import { formatUzDate } from "../lib/date";
-import { isSafeHttpUrl, openExternal } from "../lib/url";
+import { isSafeMapUrl, openExternal } from "../lib/url";
 import type { ApiAppointment, Doctor } from "../types";
 import { Badge, Button, Card, Sheet, TextareaField } from "../ui";
 
@@ -181,7 +181,7 @@ export function AppointmentDetailView({
         </Card>
       )}
 
-      {(clinic || isSafeHttpUrl(locationUrl)) && (
+      {(clinic || isSafeMapUrl(locationUrl)) && (
         <Card as="section" className="flex flex-col gap-2">
           <span className="flex items-center gap-2 text-sm font-bold text-ink-900">
             <MapPin size={16} className="shrink-0 text-brand-500" />
@@ -189,7 +189,7 @@ export function AppointmentDetailView({
           </span>
           {clinic && <span className="text-sm font-medium text-ink-700">{clinic}</span>}
           {addressLine && <small className="text-xs leading-relaxed text-ink-500">{addressLine}</small>}
-          {isSafeHttpUrl(locationUrl) && (
+          {isSafeMapUrl(locationUrl) && (
             <Button
               type="button"
               variant="secondary"

@@ -4,8 +4,31 @@ services:
       context: .
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+        NEXT_PUBLIC_API_V1_URL: ${NEXT_PUBLIC_API_V1_URL:-}
+        NEXT_PUBLIC_MEDIA_URL: ${NEXT_PUBLIC_MEDIA_URL:-}
+        NEXT_PUBLIC_BOT_URL: ${NEXT_PUBLIC_BOT_URL:-}
+        NEXT_PUBLIC_SUPPORT_URL: ${NEXT_PUBLIC_SUPPORT_URL:-}
+        NEXT_PUBLIC_TELEGRAM_ONLY: ${NEXT_PUBLIC_TELEGRAM_ONLY:-false}
+        NEXT_PUBLIC_ADMIN_URL: ${NEXT_PUBLIC_ADMIN_URL:-admin}
+        NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
     image: ${FRONTEND_IMAGE:-dental-map-frontend:latest}
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+    pids_limit: 64
+    tmpfs:
+      - /var/cache/nginx:rw,noexec,nosuid,nodev,size=16m
+      - /var/run:rw,noexec,nosuid,nodev,size=1m
+      - /tmp:rw,noexec,nosuid,nodev,size=1m
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     healthcheck:

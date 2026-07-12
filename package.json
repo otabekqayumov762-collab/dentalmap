@@ -2,13 +2,15 @@
   "name": "dental-map",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/validate-env.mjs && next build && node scripts/finalize-static-export.mjs",
     "build:github-pages": "GITHUB_PAGES=true node scripts/validate-env.mjs && GITHUB_PAGES=true next build && GITHUB_PAGES=true node scripts/finalize-static-export.mjs",
     "start": "node scripts/serve-static.mjs out",
-    "lint": "eslint app components src next.config.ts",
-    "typecheck": "tsc --noEmit --incremental false"
+    "lint": "eslint app components src tests next.config.ts",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

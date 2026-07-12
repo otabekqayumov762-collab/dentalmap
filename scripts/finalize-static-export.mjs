@@ -59,9 +59,7 @@ function collectInlineScriptHashes(directory) {
 function createContentSecurityPolicy() {
   const apiOrigin = getApiOrigin();
   const apiV1Origin = getOptionalOrigin("NEXT_PUBLIC_API_V1_URL");
-  const sheetsOrigin =
-    getOptionalOrigin("NEXT_PUBLIC_SHEETS_WEBHOOK_URL") ||
-    getOptionalOrigin("NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL");
+  const mediaOrigin = getOptionalOrigin("NEXT_PUBLIC_MEDIA_URL");
   // Yandex Maps (only relaxes CSP when a key is configured at build time).
   const yandexEnabled = Boolean(process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY?.trim());
   const yandex = yandexEnabled
@@ -81,24 +79,26 @@ function createContentSecurityPolicy() {
     "https://nominatim.openstreetmap.org",
     ...yandex.connect
   ].filter(Boolean);
-  if (sheetsOrigin && !connectSources.includes(sheetsOrigin)) {
-    connectSources.push(sheetsOrigin);
-  }
   const imageSources = [
     "'self'",
     "data:",
+    "blob:",
     apiOrigin,
+    mediaOrigin,
     "https://images.unsplash.com",
     "https://tile.openstreetmap.org",
     ...yandex.img
   ].filter(Boolean);
-  // Yandex Maps injects inline styles, so it needs 'unsafe-inline' for styles.
-  const styleSrc = yandexEnabled ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'";
+  // React drag/layout styles and both map engines use style attributes. Static
+  // export cannot attach a per-request nonce, so scripts remain hash-locked while
+  // inline CSS is permitted for these UI primitives.
+  const styleSrc = "style-src 'self' 'unsafe-inline'";
   const fontSrc = `font-src 'self' data:${yandex.font.length ? ` ${yandex.font.join(" ")}` : ""}`;
 
   return [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
+    "script-src-attr 'none'",
     `connect-src ${connectSources.join(" ")}`,
     `img-src ${imageSources.join(" ")}`,
     styleSrc,
@@ -120,6 +120,8 @@ function writeNetlifyHeaders(csp) {
     [
       "/*",
       "  X-Content-Type-Options: nosniff",
+      "  Strict-Transport-Security: max-age=31536000",
+      "  X-Permitted-Cross-Domain-Policies: none",
       "  Referrer-Policy: strict-origin-when-cross-origin",
       "  Permissions-Policy: camera=(), microphone=(), geolocation=(self)",
       `  Content-Security-Policy: ${csp}`,
@@ -131,6 +133,8 @@ function writeNetlifyHeaders(csp) {
 function nginxSecurityHeaders(csp) {
   return [
     '    add_header X-Content-Type-Options "nosniff" always;',
+    '    add_header Strict-Transport-Security "max-age=31536000" always;',
+    '    add_header X-Permitted-Cross-Domain-Policies "none" always;',
     '    add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
     '    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;',
     `    add_header Content-Security-Policy "${csp}" always;`
@@ -149,6 +153,7 @@ function writeNginxConfig(csp) {
     `server {
     listen 80;
     server_name _;
+    server_tokens off;
     root /usr/share/nginx/html;
     index index.html;
 

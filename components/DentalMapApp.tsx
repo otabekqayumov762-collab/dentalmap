@@ -6,7 +6,8 @@ import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/d
 import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
-import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
+import { normalizeGender } from "@/src/dental-map/lib/gender";
+import { isTelegramPlaceholderUser } from "@/src/dental-map/lib/onboarding";
 import { cn, RegionDistrictField, Select, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
@@ -34,7 +35,7 @@ import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
-import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
+import { mapLinkValidationError } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 function DentalMapAppInner() {
@@ -406,14 +407,7 @@ function DentalMapAppInner() {
         webApp?.HapticFeedback?.notificationOccurred("error");
         return;
       }
-      const lead = {
-        id: `appointment-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        doctorId: selectedDoctor.id,
-        doctorName: selectedDoctor.name,
-        clinic: selectedDoctor.clinic,
-        district: selectedDoctor.district,
-        selectedSlot,
+      const appointmentDetails = {
         fullName,
         phone,
         gender: String(profile?.gender || "").trim(),
@@ -425,13 +419,13 @@ function DentalMapAppInner() {
       const appointmentBody = {
         doctor: selectedDoctor.id,
         doctor_name: selectedDoctor.name,
-        full_name: lead.fullName,
-        phone: lead.phone,
-        gender: normalizeGender(lead.gender),
-        age: lead.age ? Number(lead.age) : null,
-        appointment_date: lead.appointmentDate,
+        full_name: appointmentDetails.fullName,
+        phone: appointmentDetails.phone,
+        gender: normalizeGender(appointmentDetails.gender),
+        age: appointmentDetails.age ? Number(appointmentDetails.age) : null,
+        appointment_date: appointmentDetails.appointmentDate,
         appointment_time: selectedSlot,
-        note: lead.note
+        note: appointmentDetails.note
       };
 
       // Online mode must create a REAL backend appointment. Otherwise the UI would
@@ -453,7 +447,6 @@ function DentalMapAppInner() {
           setAppointmentSubmitting(true);
           setAppointmentError(null);
           await createAppointment(appointmentBody, token);
-          persistAppointmentLead(lead);
           submitConsultation();
           return;
         } catch (error) {
@@ -553,8 +546,9 @@ function DentalMapAppInner() {
       toast.error("Mutaxassislik, klinika nomi va tumanni to'ldiring.");
       return;
     }
-    if (!isSupportedMapLink(clinicLocationUrl)) {
-      toast.error("Google yoki Yandex Maps linkini kiriting.");
+    const locationError = mapLinkValidationError(clinicLocationUrl);
+    if (locationError) {
+      toast.error(locationError);
       return;
     }
     if (password.length < 8) {
@@ -601,8 +595,13 @@ function DentalMapAppInner() {
   }
 
   const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
-  const isAuthenticated = Boolean(currentUser);
-  const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
+  const needsTelegramOnboarding = isTelegramPlaceholderUser(currentUser);
+  const isAuthenticated = Boolean(currentUser) && !needsTelegramOnboarding;
+  const telegramButtonView: ViewId = !isAuthenticated
+    ? needsTelegramOnboarding || authMode === "register"
+      ? "register"
+      : "login"
+    : activeView;
 
   // Most-recent COMPLETED-but-unreviewed appointment (the map is keyed by doctor
   // and built from the already `-created_at` ordered list, so we pick the newest
@@ -673,13 +672,13 @@ function DentalMapAppInner() {
 
   // First time a session resolves, send doctors straight to their dashboard.
   useEffect(() => {
-    if (currentUser && !landedRef.current) {
+    if (currentUser && !needsTelegramOnboarding && !landedRef.current) {
       landedRef.current = true;
       if (isDoctorAccount) {
         changeView("profile");
       }
     }
-  }, [currentUser, isDoctorAccount, changeView]);
+  }, [currentUser, needsTelegramOnboarding, isDoctorAccount, changeView]);
 
   useEffect(() => {
     if (
@@ -711,14 +710,10 @@ function DentalMapAppInner() {
   useTelegramButtons({
     webApp,
     activeView: telegramButtonView,
-    registerRole,
     selectedDoctor,
-    userRegistered,
-    doctorRegistrationSent,
     consultationSent,
     // Booking submits must also disable the MainButton (spinner + no re-taps).
     submitting: isSubmitting || appointmentSubmitting,
-    doctorStep,
     showBack: showPageBack,
     onBack: () => navigate(backTarget),
     // Route through navigate() so the appointment view always enters via the
@@ -763,7 +758,8 @@ function DentalMapAppInner() {
     }
     return (
       <AuthGate
-        mode={authMode}
+        mode={needsTelegramOnboarding ? "register" : authMode}
+        registrationOnly={needsTelegramOnboarding}
         onModeChange={setAuthMode}
         onLogin={handleLogin}
         role={registerRole}
@@ -787,8 +783,8 @@ function DentalMapAppInner() {
   const activeDoctorProfile = nestedDoctorProfile ?? doctorProfile;
   if (isDoctorAccount && activeDoctorProfile?.is_subscription_active === false) {
     return (
-      <main className="grid min-h-[var(--tg-viewport-height)] justify-items-center bg-surface-100">
-        <section className="w-full min-w-0 max-w-[640px] px-5 pb-12 pt-8">
+      <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
+        <section className="h-full w-full min-w-0 max-w-[640px] overflow-y-auto overscroll-contain px-5 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-[calc(2rem+env(safe-area-inset-top))] no-scrollbar">
           <DoctorPaymentView
             paid={false}
             onPaid={() => void refreshPrivateData()}
@@ -1104,7 +1100,6 @@ function DentalMapAppInner() {
               onRoleChange={handleRoleChange}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
-              onNavigate={navigate}
             />
           )}
 

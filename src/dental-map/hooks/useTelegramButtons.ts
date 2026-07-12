@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import type { Doctor, RegisterRole, TelegramWebApp, ViewId } from "../types";
+import type { Doctor, TelegramWebApp, ViewId } from "../types";
 
 type UseTelegramButtonsArgs = {
   webApp: TelegramWebApp | null;
   activeView: ViewId;
-  registerRole: RegisterRole;
   selectedDoctor: Doctor | null;
-  userRegistered: boolean;
-  doctorRegistrationSent: boolean;
   consultationSent: boolean;
   submitting: boolean;
-  doctorStep: number;
   showBack: boolean;
   onBack: () => void;
   changeView: (view: ViewId) => void;
@@ -25,13 +21,9 @@ type UseTelegramButtonsArgs = {
 export function useTelegramButtons({
   webApp,
   activeView,
-  registerRole,
   selectedDoctor,
-  userRegistered,
-  doctorRegistrationSent,
   consultationSent,
   submitting,
-  doctorStep,
   showBack,
   onBack,
   changeView
@@ -85,36 +77,9 @@ export function useTelegramButtons({
         // form wasn't in the DOM (e.g. the doctor dropped out of the list).
         return;
       }
-      if (activeView === "register" && registerRole === "user" && userRegistered) {
-        return;
-      }
-      if (activeView === "register" && registerRole === "doctor") {
-        // The wizard owns validate/advance/submit behind one stable button —
-        // click it (like the payment step) instead of blindly submitting.
-        const advanceButton = document.getElementById("doctor-register-advance");
-        if (advanceButton instanceof HTMLButtonElement) {
-          advanceButton.click();
-        }
-        return;
-      }
-      if (activeView === "register") {
-        const registerForm = document.getElementById("user-register-form");
-        if (registerForm instanceof HTMLFormElement) {
-          registerForm.requestSubmit();
-        }
-      }
     };
 
-    const buttonText =
-      activeView === "appointment"
-        ? "Qabulga yozilish"
-        : activeView === "register" && registerRole === "doctor"
-            ? doctorStep < 3
-              ? "Keyingi"
-              : "Ro'yxatdan o'tish"
-            : activeView === "register"
-              ? "Profil yaratish"
-              : "Qabulga yozilish";
+    const buttonText = "Qabulga yozilish";
 
     // ALLOWLIST: the MainButton is shown only on views its handler actually
     // implements. The old blocklist missed myAppointments/saved/notifications/
@@ -122,9 +87,6 @@ export function useTelegramButtons({
     // button whose taps were silent no-ops.
     const showMainButton =
       (activeView === "appointment" && !consultationSent) ||
-      (activeView === "register" &&
-        !(registerRole === "user" && userRegistered) &&
-        !(registerRole === "doctor" && doctorRegistrationSent)) ||
       ((activeView === "home" || activeView === "doctors" || activeView === "clinics" || activeView === "map") &&
         Boolean(selectedDoctor));
 
@@ -150,12 +112,8 @@ export function useTelegramButtons({
     activeView,
     changeView,
     consultationSent,
-    doctorRegistrationSent,
-    doctorStep,
-    registerRole,
     selectedDoctor,
     submitting,
-    userRegistered,
     webApp
   ]);
 }

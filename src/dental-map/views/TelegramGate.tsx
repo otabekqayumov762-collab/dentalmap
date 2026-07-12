@@ -1,8 +1,9 @@
 import { Send } from "lucide-react";
 import { BrandLogo } from "../components/common";
-import { openExternal } from "../lib/url";
+import { isSafeTelegramUrl, openExternal } from "../lib/url";
 
-const BOT_URL = process.env.NEXT_PUBLIC_BOT_URL || "";
+const configuredBotUrl = process.env.NEXT_PUBLIC_BOT_URL || "";
+const BOT_URL = isSafeTelegramUrl(configuredBotUrl) ? configuredBotUrl : "";
 
 /**
  * Shown when the app is opened outside Telegram. The mini app is only meant to

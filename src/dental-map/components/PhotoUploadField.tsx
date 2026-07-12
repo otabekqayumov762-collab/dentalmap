@@ -1,7 +1,8 @@
 "use client";
 
 import { Camera, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { PHOTO_UPLOAD_TYPES, validatePhotoFile } from "../lib/fileUpload";
 import { cn, useToast } from "../ui";
 
 export type PhotoUploadFieldProps = {
@@ -28,30 +29,29 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
     if (!file) {
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      toast.error("Faqat rasm yuklang (JPG, PNG yoki WebP).");
+    const validationError = validatePhotoFile(file);
+    if (validationError) {
+      toast.error(validationError);
       event.currentTarget.value = "";
       return;
     }
-    setPreview((prev) => {
-      if (prev) {
-        URL.revokeObjectURL(prev);
-      }
-      return URL.createObjectURL(file);
-    });
+    setPreview(URL.createObjectURL(file));
     onFileNameChange(file.name);
   }
+
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   function clearPhoto() {
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-    setPreview((prev) => {
-      if (prev) {
-        URL.revokeObjectURL(prev);
-      }
-      return null;
-    });
+    setPreview(null);
     onFileNameChange("");
   }
 
@@ -70,7 +70,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
         ref={inputRef}
         type="file"
         name={name}
-        accept="image/jpeg,image/png,image/webp"
+        accept={PHOTO_UPLOAD_TYPES.join(",")}
         className="sr-only"
         onChange={handleChange}
       />
@@ -118,7 +118,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
             <Camera size={22} />
           </span>
           <span className="text-sm font-semibold text-ink-900">Rasm yuklash</span>
-          <small className="text-xs text-ink-500">JPG, PNG yoki WebP</small>
+          <small className="text-xs text-ink-500">JPG, PNG yoki WebP — 5 MB gacha</small>
         </button>
       )}
     </div>

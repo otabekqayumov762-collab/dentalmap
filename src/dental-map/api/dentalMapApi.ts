@@ -322,7 +322,6 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
           name: clinic.name || "Klinika",
           district: "Tuman kiritilmagan",
           address: "",
-          workTime: "",
           rating: Number(clinic.rating ?? 0)
         }
       ];
@@ -333,7 +332,6 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       name: branch.clinic_name || clinic.name || "Klinika",
       district: branch.district || "Tuman kiritilmagan",
       address: branch.address || "",
-      workTime: branch.work_time || "",
       rating: Number(clinic.rating ?? 0),
       lat: toCoordinate(branch.latitude),
       lng: toCoordinate(branch.longitude)

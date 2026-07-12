@@ -4,7 +4,7 @@ import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
 import { PhotoUploadField } from "../../components/PhotoUploadField";
 import type { Service, Specialty } from "../../types";
 import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
-import { isSupportedMapLink, LocationPickerField } from "./LocationPickerField";
+import { LocationPickerField, mapLinkValidationError } from "./LocationPickerField";
 import { WorkTimeField } from "./WorkTimeField";
 
 const STEP_TITLES = ["Shaxsiy ma'lumotlar", "Mutaxassislik", "Klinika"] as const;
@@ -136,8 +136,9 @@ export function DoctorRegistrationForm({
       if (!value("clinic_district")) {
         return { field: "clinic_district", message: "Klinika tumanini tanlang." };
       }
-      if (!isSupportedMapLink(value("clinic_location_url"))) {
-        return { field: "clinic_location_url", message: "Google yoki Yandex Maps linkini kiriting." };
+      const locationError = mapLinkValidationError(value("clinic_location_url"));
+      if (locationError) {
+        return { field: "clinic_location_url", message: locationError };
       }
       return null;
     }
@@ -372,7 +373,7 @@ export function DoctorRegistrationForm({
             </>
           ) : (
             <>
-              Keyingi
+              Davom etish
               <ArrowRight size={18} />
             </>
           )}

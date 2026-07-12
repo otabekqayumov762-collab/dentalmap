@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 import { cn } from "./cn";
 
 export type ModalProps = {
@@ -14,22 +15,9 @@ export type ModalProps = {
 
 /** Centered dialog with backdrop, Escape-to-close and scroll lock. */
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const titleId = useId();
+  useDialogA11y(open, onClose, dialogRef);
 
   if (!open) {
     return null;
@@ -38,12 +26,16 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : "Dialog oynasi"}
+        tabIndex={-1}
         className={cn(
           "relative z-10 w-full max-w-md rounded-card bg-surface-0 p-5 shadow-float",
           "animate-[modal-in_0.18s_ease-out]",
@@ -53,7 +45,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       >
         {title && (
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-ink-900">{title}</h2>
+            <h2 id={titleId} className="text-lg font-bold text-ink-900">{title}</h2>
             <button
               type="button"
               aria-label="Yopish"

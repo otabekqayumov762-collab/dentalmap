@@ -1,7 +1,7 @@
 import { Building2, CalendarDays, Clock, Heart, MapPin, Phone, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DoctorAvatar } from "../components/common";
-import { isSafeHttpUrl, openExternal } from "../lib/url";
+import { isSafeMapUrl, openExternal } from "../lib/url";
 import type { Doctor, DoctorReview } from "../types";
 import { Button, Card, cn } from "../ui";
 
@@ -88,7 +88,7 @@ export function DoctorDetailView({
         </span>
       </Card>
 
-      {isSafeHttpUrl(doctor.locationUrl) && (
+      {isSafeMapUrl(doctor.locationUrl) && (
         <Button variant="secondary" size="lg" type="button" onClick={() => openExternal(doctor.locationUrl)}>
           <MapPin size={17} />
           Lokatsiyani ochish

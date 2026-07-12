@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isOfflineMode } from "../../api/dentalMapApi";
+import { validateReceiptFile } from "../../lib/fileUpload";
+import { isSafeHttpUrl } from "../../lib/url";
 import {
   fetchCards,
   fetchReceipts,
@@ -12,19 +14,37 @@ import {
   type Receipt
 } from "../../api/paymentsApi";
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
-
-/** Open an external URL, preferring Telegram's in-app browser when present. */
+/** Open a validated HTTPS URL, preferring Telegram's in-app browser. */
 function openExternalLink(url: string) {
-  if (typeof window === "undefined") {
-    return;
+  if (typeof window === "undefined" || !isSafeHttpUrl(url)) {
+    return false;
+  }
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:") {
+    return false;
   }
   const tg = (window as unknown as { Telegram?: { WebApp?: { openLink?: (u: string) => void } } }).Telegram?.WebApp;
   if (tg?.openLink) {
-    tg.openLink(url);
+    tg.openLink(parsed.href);
   } else {
-    window.open(url, "_blank", "noopener");
+    const opened = window.open(parsed.href, "_blank", "noopener,noreferrer");
+    if (opened) {
+      try {
+        opened.opener = null;
+      } catch {
+        // noopener remains the primary protection for cross-origin windows.
+      }
+    }
   }
+  return true;
+}
+
+/** Never forward Telegram launch query/hash credentials to the payment host. */
+function currentReturnUrl() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return `${window.location.origin}${window.location.pathname}`;
 }
 
 /** Two placeholder admin cards so offline/local demos still look real. */
@@ -147,8 +167,9 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       setSubmitError("Iltimos, chek faylini biriktiring.");
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      setSubmitError("Fayl hajmi 8 MB dan oshmasligi kerak.");
+    const fileError = validateReceiptFile(file);
+    if (fileError) {
+      setSubmitError(fileError);
       return;
     }
 
@@ -208,10 +229,11 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     setPaymeError("");
     setPayingWithPayme(true);
     try {
-      const returnUrl = typeof window !== "undefined" ? window.location.href : "";
-      const checkout = await initiatePayme(returnUrl);
+      const checkout = await initiatePayme(currentReturnUrl());
+      if (!openExternalLink(checkout.checkout_url)) {
+        throw new Error("Payme xavfsiz HTTPS manzil qaytarmadi.");
+      }
       setPaymeStarted(true);
-      openExternalLink(checkout.checkout_url);
     } catch (error) {
       setPaymeError(error instanceof Error ? error.message : "Payme to'lovini boshlab bo'lmadi.");
     } finally {
