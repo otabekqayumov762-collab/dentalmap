@@ -90,7 +90,40 @@ function validateTelegramUrl(name, rawValue) {
 }
 
 validateTelegramUrl("NEXT_PUBLIC_BOT_URL", process.env.NEXT_PUBLIC_BOT_URL?.trim());
-validateTelegramUrl("NEXT_PUBLIC_SUPPORT_URL", process.env.NEXT_PUBLIC_SUPPORT_URL?.trim());
+const rawSupportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL?.trim() || "";
+if (!rawSupportUrl) {
+  fail("NEXT_PUBLIC_SUPPORT_URL is required and must be the business-owned support channel.");
+}
+validateTelegramUrl("NEXT_PUBLIC_SUPPORT_URL", rawSupportUrl);
+if (/\/(?:your_support|your_bot)\/?$/i.test(rawSupportUrl)) {
+  fail("NEXT_PUBLIC_SUPPORT_URL must not use the example placeholder.");
+}
+
+const authMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE?.trim() || "cookie";
+if (!["cookie", "legacy-session"].includes(authMode)) {
+  fail("NEXT_PUBLIC_AUTH_TOKEN_MODE must be cookie or legacy-session.");
+}
+if (authMode === "legacy-session" && process.env.ALLOW_LEGACY_SESSION_AUTH !== "true") {
+  fail("legacy-session auth requires the explicit non-public ALLOW_LEGACY_SESSION_AUTH=true build flag.");
+}
+
+const checkoutHosts = (process.env.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS || "")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean);
+if (checkoutHosts.length === 0) {
+  fail("NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS must contain at least one exact Payme checkout host.");
+}
+for (const host of checkoutHosts) {
+  if (
+    host.includes("://") ||
+    host.includes("/") ||
+    host.includes("*") ||
+    !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host)
+  ) {
+    fail(`Invalid exact Payme checkout host: ${host}`);
+  }
+}
 
 const rawAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim();
 if (rawAdminPath && !/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(rawAdminPath.replace(/^\/+|\/+$/g, ""))) {

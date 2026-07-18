@@ -1,7 +1,9 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { genderOptions, serviceItems, specialtyOptions } from "../../catalog";
+import { isOfflineMode } from "../../api/dentalMapApi";
 import { PhotoUploadField } from "../../components/PhotoUploadField";
+import { PrivacyAcknowledgement } from "../../components/PrivacyAcknowledgement";
 import type { Service, Specialty } from "../../types";
 import { Button, Field, MultiSelectSheet, OptionGrid, PhoneField, RegionDistrictField, Select, TextareaField, cn, useToast } from "../../ui";
 import { LocationPickerField, mapLinkValidationError } from "./LocationPickerField";
@@ -20,7 +22,8 @@ type DoctorField =
   | "experience_years"
   | "clinic_name"
   | "clinic_district"
-  | "clinic_location_url";
+  | "clinic_location_url"
+  | "privacy_acknowledged";
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
@@ -41,6 +44,9 @@ export function DoctorRegistrationForm({
   submitting,
   specialties,
   services,
+  taxonomyLoading = false,
+  taxonomyError = "",
+  onRetryTaxonomies,
   doctorSpecialty,
   doctorGender,
   doctorRegion,
@@ -60,6 +66,9 @@ export function DoctorRegistrationForm({
   submitting: boolean;
   specialties: Specialty[];
   services: Service[];
+  taxonomyLoading?: boolean;
+  taxonomyError?: string;
+  onRetryTaxonomies?: () => void;
   doctorSpecialty: string;
   doctorGender: string;
   doctorRegion: string | null;
@@ -80,12 +89,17 @@ export function DoctorRegistrationForm({
   const [invalidField, setInvalidField] = useState<DoctorField | null>(null);
 
   // Admin-managed lists when available, else the offline catalog fallback.
+  const allowDemoTaxonomies = isOfflineMode();
   const specialtyChoices = specialties.length
     ? specialties.map((s) => ({ value: s.name, label: s.name }))
-    : specialtyOptions.map((item) => ({ value: item, label: item }));
+    : allowDemoTaxonomies
+      ? specialtyOptions.map((item) => ({ value: item, label: item }))
+      : [];
   const serviceChoices = services.length
     ? services.map((s) => ({ value: s.name, label: s.name }))
-    : serviceItems.map(({ id, label }) => ({ value: id, label }));
+    : allowDemoTaxonomies
+      ? serviceItems.map(({ id, label }) => ({ value: id, label }))
+      : [];
 
   // Per-step client validation — mirrors the thresholds enforced in
   // DentalMapApp.sendDoctorRegistration so both paths stay consistent. Returns
@@ -139,6 +153,9 @@ export function DoctorRegistrationForm({
       const locationError = mapLinkValidationError(value("clinic_location_url"));
       if (locationError) {
         return { field: "clinic_location_url", message: locationError };
+      }
+      if (value("privacy_acknowledged") !== "yes") {
+        return { field: "privacy_acknowledged", message: "Maxfiylik qoidalarini o'qib tasdiqlang." };
       }
       return null;
     }
@@ -281,6 +298,22 @@ export function DoctorRegistrationForm({
 
       <div className={cn(step !== 2 && "hidden")}>
         <Section step={2} title="Mutaxassislik">
+          {!allowDemoTaxonomies && (taxonomyLoading || taxonomyError) && (
+            <div
+              role={taxonomyError ? "alert" : "status"}
+              className={cn(
+                "rounded-2xl px-3.5 py-3 text-sm",
+                taxonomyError ? "bg-danger/10 text-danger" : "bg-surface-50 text-ink-500"
+              )}
+            >
+              <p>{taxonomyLoading ? "Yo'nalish va xizmatlar yuklanmoqda…" : taxonomyError}</p>
+              {taxonomyError && onRetryTaxonomies && (
+                <button type="button" className="mt-2 font-semibold underline" onClick={onRetryTaxonomies}>
+                  Qayta urinish
+                </button>
+              )}
+            </div>
+          )}
           <Select
             label="Asosiy yo'nalish"
             name="specialty"
@@ -341,6 +374,7 @@ export function DoctorRegistrationForm({
             error={invalidField === "clinic_district"}
           />
           <LocationPickerField name="clinic_location_url" required />
+          <PrivacyAcknowledgement error={invalidField === "privacy_acknowledged"} />
         </Section>
       </div>
 
@@ -363,7 +397,7 @@ export function DoctorRegistrationForm({
           type="button"
           size="lg"
           className="flex-1"
-          disabled={submitting}
+          disabled={submitting || (step === 2 && !allowDemoTaxonomies && specialtyChoices.length === 0)}
           onClick={step === TOTAL_STEPS ? submitForm : advance}
         >
           {step === TOTAL_STEPS ? (

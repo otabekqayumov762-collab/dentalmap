@@ -19,6 +19,9 @@ export type AuthGateProps = {
   role: RegisterRole;
   specialties: Specialty[];
   services: Service[];
+  taxonomyLoading?: boolean;
+  taxonomyError?: string;
+  onRetryTaxonomies?: () => void;
   userRegistered: boolean;
   submitting: boolean;
   doctorStep: number;
@@ -40,6 +43,9 @@ export function AuthGate({
   role,
   specialties,
   services,
+  taxonomyLoading,
+  taxonomyError,
+  onRetryTaxonomies,
   userRegistered,
   submitting,
   doctorStep,
@@ -120,6 +126,9 @@ export function AuthGate({
             role={role}
             specialties={specialties}
             services={services}
+            taxonomyLoading={taxonomyLoading}
+            taxonomyError={taxonomyError}
+            onRetryTaxonomies={onRetryTaxonomies}
             userRegistered={userRegistered}
             submitting={submitting}
             doctorStep={doctorStep}

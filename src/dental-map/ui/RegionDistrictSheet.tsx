@@ -64,7 +64,7 @@ export function RegionDistrictSheet({
       title={page === "regions" ? "Hudud tanlang" : activeRegion ?? "Tuman tanlang"}
     >
       {page === "regions" ? (
-        <div className="flex flex-col gap-1.5" role="listbox" aria-label="Hududlar">
+        <div className="flex flex-col gap-1.5" role="group" aria-label="Hududlar">
           {mode === "filter" && (
             <button
               type="button"
@@ -107,7 +107,7 @@ export function RegionDistrictSheet({
           })}
         </div>
       ) : (
-        <div className="flex flex-col gap-1.5" role="listbox" aria-label={activeRegion ?? "Tumanlar"}>
+        <div className="flex flex-col gap-1.5" role="group" aria-label={activeRegion ?? "Tumanlar"}>
           <button
             type="button"
             onClick={() => setPage("regions")}
@@ -141,6 +141,7 @@ export function RegionDistrictSheet({
               <button
                 key={district}
                 type="button"
+                aria-pressed={active}
                 onClick={() => choose({ region: activeRegion, district })}
                 className={cn(rowBase, active ? rowActive : rowIdle)}
               >

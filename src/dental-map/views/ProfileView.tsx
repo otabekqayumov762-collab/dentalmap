@@ -6,21 +6,19 @@ import {
   Heart,
   LogOut,
   MessageCircle,
+  ShieldCheck,
   Save,
   User,
   type LucideIcon
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
 import { districtToRegion } from "../catalog";
 import { isSafeTelegramUrl, openExternal } from "../lib/url";
+import { PRIVACY_PATH, SUPPORT_URL } from "../lib/publicConfig";
 import type { ApiUser, ViewId } from "../types";
 import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
-
-// Support/help-desk Telegram account. Override via NEXT_PUBLIC_SUPPORT_URL.
-const DEFAULT_SUPPORT_URL = "https://t.me/Alisherovich_5";
-const configuredSupportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL || DEFAULT_SUPPORT_URL;
-const SUPPORT_TELEGRAM_URL = isSafeTelegramUrl(configuredSupportUrl) ? configuredSupportUrl : DEFAULT_SUPPORT_URL;
 
 type ProfileForm = {
   name: string;
@@ -75,23 +73,22 @@ function MenuRow({
   title,
   subtitle,
   onClick,
+  href,
   first
 }: {
   Icon: LucideIcon;
   title: string;
   subtitle: string;
-  onClick: () => void;
+  onClick?: () => void;
+  href?: string;
   first?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
+  const className = cn(
         "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-50 focus-visible:bg-surface-50 focus-visible:outline-none active:bg-surface-100",
         !first && "border-t border-surface-100"
-      )}
-    >
+      );
+  const content = (
+    <>
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
         <Icon size={18} />
       </span>
@@ -100,8 +97,12 @@ function MenuRow({
         <small className="truncate text-xs text-ink-500">{subtitle}</small>
       </span>
       <ChevronRight size={18} className="shrink-0 text-ink-400" />
-    </button>
+    </>
   );
+  if (href) {
+    return <Link href={href} className={className}>{content}</Link>;
+  }
+  return <button type="button" onClick={onClick} className={className}>{content}</button>;
 }
 
 export function ProfileView({
@@ -311,8 +312,18 @@ export function ProfileView({
             first
             Icon={MessageCircle}
             title="Yordam markazi bilan bog'lanish"
-            subtitle="Telegram orqali savol bering"
-            onClick={() => openExternal(SUPPORT_TELEGRAM_URL)}
+            subtitle="Rasmiy biznes yordam kanali"
+            onClick={() => {
+              if (isSafeTelegramUrl(SUPPORT_URL)) {
+                openExternal(SUPPORT_URL);
+              }
+            }}
+          />
+          <MenuRow
+            Icon={ShieldCheck}
+            title="Maxfiylik va ma'lumotlarni o'chirish"
+            subtitle="Saqlash muddati, nusxa olish va o'chirish so'rovi"
+            href={PRIVACY_PATH}
           />
         </div>
       </section>

@@ -14,12 +14,19 @@ export type AuthPayload = {
 let authTokens: NonNullable<AuthPayload["tokens"]> = {};
 let authTokenOwnerTelegramId: number | null = null;
 
+function legacySessionEnabled() {
+  return process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE === "legacy-session";
+}
+
 export function storeAuthTokens(payload: AuthPayload) {
+  const legacySession = legacySessionEnabled();
   const hasTokens =
     typeof payload.tokens?.access === "string" || typeof payload.tokens?.refresh === "string";
   authTokens = {
     access: typeof payload.tokens?.access === "string" ? payload.tokens.access : "",
-    refresh: typeof payload.tokens?.refresh === "string" ? payload.tokens.refresh : ""
+    // Cookie mode deliberately makes the refresh credential unreachable to JS.
+    refresh:
+      legacySession && typeof payload.tokens?.refresh === "string" ? payload.tokens.refresh : ""
   };
   if (payload.user !== undefined) {
     authTokenOwnerTelegramId = normalizeTelegramId(payload.user?.telegram_id);
@@ -27,7 +34,7 @@ export function storeAuthTokens(payload: AuthPayload) {
     authTokenOwnerTelegramId = null;
   }
   try {
-    if (authTokens.access || authTokens.refresh) {
+    if (legacySession && (authTokens.access || authTokens.refresh)) {
       window.sessionStorage.setItem(
         AUTH_STORAGE_KEY,
         JSON.stringify({ ...authTokens, ownerTelegramId: authTokenOwnerTelegramId })
@@ -51,6 +58,19 @@ export function getRefreshToken() {
 }
 
 export function restoreAuthTokens(expectedTelegramId?: number) {
+  if (!legacySessionEnabled()) {
+    // Remove credentials left by a previous compatibility build. Cookie mode
+    // can restore only through the HttpOnly refresh endpoint.
+    authTokens = {};
+    authTokenOwnerTelegramId = null;
+    try {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    } catch {
+      // Storage is optional.
+    }
+    return "";
+  }
   try {
     const rawValue = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
     if (!rawValue) {

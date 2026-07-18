@@ -1,6 +1,0 @@
-[build]
-  command = "test -n \"$NEXT_PUBLIC_API_URL\" && npm run build"
-  publish = "out"
-
-[build.environment]
-  NODE_VERSION = "22"

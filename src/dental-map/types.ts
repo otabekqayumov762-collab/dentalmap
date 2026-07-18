@@ -231,6 +231,8 @@ export type ApiReview = {
   clinic_district?: string;
   clinic_address?: string;
   patient_name?: string;
+  /** Moderated/pseudonymized public display name. The UI ignores patient_name. */
+  author_display?: string;
   rating: number;
   comment?: string;
   status: "pending" | "approved" | "rejected";

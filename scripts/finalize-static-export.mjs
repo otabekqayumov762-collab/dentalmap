@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const outDir = resolve(process.argv[2] || "out");
+const generatedDir = resolve("generated");
 
 if (!existsSync(outDir)) {
   console.error(`Static export directory not found: ${outDir}`);
@@ -114,22 +115,6 @@ function createContentSecurityPolicy() {
   ].join("; ");
 }
 
-function writeNetlifyHeaders(csp) {
-  writeFileSync(
-    join(outDir, "_headers"),
-    [
-      "/*",
-      "  X-Content-Type-Options: nosniff",
-      "  Strict-Transport-Security: max-age=31536000",
-      "  X-Permitted-Cross-Domain-Policies: none",
-      "  Referrer-Policy: strict-origin-when-cross-origin",
-      "  Permissions-Policy: camera=(), microphone=(), geolocation=(self)",
-      `  Content-Security-Policy: ${csp}`,
-      ""
-    ].join("\n")
-  );
-}
-
 function nginxSecurityHeaders(csp) {
   return [
     '    add_header X-Content-Type-Options "nosniff" always;',
@@ -143,37 +128,53 @@ function nginxSecurityHeaders(csp) {
 
 function writeNginxConfig(csp) {
   const securityHeaders = nginxSecurityHeaders(csp);
-  const assetSecurityHeaders = securityHeaders
-    .split("\n")
-    .map((line) => `    ${line}`)
-    .join("\n");
-
+  mkdirSync(generatedDir, { recursive: true });
   writeFileSync(
-    join(outDir, "nginx.conf"),
-    `server {
-    listen 80;
-    server_name _;
-    server_tokens off;
-    root /usr/share/nginx/html;
-    index index.html;
+    join(generatedDir, "nginx.conf"),
+    `worker_processes auto;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
 
-    gzip_static on;
-    gzip on;
-    gzip_comp_level 4;
-    gzip_types application/json text/css application/javascript image/svg+xml;
-    gzip_min_length 512;
+events { worker_connections 1024; }
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+    sendfile on;
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
+
+    server {
+        listen 8080;
+        server_name _;
+        server_tokens off;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        gzip_static on;
+        gzip on;
+        gzip_comp_level 4;
+        gzip_types application/json text/css application/javascript image/svg+xml;
+        gzip_min_length 512;
 
 ${securityHeaders}
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+        # Never let the SPA fallback turn sensitive/dotfile probes into 200 HTML.
+        location ~ (^|/)\\. { return 404; }
+        location ~* (^|/)(?:_headers|nginx\\.conf|dockerfile|docker-compose\\.ya?ml|package(?:-lock)?\\.json|tsconfig\\.json|next\\.config\\.(?:js|mjs|ts)|\\.git)(?:/|$) { return 404; }
 
-    location ~* \\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-${assetSecurityHeaders}
-        try_files $uri =404;
+        location ~* \\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
+            expires 30d;
+            try_files $uri =404;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
     }
 }
 `
@@ -202,7 +203,6 @@ function precompressAssets(directory) {
 }
 
 const csp = createContentSecurityPolicy();
-writeNetlifyHeaders(csp);
 writeNginxConfig(csp);
 const precompressedCount = precompressAssets(outDir);
-console.log(`Static export security headers generated. Precompressed ${precompressedCount} asset(s).`);
+console.log(`Private runtime config generated. Precompressed ${precompressedCount} asset(s).`);

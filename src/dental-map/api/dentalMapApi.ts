@@ -1,5 +1,6 @@
 import { formatUzDate } from "../lib/date";
 import { groupSlots, type DaySlots } from "../lib/schedule";
+import { authFetchCredentials, usesRefreshCookie } from "../lib/authMode";
 import { getAccessToken, getRefreshToken, storeAuthTokens } from "../lib/tokenStore";
 import type {
   ApiAppointment,
@@ -78,12 +79,41 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
 }
 
 /**
- * Exchanges the stored refresh token for a fresh access token via SimpleJWT
- * (`POST /api/auth/token/refresh/` → `{access, refresh?}`). A single in-flight
- * promise is shared so concurrent 401s trigger at most one refresh. On any
- * failure the tokens are cleared so the app falls back to the auth wall.
+ * Exchanges the backend-owned HttpOnly refresh cookie for `{access}`. The
+ * explicitly gated legacy mode can still send a JSON refresh token during a
+ * controlled migration. A single in-flight promise means concurrent 401s
+ * trigger at most one exchange; failures clear the in-memory access token.
  */
 let refreshInFlight: Promise<boolean> | null = null;
+let csrfInFlight: Promise<string> | null = null;
+
+/** Obtain Django's CSRF token before an HttpOnly-cookie auth mutation. Kept in
+ * memory; the corresponding non-HttpOnly CSRF cookie is managed by the browser. */
+export async function getAuthCsrfToken(): Promise<string> {
+  if (!usesRefreshCookie()) {
+    return "";
+  }
+  if (!csrfInFlight) {
+    csrfInFlight = (async () => {
+      const response = await fetch(getApiUrl("/api/auth/csrf/"), {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error("Xavfsiz sessiya tayyorlanmadi.");
+      }
+      const payload = (await response.json()) as { csrf_token?: unknown };
+      if (typeof payload.csrf_token !== "string" || !payload.csrf_token) {
+        throw new Error("CSRF server javobi noto'g'ri.");
+      }
+      return payload.csrf_token;
+    })().finally(() => {
+      csrfInFlight = null;
+    });
+  }
+  return csrfInFlight;
+}
 
 /** Human-readable message from a DRF ({detail}/{field:[...]}) or FastAPI 422
  *  ({detail:[{msg}]}) error body — avoids the "[object Object]" garble. */
@@ -111,18 +141,26 @@ export function parseApiError(payload: unknown, fallback = "Xatolik yuz berdi.")
 
 export async function refreshAccessToken(): Promise<boolean> {
   const refresh = getRefreshToken();
-  if (!refresh) {
+  const cookieMode = usesRefreshCookie();
+  if (!cookieMode && !refresh) {
     return false;
   }
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
+        const csrfToken = cookieMode ? await getAuthCsrfToken() : "";
+        const headers = new Headers();
+        if (cookieMode) {
+          headers.set("X-CSRFToken", csrfToken);
+        } else {
+          headers.set("Content-Type", "application/json");
+        }
         const response = await fetch(getApiUrl("/api/auth/token/refresh/"), {
           method: "POST",
           cache: "no-store",
-          credentials: "omit",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh })
+          credentials: authFetchCredentials(),
+          headers,
+          body: cookieMode ? undefined : JSON.stringify({ refresh })
         });
         if (!response.ok) {
           storeAuthTokens({});
@@ -134,7 +172,12 @@ export async function refreshAccessToken(): Promise<boolean> {
           return false;
         }
         // SimpleJWT may rotate the refresh token; keep the old one if it doesn't.
-        storeAuthTokens({ tokens: { access: data.access, refresh: data.refresh ?? refresh } });
+        storeAuthTokens({
+          tokens: {
+            access: data.access,
+            refresh: cookieMode ? undefined : data.refresh ?? refresh
+          }
+        });
         return true;
       } catch {
         storeAuthTokens({});
@@ -154,6 +197,7 @@ export async function apiRequest<T>(
     method = "GET",
     body,
     signal,
+    requestHeaders,
     // Internal: set once we've already retried after a refresh, to prevent loops.
     retry = false
   }: {
@@ -161,10 +205,11 @@ export async function apiRequest<T>(
     method?: string;
     body?: BodyInit | null;
     signal?: AbortSignal;
+    requestHeaders?: HeadersInit;
     retry?: boolean;
   } = {}
 ): Promise<T> {
-  const headers = new Headers();
+  const headers = new Headers(requestHeaders);
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -175,7 +220,7 @@ export async function apiRequest<T>(
   const response = await fetch(getApiUrl(path), {
     method,
     cache: "no-store",
-    credentials: "omit",
+    credentials: authFetchCredentials(),
     headers,
     body,
     signal
@@ -185,7 +230,14 @@ export async function apiRequest<T>(
   if (response.status === 401 && token && !retry) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      return apiRequest<T>(path, { token: getAccessToken(), method, body, signal, retry: true });
+      return apiRequest<T>(path, {
+        token: getAccessToken(),
+        method,
+        body,
+        signal,
+        requestHeaders,
+        retry: true
+      });
     }
   }
 
@@ -236,7 +288,10 @@ export function mapReview(item: ApiReview): DoctorReview {
     clinic: item.clinic_name || undefined,
     clinicDistrict: item.clinic_district || undefined,
     clinicAddress: item.clinic_address || undefined,
-    author: item.patient_name || "Foydalanuvchi",
+    // Never render a patient's legal name in a public review. The backend may
+    // provide a moderated pseudonym; older responses fail closed to a generic
+    // label instead of exposing patient_name.
+    author: item.author_display || "Tasdiqlangan bemor",
     rating: Number(item.rating || 0),
     text: item.comment || "",
     date: item.created_at ? formatUzDate(item.created_at) : "Bugun",
@@ -339,36 +394,21 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
   });
 }
 
-/**
- * Admin-managed "Asosiy yo'nalish" list (GET /api/specialties/). Returns a plain
- * JSON array. Swallows ALL errors (incl. AbortError and the getApiUrl "unset base
- * URL" throw) and returns [] so the caller falls back to the catalog constants.
- */
+/** Admin-managed "Asosiy yo'nalish" list. Errors remain distinguishable from a
+ * legitimate empty catalog so online registration never falls back to fake data. */
 export async function fetchSpecialties(signal?: AbortSignal): Promise<Specialty[]> {
-  try {
-    const response = await fetch(getApiUrl("/api/specialties/"), { cache: "no-store", signal });
-    if (!response.ok) {
-      return [];
-    }
-    return normalizeApiList<Specialty>(await response.json());
-  } catch {
-    return [];
+  const response = await fetch(getApiUrl("/api/specialties/"), { cache: "no-store", signal });
+  if (!response.ok) {
+    throw new Error(`Yo'nalishlar yuklanmadi (${response.status}).`);
   }
+  return normalizeApiList<Specialty>(await response.json());
 }
 
-/**
- * Admin-managed "Ko'rsatiladigan xizmatlar" list (GET /api/services/). Returns a
- * plain JSON array. Swallows ALL errors and returns [] so the caller falls back
- * to the catalog constants.
- */
+/** Admin-managed service list. Online failures are intentionally propagated. */
 export async function fetchServices(signal?: AbortSignal): Promise<Service[]> {
-  try {
-    const response = await fetch(getApiUrl("/api/services/"), { cache: "no-store", signal });
-    if (!response.ok) {
-      return [];
-    }
-    return normalizeApiList<Service>(await response.json());
-  } catch {
-    return [];
+  const response = await fetch(getApiUrl("/api/services/"), { cache: "no-store", signal });
+  if (!response.ok) {
+    throw new Error(`Xizmatlar yuklanmadi (${response.status}).`);
   }
+  return normalizeApiList<Service>(await response.json());
 }

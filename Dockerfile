@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,15 @@ ENV NEXT_PUBLIC_MEDIA_URL=${NEXT_PUBLIC_MEDIA_URL}
 ARG NEXT_PUBLIC_BOT_URL
 ENV NEXT_PUBLIC_BOT_URL=${NEXT_PUBLIC_BOT_URL}
 ARG NEXT_PUBLIC_SUPPORT_URL
+RUN test -n "$NEXT_PUBLIC_SUPPORT_URL" || (echo "NEXT_PUBLIC_SUPPORT_URL build arg is required" >&2; exit 1)
 ENV NEXT_PUBLIC_SUPPORT_URL=${NEXT_PUBLIC_SUPPORT_URL}
+ARG NEXT_PUBLIC_AUTH_TOKEN_MODE=cookie
+ENV NEXT_PUBLIC_AUTH_TOKEN_MODE=${NEXT_PUBLIC_AUTH_TOKEN_MODE}
+ARG ALLOW_LEGACY_SESSION_AUTH
+ENV ALLOW_LEGACY_SESSION_AUTH=${ALLOW_LEGACY_SESSION_AUTH}
+ARG NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS
+RUN test -n "$NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS" || (echo "NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS build arg is required" >&2; exit 1)
+ENV NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS=${NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS}
 ARG NEXT_PUBLIC_TELEGRAM_ONLY
 ENV NEXT_PUBLIC_TELEGRAM_ONLY=${NEXT_PUBLIC_TELEGRAM_ONLY}
 ARG NEXT_PUBLIC_ADMIN_URL
@@ -25,10 +33,14 @@ ARG NEXT_PUBLIC_YANDEX_MAPS_API_KEY
 ENV NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
 RUN npm run build
 
-FROM nginx:1.30.3-alpine3.23
+FROM nginx:1.30.3-alpine3.23@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
 
-COPY --from=builder /app/out /usr/share/nginx/html
-COPY --from=builder /app/out/nginx.conf /etc/nginx/conf.d/default.conf
-RUN chmod -R a+rX /usr/share/nginx/html
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY --from=builder --chown=101:101 /app/out /usr/share/nginx/html
+COPY --from=builder --chown=101:101 /app/generated/nginx.conf /etc/nginx/nginx.conf
+RUN chmod -R a=rX /usr/share/nginx/html /etc/nginx/nginx.conf
 
-EXPOSE 80
+USER 101:101
+EXPOSE 8080
+ENTRYPOINT ["nginx"]
+CMD ["-g", "daemon off;"]

@@ -1,4 +1,5 @@
 import { getAccessToken } from "../lib/tokenStore";
+import { authFetchCredentials } from "../lib/authMode";
 import { API_BASE_URL, normalizeApiList, parseApiError, refreshAccessToken } from "./dentalMapApi";
 
 /**
@@ -75,7 +76,7 @@ async function requestV1<T>(
   const response = await fetch(getApiV1Url(path), {
     method,
     cache: "no-store",
-    credentials: "omit",
+    credentials: authFetchCredentials(),
     headers,
     body,
     signal

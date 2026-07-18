@@ -1,5 +1,5 @@
-import { Building2, CalendarDays, Clock, Heart, MapPin, Phone, Star } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Building2, CalendarDays, ChevronLeft, ChevronRight, Clock, Heart, MapPin, Phone, Star } from "lucide-react";
+import { useRef, useState } from "react";
 import { DoctorAvatar } from "../components/common";
 import { isSafeMapUrl, openExternal } from "../lib/url";
 import type { Doctor, DoctorReview } from "../types";
@@ -21,24 +21,19 @@ export function DoctorDetailView({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [activeReview, setActiveReview] = useState(0);
 
-  // Auto-advancing, looping reviews carousel.
-  useEffect(() => {
-    if (reviews.length <= 1) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      setActiveReview((current) => {
-        const next = (current + 1) % reviews.length;
-        const scroller = scrollerRef.current;
-        const card = scroller?.children[next] as HTMLElement | undefined;
-        if (scroller && card) {
-          scroller.scrollTo({ left: card.offsetLeft - scroller.offsetLeft, behavior: "smooth" });
-        }
-        return next;
+  function showReview(index: number) {
+    const next = Math.max(0, Math.min(index, reviews.length - 1));
+    const scroller = scrollerRef.current;
+    const card = scroller?.children[next] as HTMLElement | undefined;
+    if (scroller && card) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      scroller.scrollTo({
+        left: card.offsetLeft - scroller.offsetLeft,
+        behavior: reducedMotion ? "auto" : "smooth"
       });
-    }, 3500);
-    return () => window.clearInterval(timer);
-  }, [reviews.length]);
+    }
+    setActiveReview(next);
+  }
   return (
     <div className="flex flex-col gap-4">
       <Card as="section" className="flex items-start gap-3">
@@ -116,6 +111,21 @@ export function DoctorDetailView({
             <div
               ref={scrollerRef}
               className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar px-1"
+              role="region"
+              aria-roledescription="karusel"
+              aria-label="Tasdiqlangan sharhlar"
+              onScroll={(event) => {
+                const scroller = event.currentTarget;
+                const cards = Array.from(scroller.children) as HTMLElement[];
+                const nearest = cards.reduce(
+                  (best, card, index) =>
+                    Math.abs(card.offsetLeft - scroller.scrollLeft) < best.distance
+                      ? { index, distance: Math.abs(card.offsetLeft - scroller.scrollLeft) }
+                      : best,
+                  { index: 0, distance: Number.POSITIVE_INFINITY }
+                );
+                setActiveReview(nearest.index);
+              }}
             >
               {reviews.map((review) => (
                 <article
@@ -151,16 +161,38 @@ export function DoctorDetailView({
               ))}
             </div>
             {reviews.length > 1 && (
-              <div className="flex justify-center gap-1.5" aria-hidden="true">
+              <div className="flex items-center justify-center gap-2" aria-label="Sharh navigatsiyasi">
+                <button
+                  type="button"
+                  aria-label="Oldingi sharh"
+                  disabled={activeReview === 0}
+                  onClick={() => showReview(activeReview - 1)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-600 disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} />
+                </button>
                 {reviews.map((review, index) => (
-                  <span
+                  <button
+                    type="button"
                     key={review.id}
+                    aria-label={`${index + 1}-sharhni ko'rsatish`}
+                    aria-current={index === activeReview ? "true" : undefined}
+                    onClick={() => showReview(index)}
                     className={cn(
-                      "h-1.5 rounded-pill transition-all",
+                      "h-2 rounded-pill transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
                       index === activeReview ? "w-4 bg-brand-500" : "w-1.5 bg-surface-200"
                     )}
                   />
                 ))}
+                <button
+                  type="button"
+                  aria-label="Keyingi sharh"
+                  disabled={activeReview === reviews.length - 1}
+                  onClick={() => showReview(activeReview + 1)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-600 disabled:opacity-40"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             )}
           </div>

@@ -1,9 +1,10 @@
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { genderOptions } from "../../catalog";
+import { PrivacyAcknowledgement } from "../../components/PrivacyAcknowledgement";
 import { Button, Field, OptionGrid, PhoneField, RegionDistrictField, useToast } from "../../ui";
 
-type UserField = "full_name" | "phone" | "password" | "password_confirm";
+type UserField = "full_name" | "phone" | "password" | "password_confirm" | "privacy_acknowledged";
 
 export function UserRegistrationForm({
   userGender,
@@ -46,6 +47,9 @@ export function UserRegistrationForm({
     }
     if (value("password") !== value("password_confirm")) {
       return { field: "password_confirm", message: "Parollar bir xil emas." };
+    }
+    if (value("privacy_acknowledged") !== "yes") {
+      return { field: "privacy_acknowledged", message: "Maxfiylik qoidalarini o'qib tasdiqlang." };
     }
     return null;
   }
@@ -140,6 +144,7 @@ export function UserRegistrationForm({
         }}
         placeholder="Tumanni tanlang"
       />
+      <PrivacyAcknowledgement error={invalidField === "privacy_acknowledged"} />
       <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
         {submitting ? "Yuborilmoqda…" : "Profil yaratish"}

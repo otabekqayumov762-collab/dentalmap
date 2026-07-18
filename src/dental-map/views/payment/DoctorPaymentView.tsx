@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, CheckCircle2, CreditCard, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, CreditCard, Loader2, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 import { SectionTitle } from "../../components/common";
 import { Button, Card, Field, TextareaField } from "../../ui";
 import { PaymentCardTile } from "./PaymentCardTile";
@@ -20,12 +21,13 @@ function formatUzs(value: number) {
  * upload the receipt for admin approval. Replaces the old auto-"paid" flow.
  */
 export function DoctorPaymentView({
-  subscriptionAmountUzs = 2150000,
+  demoSubscriptionAmountUzs = 2150000,
   paid,
   onPaid,
   onRefresh
 }: {
-  subscriptionAmountUzs?: number;
+  /** Used only by explicit local/demo mode. Online pricing always comes from API. */
+  demoSubscriptionAmountUzs?: number;
   paid: boolean;
   onPaid: () => void;
   onRefresh?: () => void;
@@ -37,8 +39,10 @@ export function DoctorPaymentView({
     selectedCardId,
     setSelectedCardId,
     subscriptionAmountUzs: currentSubscriptionAmountUzs,
+    subscriptionLoading,
+    subscriptionError,
+    retrySubscription,
     amount,
-    setAmount,
     note,
     setNote,
     file,
@@ -52,7 +56,20 @@ export function DoctorPaymentView({
     paymeError,
     paymeStarted,
     payWithPayme
-  } = useDoctorPayment({ defaultAmountUzs: subscriptionAmountUzs });
+  } = useDoctorPayment({ defaultAmountUzs: demoSubscriptionAmountUzs });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("payment_return") !== "payme") {
+      return;
+    }
+    url.searchParams.delete("payment_return");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    onRefresh?.();
+  }, [onRefresh]);
 
   const approved = paid || latestReceipt?.status === "approved";
   const waitingForApproval = submitted || latestReceipt?.status === "pending";
@@ -112,14 +129,24 @@ export function DoctorPaymentView({
           <span>
             <strong className="block text-sm font-bold text-ink-900">Shifokor obunasi</strong>
             <small className="block text-xs text-ink-500">
-              Profil 1 oy davomida faol bo&apos;ladi. Minimal to&apos;lov: {formatUzs(currentSubscriptionAmountUzs)}.
+              {currentSubscriptionAmountUzs === null
+                ? "Serverdagi obuna narxi tekshirilmoqda."
+                : `Profil 1 oy davomida faol bo'ladi. To'lov: ${formatUzs(currentSubscriptionAmountUzs)}.`}
             </small>
           </span>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-surface-100 pt-3">
           <span className="font-medium text-ink-700">1 oylik obuna</span>
-          <strong className="text-base font-bold text-brand-600">{formatUzs(currentSubscriptionAmountUzs)}</strong>
+          <strong className="text-base font-bold text-brand-600">
+            {currentSubscriptionAmountUzs === null ? "—" : formatUzs(currentSubscriptionAmountUzs)}
+          </strong>
         </div>
+        {subscriptionError && (
+          <div role="alert" className="flex items-center gap-2 rounded-2xl bg-danger/10 px-3 py-2.5 text-danger">
+            <AlertTriangle size={16} className="shrink-0" />
+            <small>{subscriptionError}</small>
+          </div>
+        )}
       </Card>
 
       <Card className="flex flex-col gap-3">
@@ -152,7 +179,11 @@ export function DoctorPaymentView({
             </Button>
           </div>
         ) : (
-          <Button type="button" onClick={() => void payWithPayme()} disabled={payingWithPayme}>
+          <Button
+            type="button"
+            onClick={() => void payWithPayme()}
+            disabled={payingWithPayme || subscriptionLoading || currentSubscriptionAmountUzs === null}
+          >
             {payingWithPayme ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
             {payingWithPayme ? "Ochilmoqda…" : "Payme orqali to'lash"}
           </Button>
@@ -205,10 +236,11 @@ export function DoctorPaymentView({
         name="amount_uzs"
         type="number"
         inputMode="numeric"
-        min={currentSubscriptionAmountUzs}
+        min={currentSubscriptionAmountUzs ?? undefined}
         value={amount}
-        disabled={submitting}
-        onChange={(event) => setAmount(event.target.value)}
+        readOnly
+        disabled={submitting || subscriptionLoading || currentSubscriptionAmountUzs === null}
+        hint="Summa serverdagi faol obuna tarifi bo'yicha belgilanadi."
       />
 
       <ReceiptFileField file={file} disabled={submitting} onFileChange={setFile} />
@@ -236,12 +268,24 @@ export function DoctorPaymentView({
         id="doctor-payment-submit"
         type="button"
         size="lg"
-        disabled={submitting || cardsLoading || cards.length === 0}
+        disabled={
+          submitting ||
+          cardsLoading ||
+          subscriptionLoading ||
+          currentSubscriptionAmountUzs === null ||
+          cards.length === 0
+        }
         onClick={() => void submit()}
       >
         {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
         {submitting ? "Yuborilmoqda…" : "Chekni yuborish"}
       </Button>
+      {subscriptionError && (
+        <Button type="button" variant="secondary" size="lg" onClick={retrySubscription}>
+          <RefreshCw size={18} />
+          Narxni qayta tekshirish
+        </Button>
+      )}
     </div>
   );
 }

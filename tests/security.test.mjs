@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { MAX_PHOTO_BYTES, validatePhotoFile, validateReceiptFile } from "../src/dental-map/lib/fileUpload.ts";
 import { toSafeTelHref } from "../src/dental-map/lib/phone.ts";
@@ -15,6 +18,7 @@ import {
   isTelegramPlaceholderUser,
   requireTelegramOnboardingInitData
 } from "../src/dental-map/lib/onboarding.ts";
+import { isAllowedPaymeCheckoutUrl } from "../src/dental-map/lib/paymentSecurity.ts";
 
 test("map URLs require canonical HTTPS Google/Yandex map endpoints", () => {
   assert.equal(isSafeMapUrl("https://www.google.com/maps/search/?q=dentist"), true);
@@ -167,6 +171,8 @@ test("Telegram fallback rejects a stored token owned by another account", () => 
   const localStorage = storage();
   const sessionStorage = storage();
   globalThis.window = { localStorage, sessionStorage };
+  const previousMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE;
+  process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE = "legacy-session";
 
   try {
     storeAuthTokens({
@@ -178,12 +184,52 @@ test("Telegram fallback rejects a stored token owned by another account", () => 
     assert.equal(sessionStorage.getItem("dentalmap_auth_tokens"), null);
   } finally {
     storeAuthTokens({});
+    if (previousMode === undefined) {
+      delete process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE;
+    } else {
+      process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE = previousMode;
+    }
     if (previousWindow === undefined) {
       delete globalThis.window;
     } else {
       globalThis.window = previousWindow;
     }
   }
+});
+
+test("cookie auth keeps access in memory and never stores refresh credentials", () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, String(value))
+  };
+  const previousWindow = globalThis.window;
+  const previousMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE;
+  process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE = "cookie";
+  globalThis.window = { localStorage: storage, sessionStorage: storage };
+  try {
+    storeAuthTokens({ tokens: { access: "short-lived", refresh: "must-never-be-readable" } });
+    assert.equal(sessionStorage.getItem("dentalmap_auth_tokens"), null);
+    assert.equal(restoreAuthTokens(), "");
+    assert.equal(sessionStorage.getItem("dentalmap_auth_tokens"), null);
+  } finally {
+    storeAuthTokens({});
+    if (previousMode === undefined) delete process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE;
+    else process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE = previousMode;
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
+test("Payme checkout redirects require an exact configured HTTPS host", () => {
+  assert.equal(isAllowedPaymeCheckoutUrl("https://checkout.paycom.uz/pay/abc"), true);
+  assert.equal(isAllowedPaymeCheckoutUrl("https://test.paycom.uz/pay/abc"), true);
+  assert.equal(isAllowedPaymeCheckoutUrl("https://checkout.paycom.uz.evil.example/pay"), false);
+  assert.equal(isAllowedPaymeCheckoutUrl("https://evil.example/?next=checkout.paycom.uz"), false);
+  assert.equal(isAllowedPaymeCheckoutUrl("http://checkout.paycom.uz/pay"), false);
+  assert.equal(isAllowedPaymeCheckoutUrl("https://user:secret@checkout.paycom.uz/pay"), false);
+  assert.equal(isAllowedPaymeCheckoutUrl("https://checkout.paycom.uz:444/pay"), false);
 });
 
 test("build environment validator rejects unsafe public redirects", () => {
@@ -195,7 +241,8 @@ test("build environment validator rejects unsafe public redirects", () => {
         ...process.env,
         NEXT_PUBLIC_API_URL: "http://localhost:8000",
         NEXT_PUBLIC_BOT_URL: "",
-        NEXT_PUBLIC_SUPPORT_URL: "",
+        NEXT_PUBLIC_SUPPORT_URL: "https://t.me/dentalmap_support",
+        NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS: "checkout.paycom.uz",
         NEXT_PUBLIC_ADMIN_URL: "admin",
         ...overrides
       }
@@ -205,4 +252,59 @@ test("build environment validator rejects unsafe public redirects", () => {
   assert.notEqual(run({ NEXT_PUBLIC_ADMIN_URL: "https://evil.example/admin" }).status, 0);
   assert.notEqual(run({ NEXT_PUBLIC_API_URL: "javascript:alert(1)" }).status, 0);
   assert.notEqual(run({ NEXT_PUBLIC_MEDIA_URL: "https://user:password@media.example.com" }).status, 0);
+  assert.notEqual(run({ NEXT_PUBLIC_SUPPORT_URL: "" }).status, 0);
+  assert.notEqual(run({ NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS: "*.paycom.uz" }).status, 0);
+  assert.notEqual(
+    run({ NEXT_PUBLIC_AUTH_TOKEN_MODE: "legacy-session", ALLOW_LEGACY_SESSION_AUTH: "" }).status,
+    0
+  );
+});
+
+test("static export keeps server configuration private and denies sensitive SPA fallbacks", () => {
+  const root = mkdtempSync(join(tmpdir(), "dental-static-"));
+  const out = join(root, "out");
+  mkdirSync(out);
+  writeFileSync(join(out, "index.html"), "<!doctype html><script>window.__ok=true</script>");
+  const script = resolve("scripts/finalize-static-export.mjs");
+  const run = spawnSync(process.execPath, [script, out], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NEXT_PUBLIC_API_URL: "https://api.example.test",
+      NEXT_PUBLIC_API_V1_URL: "",
+      NEXT_PUBLIC_MEDIA_URL: ""
+    }
+  });
+  try {
+    assert.equal(run.status, 0, run.stderr);
+    assert.throws(() => readFileSync(join(out, "_headers")));
+    assert.throws(() => readFileSync(join(out, "nginx.conf")));
+    const nginx = readFileSync(join(root, "generated", "nginx.conf"), "utf8");
+    assert.match(nginx, /listen 8080/);
+    assert.match(nginx, /location ~ \(\^\|\/\)\\\./);
+    assert.match(nginx, /\|\\\.git\)/);
+    assert.match(nginx, /package\(\?:-lock\)\?/);
+    assert.match(nginx, /try_files \$uri \$uri\/ \/index\.html/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("public bundle scanner rejects private deployment artifacts and server credential markers", () => {
+  const root = mkdtempSync(join(tmpdir(), "dental-bundle-scan-"));
+  const script = resolve("scripts/scan-public-bundle.mjs");
+  writeFileSync(join(root, "index.html"), "<!doctype html><title>Safe</title>");
+  const safe = spawnSync(process.execPath, [script, root], { encoding: "utf8" });
+  assert.equal(safe.status, 0, safe.stderr);
+
+  writeFileSync(join(root, "nginx.conf"), "server {}");
+  const artifact = spawnSync(process.execPath, [script, root], { encoding: "utf8" });
+  assert.notEqual(artifact.status, 0);
+  rmSync(join(root, "nginx.conf"));
+
+  writeFileSync(join(root, "bundle.js"), "const leaked = 'PAYME_SECRET_KEY';");
+  const secret = spawnSync(process.execPath, [script, root], { encoding: "utf8" });
+  assert.notEqual(secret.status, 0);
+  rmSync(root, { recursive: true, force: true });
 });

@@ -58,6 +58,9 @@ function DentalMapAppInner() {
     currentUser,
     specialties,
     services,
+    taxonomyLoading,
+    taxonomyError,
+    retryTaxonomies,
     authStatus,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
@@ -69,6 +72,7 @@ function DentalMapAppInner() {
     registerUser,
     registerDoctor,
     submitDoctorReview,
+    submitFeedback,
     submitDoctorProfileUpdate,
     submitDoctorSchedule,
     runDoctorAppointmentAction,
@@ -275,8 +279,11 @@ function DentalMapAppInner() {
         appointments={appointments}
         schedule={doctorSchedule}
         loading={privateLoading}
-        error={doctorActionError}
-        onRefresh={() => void refreshPrivateData()}
+        error={doctorActionError || taxonomyError}
+        onRefresh={() => {
+          void refreshPrivateData();
+          retryTaxonomies();
+        }}
         onProfileSubmit={submitDoctorProfileUpdate}
         onScheduleSubmit={submitDoctorSchedule}
         onAppointmentAction={runDoctorAppointmentAction}
@@ -765,6 +772,9 @@ function DentalMapAppInner() {
         role={registerRole}
         specialties={specialties}
         services={services}
+        taxonomyLoading={taxonomyLoading}
+        taxonomyError={taxonomyError}
+        onRetryTaxonomies={retryTaxonomies}
         userRegistered={userRegistered}
         submitting={isSubmitting}
         doctorStep={doctorStep}
@@ -1028,7 +1038,13 @@ function DentalMapAppInner() {
           )}
 
           {activeView === "services" && (
-            <ServicesView services={services} onNavigate={navigate} />
+            <ServicesView
+              services={services}
+              loading={taxonomyLoading}
+              error={taxonomyError}
+              onRetry={retryTaxonomies}
+              onNavigate={navigate}
+            />
           )}
 
           {activeView === "map" && (
@@ -1093,6 +1109,9 @@ function DentalMapAppInner() {
               role={registerRole}
               specialties={specialties}
               services={services}
+              taxonomyLoading={taxonomyLoading}
+              taxonomyError={taxonomyError}
+              onRetryTaxonomies={retryTaxonomies}
               userRegistered={userRegistered}
               submitting={isSubmitting}
               doctorStep={doctorStep}
@@ -1124,7 +1143,7 @@ function DentalMapAppInner() {
 
 
           {activeView === "feedback" && (
-            <FeedbackView />
+            <FeedbackView onSubmit={submitFeedback} />
           )}
 
           {activeView === "notifications" && (

@@ -32,6 +32,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [publicConsent, setPublicConsent] = useState(false);
 
   // Fresh state every time the sheet is (re)opened.
   useEffect(() => {
@@ -41,6 +42,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
       setComment("");
       setError("");
       setSubmitting(false);
+      setPublicConsent(false);
     }
   }, [open]);
 
@@ -49,6 +51,10 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
   async function submit() {
     if (rating === 0) {
       setError("Iltimos, avval baho tanlang.");
+      return;
+    }
+    if (!publicConsent) {
+      setError("Sharhni taxallus bilan ommaga chiqarishga rozilikni tasdiqlang.");
       return;
     }
     setSubmitting(true);
@@ -115,13 +121,29 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
           placeholder="Shifokor haqida fikringiz"
         />
 
+        <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
+          <input
+            type="checkbox"
+            checked={publicConsent}
+            onChange={(event) => {
+              setPublicConsent(event.target.checked);
+              setError("");
+            }}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+          />
+          <span className="leading-relaxed">
+            Tasdiqlansa, reyting va izohim ommaga ko&apos;rsatilishiga roziman. To&apos;liq F.I.O. o&apos;rniga
+            moderatsiyalangan taxallus chiqadi.
+          </span>
+        </label>
+
         {error && <small className="text-xs font-medium text-danger">{error}</small>}
 
         <div className="flex flex-col gap-2">
           <Button
             size="lg"
             type="button"
-            disabled={rating === 0 || submitting}
+            disabled={rating === 0 || !publicConsent || submitting}
             onClick={() => void submit()}
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : <Star size={18} />}
