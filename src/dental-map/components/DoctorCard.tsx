@@ -32,17 +32,7 @@ export function DoctorCard({
   return (
     <Card
       as="article"
-      interactive
       className="flex flex-col gap-3"
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
     >
       <div className="relative">
         <button
@@ -52,10 +42,7 @@ export function DoctorCard({
             tone.text
           )}
           type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
+          onClick={onOpen}
           aria-label={`${doctor.name} haqida batafsil`}
         >
           {doctor.image ? (
@@ -74,10 +61,7 @@ export function DoctorCard({
           type="button"
           aria-label={isSaved ? `${doctor.name} saqlanganlardan olib tashlash` : `${doctor.name}ni saqlash`}
           aria-pressed={isSaved}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSaved();
-          }}
+          onClick={onToggleSaved}
         >
           <Heart size={16} className={isSaved ? "fill-current" : undefined} />
         </button>
@@ -87,10 +71,7 @@ export function DoctorCard({
         <button
           type="button"
           className="min-w-0 text-left"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
+          onClick={onOpen}
         >
           <strong className="block truncate text-[0.95rem] font-semibold text-ink-900">{doctor.name}</strong>
         </button>
@@ -111,10 +92,7 @@ export function DoctorCard({
         size="sm"
         className="w-full"
         type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onAppointment();
-        }}
+        onClick={onAppointment}
       >
         Qabul
       </Button>

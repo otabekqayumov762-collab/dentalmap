@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { isOfflineMode } from "../api/dentalMapApi";
 import type { RegisterRole, Service, Specialty } from "../types";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
@@ -8,6 +9,9 @@ export function RegisterView({
   role,
   specialties,
   services,
+  taxonomyLoading,
+  taxonomyError,
+  onRetryTaxonomies,
   userRegistered,
   submitting,
   doctorStep,
@@ -19,6 +23,9 @@ export function RegisterView({
   role: RegisterRole;
   specialties: Specialty[];
   services: Service[];
+  taxonomyLoading?: boolean;
+  taxonomyError?: string;
+  onRetryTaxonomies?: () => void;
   userRegistered: boolean;
   submitting: boolean;
   doctorStep: number;
@@ -27,7 +34,9 @@ export function RegisterView({
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(() =>
+    isOfflineMode() ? ["consultation"] : []
+  );
   const [photoFileName, setPhotoFileName] = useState("");
   const [userGender, setUserGender] = useState("");
   const [userRegion, setUserRegion] = useState<string | null>(null);
@@ -67,6 +76,9 @@ export function RegisterView({
           submitting={submitting}
           specialties={specialties}
           services={services}
+          taxonomyLoading={taxonomyLoading}
+          taxonomyError={taxonomyError}
+          onRetryTaxonomies={onRetryTaxonomies}
           doctorSpecialty={doctorSpecialty}
           doctorGender={doctorGender}
           doctorRegion={doctorRegion}

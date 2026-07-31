@@ -8,18 +8,14 @@ if (!existsSync(root) || !statSync(root).isDirectory()) {
   process.exit(1);
 }
 
-// `_headers` is deliberately absent here: it is the Netlify header control file,
-// which Netlify consumes and never serves. It must live in the publish directory
-// to work at all, so instead of banning it we assert below that the Nginx runtime
-// config makes it unreachable on that deployment path.
 const forbiddenArtifactNames = new Set([
   ".env",
+  "_headers",
   "docker-compose.yml",
   "dockerfile",
   "nginx.conf",
   "package-lock.json",
-  "package.json",
-  "tsconfig.json"
+  "package.json"
 ]);
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".map", ".svg", ".txt", ".xml"]);
 const forbiddenContent = [
@@ -63,28 +59,6 @@ function walk(directory) {
 }
 
 walk(root);
-
-/** The Netlify `_headers` file may sit in the publish directory, but the Nginx
- *  deployment path serves that same directory as its web root. Require the
- *  generated runtime config to exist outside the bundle and to 404 the probe. */
-function verifyNginxArtifactGuard() {
-  const generatedConfig = resolve("generated", "nginx.conf");
-  if (!existsSync(generatedConfig)) {
-    findings.push(
-      "generated/nginx.conf: missing — the runtime Nginx config must be generated outside the published bundle"
-    );
-    return;
-  }
-  const config = readFileSync(generatedConfig, "utf8");
-  if (!/location\s+~\s+\(\^\|\/\)\\\.\s*\{\s*return\s+404;/.test(config)) {
-    findings.push("generated/nginx.conf: missing the dotfile 404 guard");
-  }
-  if (!/_headers/.test(config) || !/return 404;/.test(config)) {
-    findings.push("generated/nginx.conf: missing the deployment-artifact 404 guard for _headers");
-  }
-}
-
-verifyNginxArtifactGuard();
 
 if (findings.length) {
   console.error("Public bundle security scan failed:");

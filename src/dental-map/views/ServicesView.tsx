@@ -1,11 +1,39 @@
-import { ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2 } from "lucide-react";
+import { isOfflineMode } from "../api/dentalMapApi";
 import { serviceItems } from "../catalog";
 import { cn } from "../ui";
 import type { Service, ViewId } from "../types";
 
-export function ServicesView({ services, onNavigate }: { services: Service[]; onNavigate: (view: ViewId) => void }) {
-  // Admin-managed services when available, else the offline catalog fallback.
-  const tiles = services.length ? services.map((s) => ({ id: s.id, label: s.name })) : serviceItems;
+export function ServicesView({
+  services,
+  loading = false,
+  error = "",
+  onRetry,
+  onNavigate
+}: {
+  services: Service[];
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  onNavigate: (view: ViewId) => void;
+}) {
+  const tiles = services.length
+    ? services.map((s) => ({ id: s.id, label: s.name }))
+    : isOfflineMode()
+      ? serviceItems
+      : [];
+
+  if (loading && tiles.length === 0) {
+    return <p role="status" className="flex items-center gap-2 text-sm text-ink-500"><Loader2 size={16} className="animate-spin" />Xizmatlar yuklanmoqda…</p>;
+  }
+  if (error && tiles.length === 0) {
+    return (
+      <div role="alert" className="flex flex-col items-start gap-2 rounded-card bg-danger/10 p-4 text-danger">
+        <p className="flex items-center gap-2 text-sm"><AlertTriangle size={16} />{error}</p>
+        {onRetry && <button type="button" className="text-sm font-semibold underline" onClick={onRetry}>Qayta urinish</button>}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 gap-3">

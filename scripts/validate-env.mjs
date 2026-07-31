@@ -91,14 +91,14 @@ function validateTelegramUrl(name, rawValue) {
 
 validateTelegramUrl("NEXT_PUBLIC_BOT_URL", process.env.NEXT_PUBLIC_BOT_URL?.trim());
 const rawSupportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL?.trim() || "";
+if (!rawSupportUrl) {
+  fail("NEXT_PUBLIC_SUPPORT_URL is required and must be the business-owned support channel.");
+}
 validateTelegramUrl("NEXT_PUBLIC_SUPPORT_URL", rawSupportUrl);
 if (/\/(?:your_support|your_bot)\/?$/i.test(rawSupportUrl)) {
-  fail("NEXT_PUBLIC_SUPPORT_URL must not use the .env.example placeholder value.");
+  fail("NEXT_PUBLIC_SUPPORT_URL must not use the example placeholder.");
 }
 
-// Cookie mode keeps the refresh credential in an HttpOnly cookie, unreachable to
-// JavaScript. `legacy-session` puts it back in web storage, so it must never be
-// selectable by a typo — it requires a second, explicitly non-public build flag.
 const authMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE?.trim() || "cookie";
 if (!["cookie", "legacy-session"].includes(authMode)) {
   fail("NEXT_PUBLIC_AUTH_TOKEN_MODE must be cookie or legacy-session.");
@@ -107,16 +107,13 @@ if (authMode === "legacy-session" && process.env.ALLOW_LEGACY_SESSION_AUTH !== "
   fail("legacy-session auth requires the explicit non-public ALLOW_LEGACY_SESSION_AUTH=true build flag.");
 }
 
-// The doctor payment button opens only a checkout URL whose host is on this list.
-// Deliberately OPTIONAL (empty simply keeps online Payme unavailable) so a build
-// without payments configured still succeeds — but whenever a value IS given,
-// every entry must be an exact hostname: no scheme, no path, no wildcard. A typo
-// like "*.paycom.uz" or "https://checkout.paycom.uz" would silently never match
-// and the doctor would just see "Payme ruxsat etilgan manzilni qaytarmadi".
 const checkoutHosts = (process.env.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS || "")
   .split(",")
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean);
+if (checkoutHosts.length === 0) {
+  fail("NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS must contain at least one exact Payme checkout host.");
+}
 for (const host of checkoutHosts) {
   if (
     host.includes("://") ||

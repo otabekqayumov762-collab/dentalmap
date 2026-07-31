@@ -1,6 +1,7 @@
 node_modules
 .next
 out
+generated
 dist
 build
 .env*
@@ -19,6 +20,9 @@ id_rsa*
 id_ed25519*
 .netlify
 screenshots
+test-results
+playwright-report
+blob-report
 tsconfig.tsbuildinfo
 .DS_Store
 npm-debug.log*

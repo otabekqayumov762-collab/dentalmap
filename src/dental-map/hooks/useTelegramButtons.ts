@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import type { Doctor, RegisterRole, TelegramWebApp, ViewId } from "../types";
+import type { Doctor, TelegramWebApp, ViewId } from "../types";
 
 type UseTelegramButtonsArgs = {
   webApp: TelegramWebApp | null;
   activeView: ViewId;
-  registerRole: RegisterRole;
   selectedDoctor: Doctor | null;
-  userRegistered: boolean;
-  doctorRegistrationSent: boolean;
   consultationSent: boolean;
   submitting: boolean;
-  doctorStep: number;
   showBack: boolean;
   onBack: () => void;
   changeView: (view: ViewId) => void;

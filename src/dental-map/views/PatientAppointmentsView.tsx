@@ -34,6 +34,7 @@ export function PatientAppointmentsView({
   const [text, setText] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [publicConsent, setPublicConsent] = useState(false);
 
   const reviewed = new Set(reviewedAppointmentIds);
 
@@ -42,6 +43,7 @@ export function PatientAppointmentsView({
     setRating(5);
     setText("");
     setReviewError("");
+    setPublicConsent(false);
   }
 
   async function submitReview() {
@@ -50,6 +52,10 @@ export function PatientAppointmentsView({
     }
     if (!text.trim()) {
       setReviewError("Izoh yozing.");
+      return;
+    }
+    if (!publicConsent) {
+      setReviewError("Sharhni taxallus bilan ommaga chiqarishga rozilikni tasdiqlang.");
       return;
     }
     setSubmitting(true);
@@ -260,6 +266,21 @@ export function PatientAppointmentsView({
             }}
             placeholder="Shifokor haqida fikringiz"
           />
+          <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
+            <input
+              type="checkbox"
+              checked={publicConsent}
+              onChange={(event) => {
+                setPublicConsent(event.target.checked);
+                setReviewError("");
+              }}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+            />
+            <span className="leading-relaxed">
+              Tasdiqlansa, reyting va izohim ommaga ko&apos;rsatilishiga roziman. To&apos;liq F.I.O. o&apos;rniga
+              moderatsiyalangan taxallus chiqadi.
+            </span>
+          </label>
           {reviewError && <small className="text-xs font-medium text-danger">{reviewError}</small>}
           <div className="flex gap-2">
             <Button variant="secondary" size="lg" type="button" className="flex-1" onClick={() => setReviewFor(null)}>
@@ -269,7 +290,7 @@ export function PatientAppointmentsView({
               size="lg"
               type="button"
               className="flex-1"
-              disabled={submitting}
+              disabled={submitting || !publicConsent}
               onClick={() => void submitReview()}
             >
               <Star size={17} />

@@ -3,6 +3,7 @@
 import { Save, Stethoscope } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { districts, specialtyOptions } from "../../catalog";
+import { isOfflineMode } from "../../api/dentalMapApi";
 import { PhotoUploadField } from "../../components/PhotoUploadField";
 import type { ApiDoctor, ApiUser, Specialty } from "../../types";
 import { Button, Card, Field, PhoneField, Select, TextareaField } from "../../ui";
@@ -19,14 +20,18 @@ export type DoctorProfileFormProps = {
 /** Doctor self-service profile editor. Uncontrolled (FormData) with defaultValue seeding. */
 export function DoctorProfileForm({ user, profile, specialties, loading, onProfileSubmit }: DoctorProfileFormProps) {
   // Admin-managed names when available, else the offline catalog fallback.
-  const specialtyNames = specialties.length ? specialties.map((s) => s.name) : specialtyOptions;
+  const specialtyNames = specialties.length
+    ? specialties.map((s) => s.name)
+    : isOfflineMode()
+      ? specialtyOptions
+      : [];
 
   const [fileName, setFileName] = useState("");
-  const [specialty, setSpecialty] = useState(profile?.specialty || specialtyNames[0]);
+  const [specialty, setSpecialty] = useState(profile?.specialty || specialtyNames[0] || "");
   const [clinicDistrict, setClinicDistrict] = useState(profile?.clinic_district || districts[1]);
 
   useEffect(() => {
-    setSpecialty(profile?.specialty || specialtyNames[0]);
+    setSpecialty(profile?.specialty || specialtyNames[0] || "");
     setClinicDistrict(profile?.clinic_district || districts[1]);
     // Re-seed when a late-arriving fetched list resolves and the doctor has no saved specialty.
     // eslint-disable-next-line react-hooks/exhaustive-deps

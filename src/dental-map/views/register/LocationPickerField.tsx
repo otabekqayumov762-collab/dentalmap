@@ -2,11 +2,24 @@
 
 import { MapPin } from "lucide-react";
 import { useState } from "react";
-import { isSafeMapUrl } from "../../lib/url";
+import { isSafeMapUrl, mapUrlHasCoordinates } from "../../lib/url";
 import { cn } from "../../ui";
 
+export const MAP_COORDINATE_REQUIRED_MESSAGE =
+  "Karta linki aniq nuqtadan olingan bo'lishi kerak. Google yoki Yandex Maps'da klinika joyini tanlab, Share link yuboring.";
+
+export function mapLinkValidationError(value: string) {
+  if (!isSafeMapUrl(value)) {
+    return "Klinika lokatsiyasiga Yandex yoki Google Maps linkini kiriting.";
+  }
+  if (!mapUrlHasCoordinates(value)) {
+    return MAP_COORDINATE_REQUIRED_MESSAGE;
+  }
+  return "";
+}
+
 export function isSupportedMapLink(value: string) {
-  return isSafeMapUrl(value);
+  return !mapLinkValidationError(value);
 }
 
 export function LocationPickerField({
@@ -22,7 +35,8 @@ export function LocationPickerField({
 }) {
   const [value, setValue] = useState(defaultValue);
   const cleanValue = value.trim();
-  const supported = !cleanValue || isSupportedMapLink(cleanValue);
+  const validationError = cleanValue ? mapLinkValidationError(cleanValue) : "";
+  const supported = !validationError;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -50,7 +64,9 @@ export function LocationPickerField({
         />
       </label>
       {!supported && (
-        <small className="block text-xs font-medium text-danger">Faqat Yandex yoki Google Maps linki kiritiladi.</small>
+        <small className="block text-xs font-medium text-danger" role="alert">
+          {validationError}
+        </small>
       )}
     </div>
   );

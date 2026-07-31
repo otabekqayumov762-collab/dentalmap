@@ -7,6 +7,7 @@ import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender } from "@/src/dental-map/lib/gender";
+import { isTelegramPlaceholderUser } from "@/src/dental-map/lib/onboarding";
 import { cn, RegionDistrictField, Select, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
@@ -31,10 +32,10 @@ import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
 import { ProfileView } from "@/src/dental-map/views/ProfileView";
 import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
+import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
-import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
-import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
+import { mapLinkValidationError } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 function DentalMapAppInner() {
@@ -57,6 +58,9 @@ function DentalMapAppInner() {
     currentUser,
     specialties,
     services,
+    taxonomyLoading,
+    taxonomyError,
+    retryTaxonomies,
     authStatus,
     reviewableAppointmentByDoctor,
     refreshPrivateData,
@@ -68,6 +72,7 @@ function DentalMapAppInner() {
     registerUser,
     registerDoctor,
     submitDoctorReview,
+    submitFeedback,
     submitDoctorProfileUpdate,
     submitDoctorSchedule,
     runDoctorAppointmentAction,
@@ -274,8 +279,11 @@ function DentalMapAppInner() {
         appointments={appointments}
         schedule={doctorSchedule}
         loading={privateLoading}
-        error={doctorActionError}
-        onRefresh={() => void refreshPrivateData()}
+        error={doctorActionError || taxonomyError}
+        onRefresh={() => {
+          void refreshPrivateData();
+          retryTaxonomies();
+        }}
         onProfileSubmit={submitDoctorProfileUpdate}
         onScheduleSubmit={submitDoctorSchedule}
         onAppointmentAction={runDoctorAppointmentAction}
@@ -545,8 +553,9 @@ function DentalMapAppInner() {
       toast.error("Mutaxassislik, klinika nomi va tumanni to'ldiring.");
       return;
     }
-    if (!isSupportedMapLink(clinicLocationUrl)) {
-      toast.error("Google yoki Yandex Maps linkini kiriting.");
+    const locationError = mapLinkValidationError(clinicLocationUrl);
+    if (locationError) {
+      toast.error(locationError);
       return;
     }
     if (password.length < 8) {
@@ -593,8 +602,13 @@ function DentalMapAppInner() {
   }
 
   const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
-  const isAuthenticated = Boolean(currentUser);
-  const telegramButtonView: ViewId = !isAuthenticated ? (authMode === "register" ? "register" : "login") : activeView;
+  const needsTelegramOnboarding = isTelegramPlaceholderUser(currentUser);
+  const isAuthenticated = Boolean(currentUser) && !needsTelegramOnboarding;
+  const telegramButtonView: ViewId = !isAuthenticated
+    ? needsTelegramOnboarding || authMode === "register"
+      ? "register"
+      : "login"
+    : activeView;
 
   // Most-recent COMPLETED-but-unreviewed appointment (the map is keyed by doctor
   // and built from the already `-created_at` ordered list, so we pick the newest
@@ -665,13 +679,13 @@ function DentalMapAppInner() {
 
   // First time a session resolves, send doctors straight to their dashboard.
   useEffect(() => {
-    if (currentUser && !landedRef.current) {
+    if (currentUser && !needsTelegramOnboarding && !landedRef.current) {
       landedRef.current = true;
       if (isDoctorAccount) {
         changeView("profile");
       }
     }
-  }, [currentUser, isDoctorAccount, changeView]);
+  }, [currentUser, needsTelegramOnboarding, isDoctorAccount, changeView]);
 
   useEffect(() => {
     if (
@@ -703,14 +717,10 @@ function DentalMapAppInner() {
   useTelegramButtons({
     webApp,
     activeView: telegramButtonView,
-    registerRole,
     selectedDoctor,
-    userRegistered,
-    doctorRegistrationSent,
     consultationSent,
     // Booking submits must also disable the MainButton (spinner + no re-taps).
     submitting: isSubmitting || appointmentSubmitting,
-    doctorStep,
     showBack: showPageBack,
     onBack: () => navigate(backTarget),
     // Route through navigate() so the appointment view always enters via the
@@ -755,12 +765,16 @@ function DentalMapAppInner() {
     }
     return (
       <AuthGate
-        mode={authMode}
+        mode={needsTelegramOnboarding ? "register" : authMode}
+        registrationOnly={needsTelegramOnboarding}
         onModeChange={setAuthMode}
         onLogin={handleLogin}
         role={registerRole}
         specialties={specialties}
         services={services}
+        taxonomyLoading={taxonomyLoading}
+        taxonomyError={taxonomyError}
+        onRetryTaxonomies={retryTaxonomies}
         userRegistered={userRegistered}
         submitting={isSubmitting}
         doctorStep={doctorStep}
@@ -772,11 +786,10 @@ function DentalMapAppInner() {
     );
   }
 
-  // Mandatory doctor subscription: right after registration (and again whenever a
-  // subscription lapses) the doctor pays before the dashboard opens. Gated on
+  // Doctor subscription payment gate: after registering (or whenever the
+  // subscription lapses) a doctor pays before the dashboard opens. Gated on
   // is_subscription_active, which the backend reports `true` whenever a paid
-  // subscription is not required — so this stays a no-op unless
-  // DOCTOR_SUBSCRIPTION_REQUIRED is on server-side.
+  // subscription is not required — so this stays a no-op unless billing is on.
   const activeDoctorProfile = nestedDoctorProfile ?? doctorProfile;
   if (isDoctorAccount && activeDoctorProfile?.is_subscription_active === false) {
     return (
@@ -1025,7 +1038,13 @@ function DentalMapAppInner() {
           )}
 
           {activeView === "services" && (
-            <ServicesView services={services} onNavigate={navigate} />
+            <ServicesView
+              services={services}
+              loading={taxonomyLoading}
+              error={taxonomyError}
+              onRetry={retryTaxonomies}
+              onNavigate={navigate}
+            />
           )}
 
           {activeView === "map" && (
@@ -1090,6 +1109,9 @@ function DentalMapAppInner() {
               role={registerRole}
               specialties={specialties}
               services={services}
+              taxonomyLoading={taxonomyLoading}
+              taxonomyError={taxonomyError}
+              onRetryTaxonomies={retryTaxonomies}
               userRegistered={userRegistered}
               submitting={isSubmitting}
               doctorStep={doctorStep}
@@ -1121,7 +1143,7 @@ function DentalMapAppInner() {
 
 
           {activeView === "feedback" && (
-            <FeedbackView />
+            <FeedbackView onSubmit={submitFeedback} />
           )}
 
           {activeView === "notifications" && (

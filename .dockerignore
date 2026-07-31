@@ -1,6 +1,7 @@
 node_modules
 .next
 out
+generated
 dist
 build
 .env*
@@ -31,6 +32,9 @@ id_ed25519*
 .netlify
 .wrangler
 screenshots
+test-results
+playwright-report
+blob-report
 .git
 .gitignore
 .DS_Store

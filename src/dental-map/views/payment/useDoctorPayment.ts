@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isOfflineMode } from "../../api/dentalMapApi";
 import { validateReceiptFile } from "../../lib/fileUpload";
-import { isAllowedPaymeCheckoutUrl, paymeAmountMatches } from "../../lib/paymentSecurity";
+import { isAllowedPaymeCheckoutUrl } from "../../lib/paymentSecurity";
 import {
   fetchCards,
   fetchReceipts,
@@ -273,7 +273,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     setPayingWithPayme(true);
     try {
       const checkout = await initiatePayme(currentReturnUrl());
-      if (!paymeAmountMatches(checkout.amount_uzs, subscriptionAmountUzs)) {
+      if (Number(checkout.amount_uzs) !== subscriptionAmountUzs) {
         throw new Error("Payme summasi tasdiqlangan obuna narxiga mos emas.");
       }
       if (!openPaymeCheckout(checkout.checkout_url)) {

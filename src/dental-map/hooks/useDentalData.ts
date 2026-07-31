@@ -7,7 +7,6 @@ import {
   fetchSpecialties,
   flattenClinics,
   getApiUrl,
-  getAuthCsrfToken,
   isBackendConfigured,
   isStaticPreviewHost,
   mapDoctor,
@@ -15,10 +14,12 @@ import {
   normalizeApiList,
   normalizeSchedule,
   isOfflineMode,
-  parseApiError
+  parseApiError,
+  getAuthCsrfToken,
+  refreshAccessToken
 } from "../api/dentalMapApi";
-import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import { authFetchCredentials, usesRefreshCookie } from "../lib/authMode";
+import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
 import {
   getAccessToken,
   getRefreshToken,
@@ -30,6 +31,7 @@ import { getFreshTelegramInitData } from "../lib/telegramInitData";
 import { clearSensitiveStorage, migrateSensitiveStorage } from "../lib/sensitiveStorage";
 import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import { validatePhotoFile } from "../lib/fileUpload";
+import { requireTelegramOnboardingInitData } from "../lib/onboarding";
 import {
   addLocalAppointment,
   addLocalReview,
@@ -86,6 +88,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(!demoCatalogEnabled);
+  const [taxonomyError, setTaxonomyError] = useState("");
+  const [taxonomyRevision, setTaxonomyRevision] = useState(0);
   const [authStatus, setAuthStatus] = useState<TelegramAuthStatus>("loading");
   const [authMessage, setAuthMessage] = useState("Telegram Mini App tayyorlanmoqda.");
   // Session generation counter: bumped on logout/login/register so any in-flight
@@ -233,6 +238,22 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         void refreshPrivateData(restoredToken);
         return;
       }
+      if (usesRefreshCookie() && isBackendConfigured() && !isOfflineMode()) {
+        setAuthStatus("loading");
+        setAuthMessage("Xavfsiz sessiya tiklanmoqda.");
+        void refreshAccessToken().then((restored) => {
+          if (restored) {
+            const access = getAccessToken();
+            setAuthStatus("authenticated");
+            setAuthMessage("Avvalgi sessiya tiklandi.");
+            void refreshPrivateData(access);
+            return;
+          }
+          setAuthStatus("guest");
+          setAuthMessage("Telegramdan tashqarida ko'rish rejimi.");
+        });
+        return;
+      }
       const local = getLocalAccount();
       if (local && isOfflineMode()) {
         setCurrentUser(local);
@@ -278,6 +299,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       let allowStoredFallback = true;
       try {
         setAuthStatus("loading");
+        const csrfToken = await getAuthCsrfToken();
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 8000);
         const authBody = { init_data: initData };
@@ -288,7 +310,10 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
               cache: "no-store",
               credentials: authFetchCredentials(),
               signal: controller.signal,
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+              },
               body: JSON.stringify(authBody)
             });
           } finally {
@@ -331,8 +356,12 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       } catch {
         // Transient Telegram auth failures (network/timeout/5xx) may use the
         // previous tab session. Explicit signature/auth rejection fails closed.
-        const restoredToken =
+        let restoredToken =
           allowStoredFallback && telegramUser ? restoreAuthTokens(telegramUser.id) : "";
+        if (!restoredToken && allowStoredFallback && usesRefreshCookie()) {
+          const restored = await refreshAccessToken();
+          restoredToken = restored ? getAccessToken() : "";
+        }
         if (restoredToken) {
           setAuthStatus("authenticated");
           setAuthMessage("Avvalgi sessiya tiklandi.");
@@ -370,19 +399,6 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setDataLoading(false);
         return;
       }
-
-      // Admin-managed specialty/service lists (independent, resilient fetch so a
-      // doctors failure never blocks it and vice-versa). Empty [] on failure
-      // engages the catalog fallback in the consuming forms.
-      void Promise.all([
-        fetchSpecialties(controller.signal),
-        fetchServices(controller.signal)
-      ]).then(([specialtyList, serviceList]) => {
-        if (!controller.signal.aborted) {
-          setSpecialties(specialtyList);
-          setServices(serviceList);
-        }
-      });
 
       try {
         setDataLoading(true);
@@ -426,6 +442,49 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
     return () => controller.abort();
   }, [demoCatalogEnabled]);
+
+  // Taxonomies control registration and discovery. Online mode is authoritative:
+  // a network error or empty admin list is visible and never replaced with demo
+  // values that the backend may reject.
+  useEffect(() => {
+    if (demoCatalogEnabled) {
+      setSpecialties([]);
+      setServices([]);
+      setTaxonomyError("");
+      setTaxonomyLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setTaxonomyLoading(true);
+    setTaxonomyError("");
+    void Promise.all([fetchSpecialties(controller.signal), fetchServices(controller.signal)])
+      .then(([specialtyList, serviceList]) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (specialtyList.length === 0 || serviceList.length === 0) {
+          throw new Error("Yo'nalish yoki xizmatlar ro'yxati hali sozlanmagan.");
+        }
+        setSpecialties(specialtyList);
+        setServices(serviceList);
+      })
+      .catch((error) => {
+        if ((error as Error).name === "AbortError" || controller.signal.aborted) {
+          return;
+        }
+        setSpecialties([]);
+        setServices([]);
+        setTaxonomyError(
+          error instanceof Error ? error.message : "Yo'nalish va xizmatlar yuklanmadi."
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setTaxonomyLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [demoCatalogEnabled, taxonomyRevision]);
 
   // Offline: reload local appointments/reviews when the signed-in account changes
   // (e.g. switching between the patient and doctor local accounts).
@@ -529,10 +588,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return "Avval ro'yxatdan o'ting.";
       }
       try {
-        // Two accepted login response shapes, so frontend and backend can be
-        // deployed in either order during the cookie-auth rollout:
-        //   cookie contract : {user, tokens:{access}} + HttpOnly refresh cookie
-        //   legacy contract : flat {access, refresh}, user fetched separately
+        // Cookie-auth contract: POST credentials, receive {user,tokens:{access}},
+        // while the backend rotates the refresh credential in an HttpOnly cookie.
         const csrfToken = await getAuthCsrfToken();
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 10000);
@@ -556,55 +613,24 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         if (!response.ok) {
           return "Telefon yoki parol noto'g'ri.";
         }
-        const payload = (await response.json()) as AuthPayload & { access?: string; refresh?: string };
-        const accessToken =
-          typeof payload.tokens?.access === "string" && payload.tokens.access
-            ? payload.tokens.access
-            : typeof payload.access === "string"
-              ? payload.access
-              : "";
-        if (!accessToken) {
+        const payload = (await response.json()) as AuthPayload;
+        if (
+          !payload.user ||
+          typeof payload.user.id !== "string" ||
+          typeof payload.tokens?.access !== "string" ||
+          !payload.tokens.access
+        ) {
           return "Kirish serveridan noto'g'ri javob olindi.";
         }
-
-        let me = payload.user && typeof payload.user.id === "string" ? payload.user : null;
-        if (!me) {
-          // Legacy contract: the token endpoint returned no user. Fetch the
-          // profile without the generic refresh retry so a previous account's
-          // refresh token can never participate while a new account is being
-          // established.
-          const profileController = new AbortController();
-          const profileTimeout = window.setTimeout(() => profileController.abort(), 10000);
-          const profileResponse = await (async () => {
-            try {
-              return await fetch(getApiUrl("/api/users/me/"), {
-                cache: "no-store",
-                credentials: authFetchCredentials(),
-                signal: profileController.signal,
-                headers: { Authorization: `Bearer ${accessToken}` }
-              });
-            } finally {
-              window.clearTimeout(profileTimeout);
-            }
-          })();
-          if (!profileResponse.ok) {
-            return "Foydalanuvchi profili yuklanmadi. Qayta urinib ko'ring.";
-          }
-          const fetched = (await profileResponse.json()) as ApiUser;
-          if (!fetched || typeof fetched.id !== "string") {
-            return "Kirish serveridan noto'g'ri profil javobi olindi.";
-          }
-          me = fetched;
-        }
-
+        // Atomic backend contract: the authenticated user and short-lived
+        // access token arrive together while the refresh credential is set only
+        // as a Secure HttpOnly cookie. Never expect or expose a top-level token.
         sessionRef.current += 1;
-        // `storeAuthTokens` drops the refresh token entirely in cookie mode, so
-        // passing it here is harmless and keeps legacy-session builds working.
-        storeAuthTokens({ user: me, tokens: { access: accessToken, refresh: payload.refresh } });
-        setCurrentUser(me);
+        storeAuthTokens(payload);
+        setCurrentUser(payload.user);
         setAuthStatus("authenticated");
         setAuthMessage("Tizimga kirildi.");
-        void refreshPrivateData(accessToken);
+        void refreshPrivateData(payload.tokens.access);
         return "";
       } catch {
         return "Kirishda xatolik. Keyinroq urinib ko'ring.";
@@ -616,16 +642,12 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
   const logout = useCallback(() => {
     const accessToken = getAccessToken();
     const refreshToken = getRefreshToken();
-    // In cookie mode there is no locally readable refresh token, so requiring one
-    // here would silently skip server-side revocation on every logout.
     if (accessToken && (usesRefreshCookie() || refreshToken) && isBackendConfigured() && !isOfflineMode()) {
       try {
         // Revocation is best-effort for UX, but start it before erasing the only
         // local copy. The backend verifies that the refresh belongs to the
         // authenticated access-token user and treats duplicate logout as 204.
         void (async () => {
-          // Cookie mode: the browser sends the refresh cookie, so the request
-          // carries no refresh material and needs the CSRF double-submit token.
           const cookieMode = usesRefreshCookie();
           const csrfToken = cookieMode ? await getAuthCsrfToken() : "";
           const headers = new Headers({ Authorization: `Bearer ${accessToken}` });
@@ -766,16 +788,19 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
       formData.set("role", "user");
+      formData.delete("privacy_acknowledged");
       // ROOT-CAUSE FIX ("location ishlamayapti"): inside Telegram, attach the
       // SIGNED initData so the backend stamps telegram_id on (or upgrades) the
       // account. Without it the user row has telegram_id=NULL, the bot can never
       // message the patient (clinic-location file is skipped), and the next
       // /api/auth/telegram/ call silently creates a second empty account.
       const initData = getFreshTelegramInitData(webApp);
+      requireTelegramOnboardingInitData(currentUser, initData);
       if (initData) {
         formData.set("init_data", initData);
       }
       const controller = new AbortController();
+      const csrfToken = await getAuthCsrfToken();
       const timeout = window.setTimeout(() => controller.abort(), 30000);
       const response = await (async () => {
         try {
@@ -783,6 +808,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
             method: "POST",
             cache: "no-store",
             credentials: authFetchCredentials(),
+            headers: csrfToken ? { "X-CSRFToken": csrfToken } : undefined,
             signal: controller.signal,
             body: formData
           });
@@ -810,7 +836,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setAuthMessage("Ro'yxatdan o'tildi.");
       void refreshPrivateData(payload.tokens?.access || "");
     },
-    [refreshPrivateData, telegramUser, webApp]
+    [currentUser, refreshPrivateData, telegramUser, webApp]
   );
 
   const registerDoctor = useCallback(
@@ -830,14 +856,17 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         return;
       }
       formData.set("role", "doctor");
+      formData.delete("privacy_acknowledged");
       // Same telegram_id linking as registerUser — the bot must be able to
       // notify doctors too, and reopening inside Telegram must resolve to THIS
       // account instead of provisioning a second empty one.
       const initData = getFreshTelegramInitData(webApp);
+      requireTelegramOnboardingInitData(currentUser, initData);
       if (initData) {
         formData.set("init_data", initData);
       }
       const controller = new AbortController();
+      const csrfToken = await getAuthCsrfToken();
       const timeout = window.setTimeout(() => controller.abort(), 30000);
       const response = await (async () => {
         try {
@@ -845,6 +874,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
             method: "POST",
             cache: "no-store",
             credentials: authFetchCredentials(),
+            headers: csrfToken ? { "X-CSRFToken": csrfToken } : undefined,
             signal: controller.signal,
             body: formData
           });
@@ -870,7 +900,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       setAuthMessage("Ro'yxatdan o'tildi.");
       void refreshPrivateData(payload.tokens?.access || "");
     },
-    [refreshPrivateData, telegramUser, webApp]
+    [currentUser, refreshPrivateData, telegramUser, webApp]
   );
 
   const submitDoctorReview = useCallback(
@@ -920,6 +950,48 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       }
     },
     [currentUser, reviewableAppointmentByDoctor, webApp]
+  );
+
+  const submitFeedback = useCallback(
+    async ({
+      topic,
+      message,
+      idempotencyKey
+    }: {
+      topic: string;
+      message: string;
+      idempotencyKey: string;
+    }) => {
+      const token = getAccessToken();
+      const cleanMessage = message.trim();
+      if (!token) {
+        return "Xabar yuborish uchun qayta kiring.";
+      }
+      if (!topic || cleanMessage.length < 5) {
+        return "Mavzu va kamida 5 belgili xabar kiriting.";
+      }
+      if (!/^[0-9a-f-]{36}$/i.test(idempotencyKey)) {
+        return "Xabar identifikatori yaratilmadi. Qayta urinib ko'ring.";
+      }
+      try {
+        await apiRequest("/api/feedback/", {
+          token,
+          method: "POST",
+          requestHeaders: { "Idempotency-Key": idempotencyKey },
+          body: JSON.stringify({
+            type: topic === "Taklif" ? "suggestion" : "complaint",
+            title: topic.slice(0, 200),
+            message: cleanMessage.slice(0, 5000)
+          })
+        });
+        webApp?.HapticFeedback?.notificationOccurred("success");
+        return "";
+      } catch (error) {
+        webApp?.HapticFeedback?.notificationOccurred("error");
+        return error instanceof Error ? error.message : "Xabar yuborilmadi.";
+      }
+    },
+    [webApp]
   );
 
   const submitDoctorProfileUpdate = useCallback(
@@ -992,8 +1064,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
    * Publication is self-serve and driven by the weekly schedule, so the server's
    * `is_published` / `publication_blockers` change the moment a window is added or
    * removed. Re-read the profile after those edits, otherwise the doctor keeps
-   * seeing "not listed yet" after they just fixed it. Never throws: a failed
-   * refresh must not turn a successful schedule edit into an error.
+   * seeing "not listed yet" right after fixing it. Never throws: a failed refresh
+   * must not turn a successful schedule edit into an error.
    */
   const refreshDoctorPublicationState = useCallback(async () => {
     const token = getAccessToken();
@@ -1018,7 +1090,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
           : current
       );
     } catch {
-      // Stale publication state is a cosmetic issue; the edit itself succeeded.
+      // Stale publication state is cosmetic; the edit itself succeeded.
     }
   }, []);
 
@@ -1201,6 +1273,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     currentUser,
     specialties,
     services,
+    taxonomyLoading,
+    taxonomyError,
+    retryTaxonomies: () => setTaxonomyRevision((value) => value + 1),
     authStatus,
     authMessage,
     reviewableAppointmentByDoctor,
@@ -1213,6 +1288,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     registerUser,
     registerDoctor,
     submitDoctorReview,
+    submitFeedback,
     submitDoctorProfileUpdate,
     submitDoctorSchedule,
     runDoctorAppointmentAction,
