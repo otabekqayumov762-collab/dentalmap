@@ -127,6 +127,10 @@ export function DoctorPaymentView({
     clearDownloadError
   } = useDoctorPayment({ defaultAmountUzs: demoSubscriptionAmountUzs });
   const { toast } = useToast();
+  // Card transfer is a real fallback only when an admin has published a card to
+  // transfer TO. `loadError` counts as "no cards" here on purpose: a doctor who
+  // cannot even see the card list has nothing to act on, and Payme still works.
+  const showCardTransfer = !cardsLoading && !loadError && cards.length > 0;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -292,13 +296,23 @@ export function DoctorPaymentView({
         </p>
       </Card>
 
+      {/* Karta o'tkazmasi faqat admin haqiqatan faol karta qo'yganda ko'rinadi.
+          Kartasiz bu blok "Hozircha faol karta yo'q" deb turadi-yu, ostida summa,
+          chek yuklash maydoni va o'chirilgan yuborish tugmasi qoladi — ya'ni
+          shifokorga bajarib bo'lmaydigan ish taklif qiladi. Bunday holda butun
+          zaxira yo'l yashiriladi va sahifa faqat Payme'dan iborat bo'ladi.
+          Yuklanish paytida ham ko'rsatmaymiz: karta bormi-yo'qmi hali noma'lum,
+          blok bir zumga ochilib keyin yo'qolsa sahifa sakraydi. */}
+      {showCardTransfer && (
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-surface-200" />
         <span className="text-xs font-medium text-ink-400">yoki karta orqali</span>
         <span className="h-px flex-1 bg-surface-200" />
       </div>
+      )}
 
       {/* Zaxira yo'l — accent rangi, tekis (soyasiz) */}
+      {showCardTransfer && (
       <Card className="flex flex-col gap-3.5 border-surface-200 bg-surface-50 shadow-none">
         <div className="flex items-start gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent-100 text-accent-700">
@@ -313,33 +327,19 @@ export function DoctorPaymentView({
           </span>
         </div>
 
-        {cardsLoading ? (
-          <div className="flex items-center gap-2 rounded-2xl bg-surface-0 px-4 py-6 text-sm text-ink-500">
-            <Loader2 size={16} className="animate-spin shrink-0" />
-            Kartalar yuklanmoqda…
-          </div>
-        ) : loadError ? (
-          <div role="alert" className="flex items-start gap-2.5 rounded-2xl bg-danger/10 px-3.5 py-3 text-danger">
-            <AlertTriangle size={17} className="mt-0.5 shrink-0" />
-            <small className="text-xs leading-relaxed">{loadError}</small>
-          </div>
-        ) : cards.length === 0 ? (
-          <div className="rounded-2xl bg-surface-0 px-4 py-6 text-center text-sm text-ink-500">
-            Hozircha faol karta yo&apos;q. Administrator bilan bog&apos;laning.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {cards.map((card) => (
-              <PaymentCardTile
-                key={card.id}
-                card={card}
-                selected={card.id === selectedCardId}
-                disabled={submitting}
-                onSelect={() => setSelectedCardId(card.id)}
-              />
-            ))}
-          </div>
-        )}
+        {/* showCardTransfer allaqachon yuklanish va xato holatlarini chetlab
+            o'tgan, shuning uchun bu yerda faqat haqiqiy kartalar qoladi. */}
+        <div className="flex flex-col gap-2.5">
+          {cards.map((card) => (
+            <PaymentCardTile
+              key={card.id}
+              card={card}
+              selected={card.id === selectedCardId}
+              disabled={submitting}
+              onSelect={() => setSelectedCardId(card.id)}
+            />
+          ))}
+        </div>
 
         {/* The amount is server-authoritative, so it is shown as a locked value
             instead of an input a doctor might believe they can change. */}
@@ -380,13 +380,14 @@ export function DoctorPaymentView({
           type="button"
           variant="secondary"
           size="lg"
-          disabled={submitting || cardsLoading || !priceReady || cards.length === 0}
+          disabled={submitting || !priceReady}
           onClick={() => void submit()}
         >
           {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
           {submitting ? "Yuborilmoqda…" : "Chekni yuborish"}
         </Button>
       </Card>
+      )}
     </div>
   );
 }
