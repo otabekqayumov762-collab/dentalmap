@@ -7,7 +7,12 @@ import { test } from "node:test";
 import { MAX_PHOTO_BYTES, validatePhotoFile, validateReceiptFile } from "../src/dental-map/lib/fileUpload.ts";
 import { toSafeTelHref } from "../src/dental-map/lib/phone.ts";
 import { clearSensitiveStorage, migrateSensitiveStorage } from "../src/dental-map/lib/sensitiveStorage.ts";
-import { restoreAuthTokens, storeAuthTokens } from "../src/dental-map/lib/tokenStore.ts";
+import {
+  getAccessToken,
+  getRefreshToken,
+  restoreAuthTokens,
+  storeAuthTokens
+} from "../src/dental-map/lib/tokenStore.ts";
 import {
   isSafeHttpUrl,
   isSafeMapUrl,
@@ -199,7 +204,11 @@ test("Telegram fallback rejects a stored token owned by another account", () => 
 
 test("cookie auth keeps access in memory and never stores refresh credentials", () => {
   const values = new Map();
-  const storage = {
+  // Named locally on purpose, the way the tests above do it: asserting against a
+  // BARE `sessionStorage` reads Node's own Web Storage global instead of this fake,
+  // which is always empty — so the assertions passed for the wrong reason on a Node
+  // that defines that global, and threw ReferenceError on one that does not.
+  const sessionStorage = {
     getItem: (key) => values.get(key) ?? null,
     removeItem: (key) => values.delete(key),
     setItem: (key, value) => values.set(key, String(value))
@@ -207,10 +216,15 @@ test("cookie auth keeps access in memory and never stores refresh credentials", 
   const previousWindow = globalThis.window;
   const previousMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE;
   process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE = "cookie";
-  globalThis.window = { localStorage: storage, sessionStorage: storage };
+  globalThis.window = { localStorage: sessionStorage, sessionStorage };
   try {
     storeAuthTokens({ tokens: { access: "short-lived", refresh: "must-never-be-readable" } });
     assert.equal(sessionStorage.getItem("dentalmap_auth_tokens"), null);
+    assert.equal(values.size, 0, "cookie mode must write nothing to web storage");
+    // The short-lived access token still has to be usable from memory...
+    assert.equal(getAccessToken(), "short-lived");
+    // ...while the refresh credential must be unreachable to JavaScript.
+    assert.equal(getRefreshToken(), "");
     assert.equal(restoreAuthTokens(), "");
     assert.equal(sessionStorage.getItem("dentalmap_auth_tokens"), null);
   } finally {
