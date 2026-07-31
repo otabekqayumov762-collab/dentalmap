@@ -9,6 +9,7 @@ import {
   type DoctorAppointmentAction
 } from "./doctor/DoctorAppointmentRequests";
 import { DoctorHeaderCard } from "./doctor/DoctorHeaderCard";
+import { DoctorPaymentsCard } from "./doctor/DoctorPaymentsCard";
 import { DoctorProfileForm } from "./doctor/DoctorProfileForm";
 import { DoctorScheduleManager } from "./doctor/DoctorScheduleManager";
 import { DoctorStatsRow } from "./doctor/DoctorStatsRow";
@@ -237,6 +238,10 @@ export function DoctorDashboardView({
         </span>
         <ChevronRight size={18} className="shrink-0 text-ink-400" />
       </button>
+
+      {/* Last in the stack on purpose: it is a record the doctor goes looking for,
+          and putting it above the request list would demote the primary action. */}
+      <DoctorPaymentsCard />
     </div>
   );
 }

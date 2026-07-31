@@ -15,7 +15,7 @@ import {
   Upload
 } from "lucide-react";
 import { useEffect } from "react";
-import { Badge, Button, Card, TextareaField } from "../../ui";
+import { Badge, Button, Card, TextareaField, useToast } from "../../ui";
 import { PaymentCardTile } from "./PaymentCardTile";
 import { ReceiptFileField } from "./ReceiptFileField";
 import { ReceiptStatusCard } from "./ReceiptStatusCard";
@@ -121,8 +121,12 @@ export function DoctorPaymentView({
     payingWithPayme,
     paymeError,
     paymeStarted,
-    payWithPayme
+    payWithPayme,
+    downloadReceipt,
+    downloadError,
+    clearDownloadError
   } = useDoctorPayment({ defaultAmountUzs: demoSubscriptionAmountUzs });
+  const { toast } = useToast();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -136,6 +140,15 @@ export function DoctorPaymentView({
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     onRefresh?.();
   }, [onRefresh]);
+
+  // Clearing after the toast is what lets a second failed tap speak up again.
+  useEffect(() => {
+    if (!downloadError) {
+      return;
+    }
+    toast.error(downloadError);
+    clearDownloadError();
+  }, [clearDownloadError, downloadError, toast]);
 
   const approved = paid || latestReceipt?.status === "approved";
   const waitingForApproval = submitted || latestReceipt?.status === "pending";
@@ -171,7 +184,13 @@ export function DoctorPaymentView({
           </span>
         </div>
 
-        {latestReceipt && <ReceiptStatusCard receipt={latestReceipt} />}
+        {latestReceipt && (
+          <ReceiptStatusCard
+            receipt={latestReceipt}
+            receiptUrl={latestReceipt.receipt_url ?? null}
+            onDownload={downloadReceipt}
+          />
+        )}
 
         {approved ? (
           <Button type="button" size="lg" onClick={onPaid}>

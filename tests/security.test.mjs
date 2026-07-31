@@ -23,7 +23,11 @@ import {
   isTelegramPlaceholderUser,
   requireTelegramOnboardingInitData
 } from "../src/dental-map/lib/onboarding.ts";
-import { isAllowedPaymeCheckoutUrl } from "../src/dental-map/lib/paymentSecurity.ts";
+import {
+  isAllowedPaymeCheckoutUrl,
+  isAllowedReceiptDocumentUrl,
+  openReceiptDocument
+} from "../src/dental-map/lib/paymentSecurity.ts";
 
 test("map URLs require canonical HTTPS Google/Yandex map endpoints", () => {
   assert.equal(isSafeMapUrl("https://www.google.com/maps/search/?q=dentist"), true);
@@ -258,6 +262,126 @@ test("Payme checkout redirects require an exact configured HTTPS host", () => {
   } finally {
     if (previousHosts === undefined) delete process.env.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS;
     else process.env.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS = previousHosts;
+  }
+});
+
+test("receipt document links are restricted to the configured API v1 origin", () => {
+  // Same reason as the Payme block above: the allowed origin is derived from the
+  // build-time API base, so it has to be seeded here or every positive assertion
+  // would be vacuously false.
+  const previousV1 = process.env.NEXT_PUBLIC_API_V1_URL;
+  const previousApi = process.env.NEXT_PUBLIC_API_URL;
+  process.env.NEXT_PUBLIC_API_V1_URL = "https://billing.dental.example/api/v1";
+  process.env.NEXT_PUBLIC_API_URL = "https://api.dental.example";
+  const documentPath = "/api/v1/billing/receipt-document/abc.def.ghi/";
+  try {
+    assert.equal(isAllowedReceiptDocumentUrl(`https://billing.dental.example${documentPath}`), true);
+
+    // Another origin entirely, and a suffix lookalike of the API host.
+    assert.equal(isAllowedReceiptDocumentUrl(`https://evil.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://billing.dental.example.evil.example${documentPath}`), false);
+    // Same registrable domain, different host — and here specifically the OTHER
+    // configured base, which the v1 base must outrank exactly as getApiV1Url does.
+    assert.equal(isAllowedReceiptDocumentUrl(`https://api.dental.example${documentPath}`), false);
+    // Smuggling the trusted origin into a query string of a hostile one.
+    assert.equal(
+      isAllowedReceiptDocumentUrl("https://evil.example/?next=https://billing.dental.example" + documentPath),
+      false
+    );
+    // `URL.origin` silently drops credentials, so these must be rejected explicitly.
+    assert.equal(isAllowedReceiptDocumentUrl(`https://user:secret@billing.dental.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://user@billing.dental.example${documentPath}`), false);
+    // Right origin, wrong endpoint: the guard must not become a generic open-URL.
+    assert.equal(isAllowedReceiptDocumentUrl("https://billing.dental.example/api/v1/billing/payments/"), false);
+    assert.equal(isAllowedReceiptDocumentUrl("https://billing.dental.example/"), false);
+    // Downgrade and non-http schemes.
+    assert.equal(isAllowedReceiptDocumentUrl(`http://billing.dental.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl("javascript:alert(1)"), false);
+    assert.equal(isAllowedReceiptDocumentUrl(documentPath), false);
+    assert.equal(isAllowedReceiptDocumentUrl(""), false);
+    assert.equal(isAllowedReceiptDocumentUrl(null), false);
+
+    // Dev runs the API on http://localhost, which must keep working.
+    process.env.NEXT_PUBLIC_API_V1_URL = "http://localhost:8011/api/v1";
+    assert.equal(isAllowedReceiptDocumentUrl(`http://localhost:8011${documentPath}`), true);
+    // A different port is a different origin.
+    assert.equal(isAllowedReceiptDocumentUrl(`http://localhost:8012${documentPath}`), false);
+
+    // Single-origin deployment: no separate v1 base, the app suffixes /api/v1 onto
+    // NEXT_PUBLIC_API_URL, so that origin becomes the allowed one.
+    process.env.NEXT_PUBLIC_API_V1_URL = "";
+    assert.equal(isAllowedReceiptDocumentUrl(`https://api.dental.example${documentPath}`), true);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://billing.dental.example${documentPath}`), false);
+
+    // No API base at all must fail closed instead of accepting anything.
+    process.env.NEXT_PUBLIC_API_URL = "";
+    assert.equal(isAllowedReceiptDocumentUrl(`https://api.dental.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://billing.dental.example${documentPath}`), false);
+    // The two above pass on the origin comparison alone, so they cannot show that
+    // the explicit empty-base guard is doing anything. A non-special scheme can:
+    // `URL.origin` is the literal string "null" for it, which would compare equal
+    // to a "null" origin — only the empty-base check rejects this one.
+    assert.equal(isAllowedReceiptDocumentUrl(`foo://api.dental.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`null${documentPath}`), false);
+  } finally {
+    if (previousV1 === undefined) delete process.env.NEXT_PUBLIC_API_V1_URL;
+    else process.env.NEXT_PUBLIC_API_V1_URL = previousV1;
+    if (previousApi === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+    else process.env.NEXT_PUBLIC_API_URL = previousApi;
+  }
+});
+
+test("receipt documents open through Telegram's own browser, with a real fallback", () => {
+  const previousWindow = globalThis.window;
+  const previousV1 = process.env.NEXT_PUBLIC_API_V1_URL;
+  process.env.NEXT_PUBLIC_API_V1_URL = "https://billing.dental.example/api/v1";
+  const documentUrl = "https://billing.dental.example/api/v1/billing/receipt-document/abc.def.ghi/";
+
+  try {
+    // Inside Telegram the document MUST be handed to openLink: window.open is a
+    // silent no-op there, so a browser-only path would leave a dead button.
+    const openLinkCalls = [];
+    const skippedOpens = [];
+    globalThis.window = {
+      Telegram: { WebApp: { openLink: (href, options) => openLinkCalls.push([href, options]) } },
+      open: (...args) => {
+        skippedOpens.push(args);
+        return null;
+      }
+    };
+    assert.equal(openReceiptDocument(documentUrl), true);
+    assert.deepEqual(openLinkCalls, [[documentUrl, { try_instant_view: false }]]);
+    assert.equal(skippedOpens.length, 0);
+
+    // Outside Telegram the fallback has to actually run, and `noopener` means the
+    // returned handle is null even on success — so it cannot gate the result.
+    const browserOpens = [];
+    globalThis.window = {
+      open: (...args) => {
+        browserOpens.push(args);
+        return null;
+      }
+    };
+    assert.equal(openReceiptDocument(documentUrl), true);
+    assert.deepEqual(browserOpens, [[documentUrl, "_blank", "noopener,noreferrer"]]);
+
+    // A rejected URL must open nothing at all, by either route.
+    const blocked = [];
+    globalThis.window = {
+      Telegram: { WebApp: { openLink: (...args) => blocked.push(args) } },
+      open: (...args) => {
+        blocked.push(args);
+        return null;
+      }
+    };
+    assert.equal(openReceiptDocument("https://evil.example/api/v1/billing/receipt-document/abc/"), false);
+    assert.equal(openReceiptDocument("javascript:alert(1)"), false);
+    assert.equal(blocked.length, 0);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+    if (previousV1 === undefined) delete process.env.NEXT_PUBLIC_API_V1_URL;
+    else process.env.NEXT_PUBLIC_API_V1_URL = previousV1;
   }
 });
 

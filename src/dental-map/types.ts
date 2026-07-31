@@ -54,6 +54,9 @@ export type TelegramWebApp = {
   close: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
+  /** Telegram's own browser. Required for any outbound link: inside the iOS
+   *  WebView `window.open` is frequently a silent no-op. */
+  openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
   disableVerticalSwipes?: () => void;
   onEvent?: (eventType: string, callback: () => void) => void;
   offEvent?: (eventType: string, callback: () => void) => void;

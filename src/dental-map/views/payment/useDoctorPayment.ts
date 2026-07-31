@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isOfflineMode } from "../../api/dentalMapApi";
 import { validateReceiptFile } from "../../lib/fileUpload";
-import { isAllowedPaymeCheckoutUrl } from "../../lib/paymentSecurity";
+import { isAllowedPaymeCheckoutUrl, openReceiptDocument } from "../../lib/paymentSecurity";
 import {
   fetchCards,
   fetchReceipts,
@@ -20,7 +20,7 @@ export function openPaymeCheckout(url: string) {
     return false;
   }
   const parsed = new URL(url);
-  const tg = (window as unknown as { Telegram?: { WebApp?: { openLink?: (u: string) => void } } }).Telegram?.WebApp;
+  const tg = window.Telegram?.WebApp;
   if (tg?.openLink) {
     tg.openLink(parsed.href);
   } else {
@@ -83,6 +83,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   const [payingWithPayme, setPayingWithPayme] = useState(false);
   const [paymeError, setPaymeError] = useState("");
   const [paymeStarted, setPaymeStarted] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     if (offline) {
@@ -215,7 +216,9 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
         amount_uzs: amountValue,
         status: "pending",
         card_holder: selectedCard?.holder_name ?? "",
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // A demo id has no payment behind it, so there is no document to open.
+        receipt_url: null
       });
       setSubmitted(true);
       submittingRef.current = false;
@@ -238,7 +241,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
         amount_uzs: amountValue,
         status: created.status ?? "pending",
         card_holder: selectedCard?.holder_name ?? "",
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // The document only exists once the payment is settled; a just-uploaded
+        // receipt is still awaiting review.
+        receipt_url: null
       });
       setSubmitted(true);
     } catch (error) {
@@ -287,6 +293,24 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     }
   }, [offline, subscriptionAmountUzs, subscriptionError]);
 
+  const downloadReceipt = useCallback(
+    (url: string) => {
+      if (offline) {
+        return;
+      }
+      if (openReceiptDocument(url)) {
+        setDownloadError("");
+        return;
+      }
+      setDownloadError("Chek havolasi yaroqsiz.");
+    },
+    [offline]
+  );
+
+  // Lets the view re-announce the same failure: a toast keyed on an unchanged
+  // string would stay silent on a second tap.
+  const clearDownloadError = useCallback(() => setDownloadError(""), []);
+
   return {
     cards,
     cardsLoading,
@@ -310,6 +334,9 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     payingWithPayme,
     paymeError,
     paymeStarted,
-    payWithPayme
+    payWithPayme,
+    downloadReceipt,
+    downloadError,
+    clearDownloadError
   };
 }

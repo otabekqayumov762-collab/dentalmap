@@ -29,6 +29,9 @@ export type Receipt = {
   card_holder: string;
   created_at: string;
   reject_reason?: string | null;
+  /** Signed, short-lived document URL. Null until the payment is settled, and
+   *  also null when the backend has no public base URL configured. */
+  receipt_url?: string | null;
 };
 
 export type ReceiptCreated = {
@@ -52,6 +55,27 @@ export function getApiV1Url(path: string) {
     throw new Error("Ilova server manzili sozlanmagan.");
   }
   return `${API_BASE_URL}${API_V1_PREFIX}${suffix}`;
+}
+
+/**
+ * Carries the HTTP status alongside the message so a caller can tell an
+ * intentional server state from a real failure. The billing kill switch answers
+ * 404, and a doctor must not be shown a red "load failed" alert plus a retry
+ * button for a feature ops deliberately switched off.
+ */
+export class BillingRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "BillingRequestError";
+    this.status = status;
+  }
+}
+
+/** True when the failure is billing being switched off, not a broken request. */
+export function isBillingDisabledError(error: unknown) {
+  return error instanceof BillingRequestError && error.status === 404;
 }
 
 async function requestV1<T>(
@@ -97,7 +121,7 @@ async function requestV1<T>(
     } catch {
       // Body is optional.
     }
-    throw new Error(message);
+    throw new BillingRequestError(message, response.status);
   }
 
   return (await response.json()) as T;
@@ -122,6 +146,32 @@ export function submitReceipt(formData: FormData): Promise<ReceiptCreated> {
 /** Receipts the current doctor has submitted, newest first when the API sorts. */
 export async function fetchReceipts(signal?: AbortSignal): Promise<Receipt[]> {
   const payload = await requestV1<{ results?: Receipt[] } | Receipt[]>("/billing/receipts/", { signal });
+  return normalizeApiList(payload);
+}
+
+export type PaymentHistoryItem = {
+  id: string;
+  amount_uzs: number;
+  currency: string;
+  status: string;
+  provider: string;
+  method: string;
+  confirmed_at: string | null;
+  created_at: string;
+  receipt_url: string | null;
+};
+
+/**
+ * Settled payments of the current doctor, newest first. Both settlement routes
+ * (Payme and an approved card transfer) land in this one list, which is why the
+ * durable "chek" surface reads payments and not receipt uploads — a Payme payer
+ * never creates a receipt row at all.
+ */
+export async function fetchPayments(signal?: AbortSignal): Promise<PaymentHistoryItem[]> {
+  const payload = await requestV1<{ results?: PaymentHistoryItem[] } | PaymentHistoryItem[]>(
+    "/billing/payments/?status_filter=succeeded&page=1&page_size=20",
+    { signal }
+  );
   return normalizeApiList(payload);
 }
 
