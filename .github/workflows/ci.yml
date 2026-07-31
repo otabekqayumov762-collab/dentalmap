@@ -46,13 +46,18 @@ jobs:
       - run: npm test
 
       # `build` chains validate-env -> next build -> finalize-static-export ->
-      # scan-public-bundle, so this one step also proves the deployment-artifact
-      # guard still holds (out/ must not contain nginx.conf, .env, keys, .git).
+      # scan-public-bundle -> check-bundle-budget, so this one step also proves
+      # the deployment-artifact guard still holds (out/ must not contain
+      # nginx.conf, .env, keys, .git) and that first paint stays in budget.
       - run: npm run build
 
-      # Belt and braces: run the scanner explicitly so a future change that drops
-      # it from `build` still fails here.
+      # Belt and braces: run both guards explicitly so a future change that drops
+      # either from `build` still fails here.
       - run: npm run security:bundle
+
+      # First-paint budget: catches a heavy view being statically imported back
+      # into the shell, or leaflet's vendor CSS returning to the entry stylesheet.
+      - run: npm run security:budget
 
       - name: no raw vh units in dialog primitives
         # Telegram's viewport is shorter than the layout viewport, so dialogs must
@@ -64,6 +69,37 @@ jobs:
             exit 1
           fi
           echo "OK: no raw vh units in ui/"
+
+  e2e:
+    name: e2e critical flows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # `channel: "chrome"` in playwright.config.mjs — install real Chrome, not
+      # bundled Chromium, so CI runs the engine the config asks for.
+      - run: npx playwright install --with-deps chrome
+
+      # Covers the paths that cost real money or leak real data if they break:
+      # cookie-mode login (no token in storage), session restore with CSRF,
+      # placeholder onboarding + consent before a booking, and the Payme
+      # checkout host allowlist failing closed. `test:e2e` builds first with the
+      # mocked API origins pinned in — see README for why that is mandatory.
+      - run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
 
   audit:
     name: npm audit
@@ -85,7 +121,7 @@ jobs:
 
   image:
     name: build image
-    needs: [verify]
+    needs: [verify, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -40,10 +40,10 @@ export function HomeView({
             <DoctorCard
               key={item.id}
               doctor={item}
-              onOpen={() => onOpenDoctor(item)}
-              onAppointment={() => onAppointment(item)}
+              onOpen={onOpenDoctor}
+              onAppointment={onAppointment}
               isSaved={savedDoctorIds.includes(item.id)}
-              onToggleSaved={() => onToggleSaved(item.id)}
+              onToggleSaved={onToggleSaved}
             />
           ))}
         </div>

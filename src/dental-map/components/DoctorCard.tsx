@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { Heart, MapPin, Star, Stethoscope } from "lucide-react";
+import { memo } from "react";
 import { Button, Card, cn } from "../ui";
 import { doctorAccentClass } from "./accent";
 import type { Doctor } from "../types";
@@ -14,7 +15,16 @@ const accentTone: Record<string, { text: string; softBg: string }> = {
   "accent-sky": { text: "text-accent-sky", softBg: "bg-accent-sky/10" }
 };
 
-export function DoctorCard({
+/**
+ * The callbacks take the doctor (or its id) instead of being pre-bound by the
+ * caller on purpose: `onOpen={() => onOpenDoctor(doctor)}` would hand this card
+ * three brand-new function props on every parent render, so the memo below
+ * would never hit. With this shape the list views pass their stable
+ * `useCallback` handlers straight through, and only the cards whose own doctor
+ * or saved-state actually changed re-render — the rest survive a search
+ * keystroke or a filter change untouched.
+ */
+function DoctorCardComponent({
   doctor,
   isSaved,
   onToggleSaved,
@@ -23,9 +33,9 @@ export function DoctorCard({
 }: {
   doctor: Doctor;
   isSaved: boolean;
-  onToggleSaved: () => void;
-  onOpen: () => void;
-  onAppointment: () => void;
+  onToggleSaved: (doctorId: string) => void;
+  onOpen: (doctor: Doctor) => void;
+  onAppointment: (doctor: Doctor) => void;
 }) {
   const tone = accentTone[doctorAccentClass(doctor.accent)] ?? accentTone["accent-teal"];
 
@@ -42,7 +52,7 @@ export function DoctorCard({
             tone.text
           )}
           type="button"
-          onClick={onOpen}
+          onClick={() => onOpen(doctor)}
           aria-label={`${doctor.name} haqida batafsil`}
         >
           {doctor.image ? (
@@ -61,7 +71,7 @@ export function DoctorCard({
           type="button"
           aria-label={isSaved ? `${doctor.name} saqlanganlardan olib tashlash` : `${doctor.name}ni saqlash`}
           aria-pressed={isSaved}
-          onClick={onToggleSaved}
+          onClick={() => onToggleSaved(doctor.id)}
         >
           <Heart size={16} className={isSaved ? "fill-current" : undefined} />
         </button>
@@ -71,7 +81,7 @@ export function DoctorCard({
         <button
           type="button"
           className="min-w-0 text-left"
-          onClick={onOpen}
+          onClick={() => onOpen(doctor)}
         >
           <strong className="block truncate text-[0.95rem] font-semibold text-ink-900">{doctor.name}</strong>
         </button>
@@ -92,10 +102,19 @@ export function DoctorCard({
         size="sm"
         className="w-full"
         type="button"
-        onClick={onAppointment}
+        onClick={() => onAppointment(doctor)}
       >
         Qabul
       </Button>
     </Card>
   );
 }
+
+/**
+ * Doctor lists are the only place in the app that renders the same component
+ * dozens of times, and they sit under the shell's search/filter state, so every
+ * keystroke used to re-render every card. Memo keeps that to the cards that
+ * actually changed. Default shallow compare is enough: `doctor` objects come
+ * from the data hook by reference and `isSaved` is a boolean.
+ */
+export const DoctorCard = memo(DoctorCardComponent);

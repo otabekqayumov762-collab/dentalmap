@@ -20,9 +20,23 @@ npm run typecheck
 npm test
 npm run build
 npm run security:bundle
+npm run security:budget
 npm run test:e2e
 npm start
 ```
+
+`npm run test:e2e` o'zi `build:e2e` ni chaqiradi. Buning sababi: e2e testlar
+`https://api.dental.example` va `https://billing.dental.example` originlarini
+`page.route()` bilan mocklaydi, Playwright esa faqat **bundle haqiqatda
+chaqiradigan** originni ushlab qoladi. Shuning uchun e2e build shu originlarga
+pin qilingan — aks holda so'rovlar real API'ga ketadi, mocklar ishlamaydi va
+testlar kodga aloqasi yo'q sabab bilan yiqiladi. Tayyor `out/` bo'lsa
+`npm run test:e2e:no-build` bilan qayta build qilmasdan ishlatish mumkin.
+
+`npm run security:budget` — birinchi paint budjeti. `components/DentalMapApp.tsx`
+hamma view'ni bitta joyda render qiladi, shuning uchun bitta oddiy `import`
+og'ir view'ni critical path'ga qaytarib qo'yadi. Yangi og'ir view
+`src/dental-map/views/lazyViews.tsx` orqali `next/dynamic` bilan qo'shiladi.
 
 `npm run build` environment qiymatlarini tekshiradi, statik export yaratadi va
 buildga mos CSP/hashli Nginx konfiguratsiyasini private `generated/nginx.conf`

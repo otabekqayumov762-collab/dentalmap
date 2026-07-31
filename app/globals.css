@@ -4,7 +4,14 @@
 @layer legacy;
 
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
+
+/* leaflet/dist/leaflet.css is NOT imported here on purpose: it is ~15 kB of
+   vendor CSS that only the map view needs, and from here it lands in the single
+   render-blocking stylesheet every visitor downloads. MapView.tsx imports it
+   instead, so webpack ships it inside the (dynamically loaded) map chunk.
+   Keep it that way — moving it back re-adds it to the critical path.
+   The app's own `.leaflet-map` / marker rules stay global in
+   styles/content-cards.css; they are small and layer-scoped. */
 
 /* Legacy stylesheets — global foundation (root vars, leaflet markers) + dead
    component rules pending removal. Scoped to the low-priority `legacy` layer. */

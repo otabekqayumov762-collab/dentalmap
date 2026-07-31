@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 
+// Vendor CSS lives with the view that needs it, not in globals.css. This module
+// is only reached through the dynamic import in lazyViews.tsx, so webpack emits
+// this stylesheet in the map chunk instead of the render-blocking global one.
+import "leaflet/dist/leaflet.css";
+
 import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import { ArrowLeft, Building2, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
 import {

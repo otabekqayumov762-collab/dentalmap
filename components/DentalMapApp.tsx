@@ -15,26 +15,32 @@ import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
 import { useViewNavigation } from "@/src/dental-map/hooks/useViewNavigation";
 import { BrandLogo, EmptyState } from "@/src/dental-map/components/common";
-import { AppointmentDetailView } from "@/src/dental-map/views/AppointmentDetailView";
-import { AppointmentView } from "@/src/dental-map/views/AppointmentView";
+// First-paint views stay statically imported — see lazyViews.tsx for why the
+// rest are split out and what the split rule is.
 import { ClinicsView } from "@/src/dental-map/views/ClinicsView";
-import { DoctorDetailView } from "@/src/dental-map/views/DoctorDetailView";
 import { DoctorsView } from "@/src/dental-map/views/DoctorsView";
 import { SavedDoctorsView } from "@/src/dental-map/views/SavedDoctorsView";
-import { FeedbackView } from "@/src/dental-map/views/FeedbackView";
 import { AuthGate, type AuthMode } from "@/src/dental-map/views/AuthGate";
 import { HomeView } from "@/src/dental-map/views/HomeView";
 import { LoginView } from "@/src/dental-map/views/LoginView";
-import { MapView } from "@/src/dental-map/views/MapView";
-import { NotificationsView } from "@/src/dental-map/views/NotificationsView";
-import { PatientAppointmentsView } from "@/src/dental-map/views/PatientAppointmentsView";
 import { TelegramGate } from "@/src/dental-map/views/TelegramGate";
-import { ProfileView } from "@/src/dental-map/views/ProfileView";
-import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
-import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
-import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
+// Type-only: erased at compile time, so it does not pull the cabinet chunk in.
+import type { DoctorSection } from "@/src/dental-map/views/DoctorDashboardView";
+import {
+  AppointmentDetailView,
+  AppointmentView,
+  DoctorDashboardView,
+  DoctorDetailView,
+  DoctorPaymentView,
+  FeedbackView,
+  MapView,
+  NotificationsView,
+  PatientAppointmentsView,
+  ProfileView,
+  RatingPromptSheet
+} from "@/src/dental-map/views/lazyViews";
 import { mapLinkValidationError } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
@@ -314,27 +320,36 @@ function DentalMapAppInner() {
     webApp?.HapticFeedback?.notificationOccurred("success");
   }, [changeView, scrollRef, webApp]);
 
-  function openAppointment(doctor: Doctor) {
-    webApp?.HapticFeedback?.selectionChanged();
-    // Always start a fresh booking form. Previously this only reset the success
-    // flag when switching to a DIFFERENT doctor, so re-booking the SAME doctor
-    // showed a stale "So'rov yuborildi" success and blocked a new request.
-    setConsultationSent(false);
-    setAppointmentError(null);
-    // Every booking starts with no pre-selected time (a previous doctor's pick
-    // could otherwise leak into the new form in offline mode).
-    setSelectedSlot("");
-    setSelectedDoctor(doctor);
-    changeView("appointment");
-  }
+  // useCallback, not a plain function: these are handed straight to the memoised
+  // DoctorCard. A fresh identity per render would change the card's props on
+  // every keystroke in the search box and defeat the memo entirely.
+  const openAppointment = useCallback(
+    (doctor: Doctor) => {
+      webApp?.HapticFeedback?.selectionChanged();
+      // Always start a fresh booking form. Previously this only reset the success
+      // flag when switching to a DIFFERENT doctor, so re-booking the SAME doctor
+      // showed a stale "So'rov yuborildi" success and blocked a new request.
+      setConsultationSent(false);
+      setAppointmentError(null);
+      // Every booking starts with no pre-selected time (a previous doctor's pick
+      // could otherwise leak into the new form in offline mode).
+      setSelectedSlot("");
+      setSelectedDoctor(doctor);
+      changeView("appointment");
+    },
+    [changeView, webApp]
+  );
 
-  function openDoctor(doctor: Doctor) {
-    webApp?.HapticFeedback?.selectionChanged();
-    setSelectedDoctor(doctor);
-    // Lazily pull this doctor's approved public reviews for the detail view.
-    void loadDoctorReviews(doctor.id);
-    changeView("doctorDetail");
-  }
+  const openDoctor = useCallback(
+    (doctor: Doctor) => {
+      webApp?.HapticFeedback?.selectionChanged();
+      setSelectedDoctor(doctor);
+      // Lazily pull this doctor's approved public reviews for the detail view.
+      void loadDoctorReviews(doctor.id);
+      changeView("doctorDetail");
+    },
+    [changeView, loadDoctorReviews, webApp]
+  );
 
   function openAppointmentDetail(appointment: ApiAppointment) {
     webApp?.HapticFeedback?.selectionChanged();

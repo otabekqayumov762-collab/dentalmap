@@ -33,10 +33,10 @@ export function SavedDoctorsView({
             <DoctorCard
               key={doctor.id}
               doctor={doctor}
-              onOpen={() => onOpenDoctor(doctor)}
-              onAppointment={() => onAppointment(doctor)}
+              onOpen={onOpenDoctor}
+              onAppointment={onAppointment}
               isSaved={savedDoctorIds.includes(doctor.id)}
-              onToggleSaved={() => onToggleSaved(doctor.id)}
+              onToggleSaved={onToggleSaved}
             />
           ))}
         </div>
