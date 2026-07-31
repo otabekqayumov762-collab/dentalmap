@@ -121,7 +121,6 @@ export function AuthGate({
             onRoleChange={onRoleChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}
-            onNavigate={() => onModeChange("login")}
           />
         )}
       </section>

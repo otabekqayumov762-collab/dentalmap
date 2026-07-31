@@ -12,6 +12,7 @@ import { DoctorHeaderCard } from "./doctor/DoctorHeaderCard";
 import { DoctorProfileForm } from "./doctor/DoctorProfileForm";
 import { DoctorScheduleManager } from "./doctor/DoctorScheduleManager";
 import { DoctorStatsRow } from "./doctor/DoctorStatsRow";
+import { PublicationChecklist } from "./doctor/PublicationChecklist";
 
 export type DoctorSection = "kabinet" | "appointments" | "schedule" | "profile";
 
@@ -62,6 +63,18 @@ export function DoctorDashboardView({
   const confirmedCount = visibleAppointments.filter((a) => a.status === "doctor_confirmed").length;
   const completedCount = visibleAppointments.filter((a) => a.status === "completed").length;
   const approvalStatus = profile?.approval_status || user?.doctor_profile?.approval_status;
+  // Publication is self-serve, so the doctor needs to see exactly what is still
+  // missing. `/doctors/me/` is authoritative; the login payload is the fallback
+  // for the first render before the profile request resolves.
+  const publicationBlockers = profile?.publication_blockers ?? user?.doctor_profile?.publication_blockers;
+  const isPublished = Boolean(profile?.is_published ?? user?.doctor_profile?.is_published);
+  const publicationChecklist = (
+    <PublicationChecklist
+      blockers={publicationBlockers}
+      isPublished={isPublished}
+      onNavigate={(target) => onNavigate(target === "schedule" ? "doctorSchedule" : "doctorEdit")}
+    />
+  );
 
   function handleAppointmentAction(appointment: ApiAppointment, action: DoctorAppointmentAction, reason?: string) {
     if (!usingDemoAppointments) {
@@ -113,6 +126,7 @@ export function DoctorDashboardView({
     return (
       <div className="flex flex-col gap-4">
         {errorBanner}
+        {publicationChecklist}
         <DoctorScheduleManager
           schedule={schedule}
           loading={loading}
@@ -192,12 +206,13 @@ export function DoctorDashboardView({
         user={user}
         profile={profile}
         approvalStatus={approvalStatus}
-        isPublished={Boolean(profile?.is_published)}
+        isPublished={isPublished}
         loading={loading}
         onRefresh={onRefresh}
         onEdit={() => onNavigate("doctorEdit")}
       />
       {errorBanner}
+      {publicationChecklist}
       <DoctorStatsRow
         pendingCount={pendingCount}
         confirmedCount={confirmedCount}

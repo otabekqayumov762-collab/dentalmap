@@ -108,9 +108,20 @@ export function DoctorHeaderCard({
   const experience = profile?.experience_years ? `${profile.experience_years} yil` : "Kiritilmagan";
 
   const approvalState: StatusState =
-    approvalStatus === "blocked" || approvalStatus === "rejected" ? "bad" : "ok";
-  const ApprovalIcon = approvalState === "ok" ? CheckCircle2 : XCircle;
-  const approvalValue = approvalStatus === "blocked" ? "Bloklangan" : approvalStatus === "rejected" ? "Faol emas" : "Profil faol";
+    approvalStatus === "blocked" || approvalStatus === "rejected"
+      ? "bad"
+      : approvalStatus === "pending"
+        ? "pending"
+        : "ok";
+  const ApprovalIcon = approvalState === "ok" ? CheckCircle2 : approvalState === "pending" ? Clock3 : XCircle;
+  const approvalValue =
+    approvalStatus === "blocked"
+      ? "Bloklangan"
+      : approvalStatus === "rejected"
+        ? "Faol emas"
+        : approvalStatus === "pending"
+          ? "Admin tasdig'i kutilmoqda"
+          : "Profil faol";
 
   return (
     <Card className="flex flex-col gap-4 border-0 bg-gradient-to-br from-brand-500 to-brand-600 text-white">

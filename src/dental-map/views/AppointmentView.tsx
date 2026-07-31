@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fetchDoctorDaySlots, isOfflineMode } from "../api/dentalMapApi";
 import { DoctorAvatar, SectionTitle } from "../components/common";
 import { upcomingDays, type DaySlots } from "../lib/schedule";
-import { openExternal } from "../lib/url";
+import { isSafeMapUrl, openExternal } from "../lib/url";
 import type { Doctor } from "../types";
 import { Button, Card, TextareaField, cn, useToast } from "../ui";
 
@@ -12,8 +12,9 @@ const defaultNote = "";
 
 function readSaved<T>(key: string): Partial<T> {
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as Partial<T>) : {};
+    const raw = window.sessionStorage.getItem(key);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Partial<T>) : {};
   } catch {
     return {};
   }
@@ -99,7 +100,7 @@ export function AppointmentView({
       return;
     }
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify({ note }));
+      window.sessionStorage.setItem(draftKey, JSON.stringify({ note }));
     } catch {
       // Local draft is optional and can fail in private embedded browsers.
     }
@@ -139,7 +140,7 @@ export function AppointmentView({
     }
     setNote("");
     try {
-      window.localStorage.removeItem(draftKey);
+      window.sessionStorage.removeItem(draftKey);
     } catch {
       // storage may be unavailable
     }
@@ -194,7 +195,7 @@ export function AppointmentView({
           <small className="text-xs leading-relaxed text-ink-500">
             {[doctor.address, doctor.district].filter(Boolean).join(", ") || doctor.district}
           </small>
-          {doctor.locationUrl && (
+          {isSafeMapUrl(doctor.locationUrl) && (
             <Button
               type="button"
               variant="secondary"

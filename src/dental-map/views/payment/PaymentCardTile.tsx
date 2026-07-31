@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Copy, CreditCard } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { CreditCard } from "lucide-react";
+import { type KeyboardEvent } from "react";
 import type { BillingCard } from "../../api/paymentsApi";
 import { Badge, cn } from "../../ui";
 
@@ -17,30 +17,6 @@ export function PaymentCardTile({
   disabled?: boolean;
   onSelect: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const copyTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current !== null) {
-        window.clearTimeout(copyTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  async function copyNumber() {
-    try {
-      await navigator.clipboard.writeText(card.masked_number.replace(/\s+/g, ""));
-      setCopied(true);
-      if (copyTimeoutRef.current !== null) {
-        window.clearTimeout(copyTimeoutRef.current);
-      }
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // Clipboard may be blocked — the number stays visible for manual copy.
-    }
-  }
-
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -83,25 +59,12 @@ export function PaymentCardTile({
         {card.masked_number}
       </p>
 
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-          {card.holder_name}
-        </span>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            void copyNumber();
-          }}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-xs font-semibold transition-colors",
-            copied ? "bg-success/10 text-success" : "bg-surface-100 text-ink-600 hover:bg-surface-200"
-          )}
-        >
-          {copied ? <Check size={13} /> : <Copy size={13} />}
-          {copied ? "Nusxa olindi" : "Nusxa olish"}
-        </button>
-      </div>
+      <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
+        {card.holder_name}
+      </span>
+      <small className="text-[0.7rem] text-ink-400">
+        Xavfsizlik uchun niqoblangan raqam nusxalanmaydi. To&apos;lov rekvizitini bankingizda tekshiring.
+      </small>
     </div>
   );
 }

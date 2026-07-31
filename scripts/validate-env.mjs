@@ -73,26 +73,62 @@ if (rawApiV1Url) {
   console.log(`Build API v1 URL validated: ${apiV1Url.origin}${apiV1Url.pathname.replace(/\/+$/, "")}`);
 }
 
-for (const name of ["NEXT_PUBLIC_SHEETS_WEBHOOK_URL", "NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL"]) {
-  const rawOptionalUrl = process.env[name]?.trim();
-  if (!rawOptionalUrl) {
-    continue;
-  }
+const rawMediaUrl = process.env.NEXT_PUBLIC_MEDIA_URL?.trim() || "";
+if (rawMediaUrl) {
+  const mediaUrl = validatePublicUrl("NEXT_PUBLIC_MEDIA_URL", rawMediaUrl);
+  console.log(`Build media origin validated: ${mediaUrl.origin}`);
+}
 
-  let optionalUrl;
-  try {
-    optionalUrl = new URL(rawOptionalUrl);
-  } catch {
-    fail(`${name} must be a valid absolute URL when provided.`);
+function validateTelegramUrl(name, rawValue) {
+  if (!rawValue) {
+    return;
   }
-
-  if (optionalUrl.protocol !== "https:") {
-    fail(`${name} must use https.`);
+  const url = validatePublicUrl(name, rawValue);
+  if (url.protocol !== "https:" || !["t.me", "telegram.me"].includes(url.hostname.toLowerCase())) {
+    fail(`${name} must use an official https://t.me or https://telegram.me URL.`);
   }
+}
 
-  if (optionalUrl.username || optionalUrl.password) {
-    fail(`${name} must not contain credentials.`);
+validateTelegramUrl("NEXT_PUBLIC_BOT_URL", process.env.NEXT_PUBLIC_BOT_URL?.trim());
+const rawSupportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL?.trim() || "";
+validateTelegramUrl("NEXT_PUBLIC_SUPPORT_URL", rawSupportUrl);
+if (/\/(?:your_support|your_bot)\/?$/i.test(rawSupportUrl)) {
+  fail("NEXT_PUBLIC_SUPPORT_URL must not use the .env.example placeholder value.");
+}
+
+// Cookie mode keeps the refresh credential in an HttpOnly cookie, unreachable to
+// JavaScript. `legacy-session` puts it back in web storage, so it must never be
+// selectable by a typo — it requires a second, explicitly non-public build flag.
+const authMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE?.trim() || "cookie";
+if (!["cookie", "legacy-session"].includes(authMode)) {
+  fail("NEXT_PUBLIC_AUTH_TOKEN_MODE must be cookie or legacy-session.");
+}
+if (authMode === "legacy-session" && process.env.ALLOW_LEGACY_SESSION_AUTH !== "true") {
+  fail("legacy-session auth requires the explicit non-public ALLOW_LEGACY_SESSION_AUTH=true build flag.");
+}
+
+// The doctor payment button opens only a checkout URL whose host is on this list.
+// Deliberately OPTIONAL (empty simply keeps online Payme unavailable) so a build
+// without payments configured still succeeds — but whenever a value IS given,
+// every entry must be an exact hostname: no scheme, no path, no wildcard. A typo
+// like "*.paycom.uz" or "https://checkout.paycom.uz" would silently never match
+// and the doctor would just see "Payme ruxsat etilgan manzilni qaytarmadi".
+const checkoutHosts = (process.env.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS || "")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean);
+for (const host of checkoutHosts) {
+  if (
+    host.includes("://") ||
+    host.includes("/") ||
+    host.includes("*") ||
+    !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host)
+  ) {
+    fail(`Invalid exact Payme checkout host: ${host}`);
   }
+}
 
-  console.log(`${name} origin validated: ${optionalUrl.origin}`);
+const rawAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim();
+if (rawAdminPath && !/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(rawAdminPath.replace(/^\/+|\/+$/g, ""))) {
+  fail("NEXT_PUBLIC_ADMIN_URL must be a same-origin path (for example: admin).");
 }

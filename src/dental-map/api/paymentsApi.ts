@@ -1,4 +1,5 @@
 import { getAccessToken } from "../lib/tokenStore";
+import { authFetchCredentials } from "../lib/authMode";
 import { API_BASE_URL, normalizeApiList, parseApiError, refreshAccessToken } from "./dentalMapApi";
 
 /**
@@ -75,7 +76,7 @@ async function requestV1<T>(
   const response = await fetch(getApiV1Url(path), {
     method,
     cache: "no-store",
-    credentials: "omit",
+    credentials: authFetchCredentials(),
     headers,
     body,
     signal
@@ -122,4 +123,26 @@ export function submitReceipt(formData: FormData): Promise<ReceiptCreated> {
 export async function fetchReceipts(signal?: AbortSignal): Promise<Receipt[]> {
   const payload = await requestV1<{ results?: Receipt[] } | Receipt[]>("/billing/receipts/", { signal });
   return normalizeApiList(payload);
+}
+
+export type PaymeCheckout = {
+  provider: "payme";
+  checkout_url: string;
+  invoice_id: string | number;
+  amount_uzs: number;
+  currency: string;
+  account: Record<string, string>;
+};
+
+/**
+ * Start a Payme (Paycom) online payment. Returns the hosted Payme checkout URL
+ * to open; the subscription is granted asynchronously when Payme calls our
+ * webhook (PerformTransaction), so the caller should re-check the profile after
+ * the doctor returns.
+ */
+export function initiatePayme(returnUrl = ""): Promise<PaymeCheckout> {
+  return requestV1<PaymeCheckout>("/billing/payments/initiate/", {
+    method: "POST",
+    body: JSON.stringify({ method: "payme", return_url: returnUrl })
+  });
 }

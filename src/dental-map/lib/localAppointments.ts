@@ -1,6 +1,6 @@
 // Local (no-backend) persistence for appointments + reviews so the full booking
-// → doctor confirms → patient reviews loop is testable offline. localStorage is
-// shared per-origin, so the patient and doctor local accounts see the same data.
+// → doctor confirms → patient reviews loop is testable offline. sessionStorage
+// keeps medical/demo data scoped to the current browser tab.
 
 import type { ApiAppointment, ApiReview } from "../types";
 
@@ -12,8 +12,9 @@ function read<T>(key: string): T[] {
     return [];
   }
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T[]) : [];
+    const raw = window.sessionStorage.getItem(key);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
   } catch {
     return [];
   }
@@ -24,7 +25,7 @@ function write<T>(key: string, list: T[]) {
     return;
   }
   try {
-    window.localStorage.setItem(key, JSON.stringify(list));
+    window.sessionStorage.setItem(key, JSON.stringify(list));
   } catch {
     // storage may be unavailable in private embedded browsers
   }

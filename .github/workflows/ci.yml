@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Dockerfile uses node:22-alpine and netlify.toml pins NODE_VERSION=22.
+  NODE_VERSION: "22"
+  # Values that only have to SATISFY scripts/validate-env.mjs so the static export
+  # can be produced and scanned. They are compiled into this throwaway CI bundle
+  # and must never be a real origin — the deployable image is built in the `image`
+  # job from repository variables instead.
+  NEXT_PUBLIC_API_URL: https://ci.invalid
+  NEXT_PUBLIC_BOT_URL: https://t.me/ci_bot
+  NEXT_PUBLIC_SUPPORT_URL: https://t.me/ci_support
+  NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS: checkout.paycom.uz
+  NEXT_PUBLIC_TELEGRAM_ONLY: "false"
+
+jobs:
+  verify:
+    name: lint + typecheck + test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # `build` chains validate-env -> next build -> finalize-static-export ->
+      # scan-public-bundle, so this one step also proves the deployment-artifact
+      # guard still holds (out/ must not contain nginx.conf, .env, keys, .git).
+      - run: npm run build
+
+      # Belt and braces: run the scanner explicitly so a future change that drops
+      # it from `build` still fails here.
+      - run: npm run security:bundle
+
+      - name: no raw vh units in dialog primitives
+        # Telegram's viewport is shorter than the layout viewport, so dialogs must
+        # size against --tg-viewport-height. A stray `vh` silently puts a sheet
+        # under the Telegram chrome on iOS.
+        run: |
+          if grep -rnE '\[[0-9]+vh\]' src/dental-map/ui/; then
+            echo "::error::use var(--tg-viewport-height) instead of a raw vh unit"
+            exit 1
+          fi
+          echo "OK: no raw vh units in ui/"
+
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Runtime dependencies only. Nothing that ships to the browser may carry a
+      # high advisory; build-only tooling is reported by the next step but does
+      # not block, because a static export never runs it in production.
+      - run: npm audit --omit=dev --audit-level=high
+      - name: full audit (report only)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  image:
+    name: build image
+    needs: [verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # NEXT_PUBLIC_* values are baked into the bundle at build time, so the
+      # deployable image can only be produced from the real production values.
+      # They live in repository variables, never in this file.
+      - name: require production build vars
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          missing=""
+          [ -n "${{ vars.NEXT_PUBLIC_API_URL }}" ] || missing="$missing NEXT_PUBLIC_API_URL"
+          [ -n "${{ vars.NEXT_PUBLIC_BOT_URL }}" ] || missing="$missing NEXT_PUBLIC_BOT_URL"
+          if [ -n "$missing" ]; then
+            echo "::error::set repository variables:$missing"
+            exit 1
+          fi
+
+      - name: log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build (and push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://ci.invalid' }}
+            NEXT_PUBLIC_API_V1_URL=${{ vars.NEXT_PUBLIC_API_V1_URL }}
+            NEXT_PUBLIC_MEDIA_URL=${{ vars.NEXT_PUBLIC_MEDIA_URL }}
+            NEXT_PUBLIC_BOT_URL=${{ vars.NEXT_PUBLIC_BOT_URL || 'https://t.me/ci_bot' }}
+            NEXT_PUBLIC_SUPPORT_URL=${{ vars.NEXT_PUBLIC_SUPPORT_URL }}
+            NEXT_PUBLIC_TELEGRAM_ONLY=${{ vars.NEXT_PUBLIC_TELEGRAM_ONLY || 'false' }}
+            NEXT_PUBLIC_ADMIN_URL=${{ vars.NEXT_PUBLIC_ADMIN_URL }}
+            NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${{ vars.NEXT_PUBLIC_YANDEX_MAPS_API_KEY }}
+            NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS=${{ vars.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/dental-map:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/dental-map:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

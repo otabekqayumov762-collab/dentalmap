@@ -130,7 +130,6 @@ export type Clinic = {
   name: string;
   district: string;
   address: string;
-  workTime: string;
   rating: number;
   image?: string;
   /** Map coordinates (for partner clinics we place on the map). */
@@ -178,8 +177,13 @@ export type ApiUser = {
     is_published: boolean;
     subscription_expires_at?: string | null;
     is_subscription_active?: boolean;
+    publication_blockers?: PublicationBlocker[];
+    configured_workday_count?: number;
   } | null;
 };
+
+/** Why a doctor profile is not publicly listed yet. Server-defined keys. */
+export type PublicationBlocker = "schedule_incomplete" | "location_missing" | "rejected" | "blocked";
 
 export type ApiDoctor = {
   id: string;
@@ -202,6 +206,8 @@ export type ApiDoctor = {
   is_published?: boolean;
   subscription_expires_at?: string | null;
   is_subscription_active?: boolean;
+  publication_blockers?: PublicationBlocker[];
+  configured_workday_count?: number;
 };
 
 export type ApiAppointment = {
@@ -255,7 +261,6 @@ export type ApiClinicBranch = {
   district?: string;
   address?: string;
   phone?: string;
-  work_time?: string;
   is_active?: boolean;
   latitude?: string | number | null;
   longitude?: string | number | null;

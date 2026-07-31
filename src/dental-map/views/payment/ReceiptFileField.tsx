@@ -2,9 +2,8 @@
 
 import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { RECEIPT_UPLOAD_TYPES, validateReceiptFile } from "../../lib/fileUpload";
 import { cn } from "../../ui";
-
-const ACCEPT = "image/png,image/jpeg,image/webp,application/pdf";
 
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -25,6 +24,7 @@ export function ReceiptFileField({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (file && file.type.startsWith("image/")) {
@@ -44,10 +44,26 @@ export function ReceiptFileField({
         ref={inputRef}
         type="file"
         name="file"
-        accept={ACCEPT}
+        accept={RECEIPT_UPLOAD_TYPES.join(",")}
         disabled={disabled}
         className="hidden"
-        onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+        onChange={(event) => {
+          const nextFile = event.target.files?.[0] ?? null;
+          if (!nextFile) {
+            setValidationError("");
+            onFileChange(null);
+            return;
+          }
+          const error = validateReceiptFile(nextFile);
+          if (error) {
+            event.currentTarget.value = "";
+            setValidationError(error);
+            onFileChange(null);
+            return;
+          }
+          setValidationError("");
+          onFileChange(nextFile);
+        }}
       />
 
       {!file ? (
@@ -89,6 +105,7 @@ export function ReceiptFileField({
             disabled={disabled}
             onClick={() => {
               onFileChange(null);
+              setValidationError("");
               if (inputRef.current) {
                 inputRef.current.value = "";
               }
@@ -98,6 +115,11 @@ export function ReceiptFileField({
             <X size={16} />
           </button>
         </div>
+      )}
+      {validationError && (
+        <small className="text-xs font-medium text-danger" role="alert">
+          {validationError}
+        </small>
       )}
     </div>
   );

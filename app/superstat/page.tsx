@@ -5,9 +5,21 @@ export const metadata: Metadata = {
   description: "Dental Map statistikasi faqat admin panelda ochiladi.",
 };
 
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "http://localhost:8000";
-const configuredAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim().replace(/^\/+|\/+$/g, "") || "admin";
-const adminSuperstatUrl = `${configuredApiUrl}/${configuredAdminPath}/superstat/`;
+function safeApiBase() {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8000");
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+      return "http://localhost:8000";
+    }
+    return url.href.replace(/\/+$/, "");
+  } catch {
+    return "http://localhost:8000";
+  }
+}
+
+const rawAdminPath = process.env.NEXT_PUBLIC_ADMIN_URL?.trim().replace(/^\/+|\/+$/g, "") || "admin";
+const configuredAdminPath = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(rawAdminPath) ? rawAdminPath : "admin";
+const adminSuperstatUrl = `${safeApiBase()}/${configuredAdminPath}/superstat/`;
 
 export default function SuperstatPage() {
   return (

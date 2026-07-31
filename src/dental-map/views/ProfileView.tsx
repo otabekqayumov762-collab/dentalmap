@@ -13,12 +13,14 @@ import {
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
 import { districtToRegion } from "../catalog";
-import { openExternal } from "../lib/url";
+import { isSafeTelegramUrl, openExternal } from "../lib/url";
 import type { ApiUser, ViewId } from "../types";
+import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
 
 // Support/help-desk Telegram account. Override via NEXT_PUBLIC_SUPPORT_URL.
-const SUPPORT_TELEGRAM_URL = process.env.NEXT_PUBLIC_SUPPORT_URL || "https://t.me/Alisherovich_5";
-import { Button, Card, Field, PhoneField, RegionDistrictField, TextareaField, cn } from "../ui";
+const DEFAULT_SUPPORT_URL = "https://t.me/Alisherovich_5";
+const configuredSupportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL || DEFAULT_SUPPORT_URL;
+const SUPPORT_TELEGRAM_URL = isSafeTelegramUrl(configuredSupportUrl) ? configuredSupportUrl : DEFAULT_SUPPORT_URL;
 
 type ProfileForm = {
   name: string;
@@ -120,7 +122,7 @@ export function ProfileView({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // Seed: online → the signed-in backend user; offline → the localStorage draft.
+  // Seed: online → the signed-in backend user; offline → the tab-scoped draft.
   useEffect(() => {
     if (currentUser && !isOfflineMode()) {
       setProfile(
@@ -135,7 +137,7 @@ export function ProfileView({
       return;
     }
     try {
-      const rawProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+      const rawProfile = window.sessionStorage.getItem(PROFILE_STORAGE_KEY);
       if (!rawProfile) {
         return;
       }
@@ -164,8 +166,8 @@ export function ProfileView({
     setSaveError("");
     try {
       if (isOfflineMode()) {
-        // Offline: the localStorage draft is the source of truth for the seed.
-        window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+        // Offline: keep personal data only for the current tab session.
+        window.sessionStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
       }
       const message = await onSaveProfile(profile);
       if (message) {

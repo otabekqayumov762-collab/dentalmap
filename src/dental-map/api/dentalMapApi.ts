@@ -1,5 +1,6 @@
 import { formatUzDate } from "../lib/date";
 import { groupSlots, type DaySlots } from "../lib/schedule";
+import { authFetchCredentials, usesRefreshCookie } from "../lib/authMode";
 import { getAccessToken, getRefreshToken, storeAuthTokens } from "../lib/tokenStore";
 import type {
   ApiAppointment,
@@ -78,12 +79,44 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
 }
 
 /**
- * Exchanges the stored refresh token for a fresh access token via SimpleJWT
- * (`POST /api/auth/token/refresh/` → `{access, refresh?}`). A single in-flight
- * promise is shared so concurrent 401s trigger at most one refresh. On any
- * failure the tokens are cleared so the app falls back to the auth wall.
+ * Exchanges the refresh credential for a fresh access token via SimpleJWT
+ * (`POST /api/auth/token/refresh/` → `{access, refresh?}`). In cookie mode the
+ * credential is an HttpOnly cookie the browser sends on its own, so JavaScript
+ * never sees it; `legacy-session` keeps the old JSON body path for a controlled
+ * migration. A single in-flight promise is shared so concurrent 401s trigger at
+ * most one exchange. On any failure the tokens are cleared so the app falls back
+ * to the auth wall.
  */
 let refreshInFlight: Promise<boolean> | null = null;
+let csrfInFlight: Promise<string> | null = null;
+
+/** Obtain Django's CSRF token before an HttpOnly-cookie auth mutation. Kept in
+ *  memory; the matching non-HttpOnly CSRF cookie is managed by the browser. */
+export async function getAuthCsrfToken(): Promise<string> {
+  if (!usesRefreshCookie()) {
+    return "";
+  }
+  if (!csrfInFlight) {
+    csrfInFlight = (async () => {
+      const response = await fetch(getApiUrl("/api/auth/csrf/"), {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error("Xavfsiz sessiya tayyorlanmadi.");
+      }
+      const payload = (await response.json()) as { csrf_token?: unknown };
+      if (typeof payload.csrf_token !== "string" || !payload.csrf_token) {
+        throw new Error("CSRF server javobi noto'g'ri.");
+      }
+      return payload.csrf_token;
+    })().finally(() => {
+      csrfInFlight = null;
+    });
+  }
+  return csrfInFlight;
+}
 
 /** Human-readable message from a DRF ({detail}/{field:[...]}) or FastAPI 422
  *  ({detail:[{msg}]}) error body — avoids the "[object Object]" garble. */
@@ -111,18 +144,28 @@ export function parseApiError(payload: unknown, fallback = "Xatolik yuz berdi.")
 
 export async function refreshAccessToken(): Promise<boolean> {
   const refresh = getRefreshToken();
-  if (!refresh) {
+  const cookieMode = usesRefreshCookie();
+  // In cookie mode there is nothing to read locally — the browser holds the
+  // credential — so an empty `refresh` must not short-circuit the exchange.
+  if (!cookieMode && !refresh) {
     return false;
   }
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
+        const csrfToken = cookieMode ? await getAuthCsrfToken() : "";
+        const headers = new Headers();
+        if (cookieMode) {
+          headers.set("X-CSRFToken", csrfToken);
+        } else {
+          headers.set("Content-Type", "application/json");
+        }
         const response = await fetch(getApiUrl("/api/auth/token/refresh/"), {
           method: "POST",
           cache: "no-store",
-          credentials: "omit",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh })
+          credentials: authFetchCredentials(),
+          headers,
+          body: cookieMode ? undefined : JSON.stringify({ refresh })
         });
         if (!response.ok) {
           storeAuthTokens({});
@@ -134,7 +177,13 @@ export async function refreshAccessToken(): Promise<boolean> {
           return false;
         }
         // SimpleJWT may rotate the refresh token; keep the old one if it doesn't.
-        storeAuthTokens({ tokens: { access: data.access, refresh: data.refresh ?? refresh } });
+        // Cookie mode deliberately stores no refresh material in JS.
+        storeAuthTokens({
+          tokens: {
+            access: data.access,
+            refresh: cookieMode ? undefined : data.refresh ?? refresh
+          }
+        });
         return true;
       } catch {
         storeAuthTokens({});
@@ -175,7 +224,7 @@ export async function apiRequest<T>(
   const response = await fetch(getApiUrl(path), {
     method,
     cache: "no-store",
-    credentials: "omit",
+    credentials: authFetchCredentials(),
     headers,
     body,
     signal
@@ -322,7 +371,6 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
           name: clinic.name || "Klinika",
           district: "Tuman kiritilmagan",
           address: "",
-          workTime: "",
           rating: Number(clinic.rating ?? 0)
         }
       ];
@@ -333,7 +381,6 @@ export function flattenClinics(items: ApiClinic[]): Clinic[] {
       name: branch.clinic_name || clinic.name || "Klinika",
       district: branch.district || "Tuman kiritilmagan",
       address: branch.address || "",
-      workTime: branch.work_time || "",
       rating: Number(clinic.rating ?? 0),
       lat: toCoordinate(branch.latitude),
       lng: toCoordinate(branch.longitude)

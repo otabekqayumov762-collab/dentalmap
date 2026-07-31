@@ -2,16 +2,49 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isOfflineMode } from "../../api/dentalMapApi";
+import { validateReceiptFile } from "../../lib/fileUpload";
+import { isAllowedPaymeCheckoutUrl, paymeAmountMatches } from "../../lib/paymentSecurity";
 import {
   fetchCards,
   fetchReceipts,
   fetchSubscription,
+  initiatePayme,
   submitReceipt,
   type BillingCard,
   type Receipt
 } from "../../api/paymentsApi";
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+/** Open an exact allowlisted Payme URL, preferring Telegram's in-app browser. */
+export function openPaymeCheckout(url: string) {
+  if (typeof window === "undefined" || !isAllowedPaymeCheckoutUrl(url)) {
+    return false;
+  }
+  const parsed = new URL(url);
+  const tg = (window as unknown as { Telegram?: { WebApp?: { openLink?: (u: string) => void } } }).Telegram?.WebApp;
+  if (tg?.openLink) {
+    tg.openLink(parsed.href);
+  } else {
+    const opened = window.open(parsed.href, "_blank", "noopener,noreferrer");
+    if (opened) {
+      try {
+        opened.opener = null;
+      } catch {
+        // noopener remains the primary protection for cross-origin windows.
+      }
+    }
+  }
+  return true;
+}
+
+/** Never forward Telegram launch query/hash credentials to the payment host. */
+function currentReturnUrl() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  const returnUrl = new URL(window.location.pathname, window.location.origin);
+  returnUrl.searchParams.set("payment_return", "payme");
+  return returnUrl.href;
+}
 
 /** Two placeholder admin cards so offline/local demos still look real. */
 const DEMO_CARDS: BillingCard[] = [
@@ -30,9 +63,14 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   const [cardsLoading, setCardsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | number | null>(null);
-  const [subscriptionAmountUzs, setSubscriptionAmountUzs] = useState(defaultAmountUzs);
+  const [subscriptionAmountUzs, setSubscriptionAmountUzs] = useState<number | null>(
+    offline ? defaultAmountUzs : null
+  );
+  const [subscriptionLoading, setSubscriptionLoading] = useState(!offline);
+  const [subscriptionError, setSubscriptionError] = useState("");
+  const [pricingRevision, setPricingRevision] = useState(0);
 
-  const [amount, setAmount] = useState(String(defaultAmountUzs));
+  const [amount, setAmount] = useState(offline ? String(defaultAmountUzs) : "");
   const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -42,11 +80,18 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
   const [latestReceipt, setLatestReceipt] = useState<Receipt | null>(null);
   const submittingRef = useRef(false);
 
+  const [payingWithPayme, setPayingWithPayme] = useState(false);
+  const [paymeError, setPaymeError] = useState("");
+  const [paymeStarted, setPaymeStarted] = useState(false);
+
   useEffect(() => {
     if (offline) {
       setCards(DEMO_CARDS);
       setSelectedCardId(DEMO_CARDS[0].id);
       setSubscriptionAmountUzs(defaultAmountUzs);
+      setSubscriptionLoading(false);
+      setSubscriptionError("");
+      setAmount(String(defaultAmountUzs));
       setCardsLoading(false);
       return;
     }
@@ -56,19 +101,36 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     setLoadError("");
     let active = true;
 
+    setSubscriptionAmountUzs(null);
+    setSubscriptionLoading(true);
+    setSubscriptionError("");
+    setAmount("");
     void fetchSubscription(controller.signal)
       .then((subscription) => {
         if (!active) {
           return;
         }
-        setSubscriptionAmountUzs(subscription.amount_uzs);
-        setAmount((current) => (current === String(defaultAmountUzs) ? String(subscription.amount_uzs) : current));
+        const authoritativeAmount = Number(subscription.amount_uzs);
+        if (!Number.isSafeInteger(authoritativeAmount) || authoritativeAmount <= 0) {
+          throw new Error("Server noto'g'ri obuna narxini qaytardi.");
+        }
+        setSubscriptionAmountUzs(authoritativeAmount);
+        setAmount(String(authoritativeAmount));
       })
-      .catch(() => {
-        if (!active) {
+      .catch((error) => {
+        if (!active || controller.signal.aborted) {
           return;
         }
-        setSubscriptionAmountUzs(defaultAmountUzs);
+        setSubscriptionAmountUzs(null);
+        setAmount("");
+        setSubscriptionError(
+          error instanceof Error ? error.message : "Obuna narxi yuklanmadi."
+        );
+      })
+      .finally(() => {
+        if (active && !controller.signal.aborted) {
+          setSubscriptionLoading(false);
+        }
       });
 
     void fetchReceipts(controller.signal)
@@ -104,7 +166,7 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       active = false;
       controller.abort();
     };
-  }, [defaultAmountUzs, offline]);
+  }, [defaultAmountUzs, offline, pricingRevision]);
 
   const submit = useCallback(async () => {
     // A pending receipt (already submitted, awaiting admin review) blocks
@@ -113,6 +175,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       return;
     }
     const amountValue = Number(amount);
+    if (subscriptionAmountUzs === null || subscriptionError) {
+      setSubmitError("Tasdiqlangan obuna narxi yuklanmaguncha to'lov yuborilmaydi.");
+      return;
+    }
     if (selectedCardId === null) {
       setSubmitError("Iltimos, to'lov uchun kartani tanlang.");
       return;
@@ -129,8 +195,9 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       setSubmitError("Iltimos, chek faylini biriktiring.");
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      setSubmitError("Fayl hajmi 8 MB dan oshmasligi kerak.");
+    const fileError = validateReceiptFile(file);
+    if (fileError) {
+      setSubmitError(fileError);
       return;
     }
 
@@ -180,7 +247,45 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [amount, cards, file, latestReceipt, note, offline, selectedCardId, submitted, subscriptionAmountUzs]);
+  }, [
+    amount,
+    cards,
+    file,
+    latestReceipt,
+    note,
+    offline,
+    selectedCardId,
+    submitted,
+    subscriptionAmountUzs,
+    subscriptionError
+  ]);
+
+  const payWithPayme = useCallback(async () => {
+    if (offline) {
+      setPaymeError("Onlayn to'lov demo rejimida mavjud emas.");
+      return;
+    }
+    if (subscriptionAmountUzs === null || subscriptionError) {
+      setPaymeError("Tasdiqlangan obuna narxi yuklanmaguncha Payme to'lovi ochilmaydi.");
+      return;
+    }
+    setPaymeError("");
+    setPayingWithPayme(true);
+    try {
+      const checkout = await initiatePayme(currentReturnUrl());
+      if (!paymeAmountMatches(checkout.amount_uzs, subscriptionAmountUzs)) {
+        throw new Error("Payme summasi tasdiqlangan obuna narxiga mos emas.");
+      }
+      if (!openPaymeCheckout(checkout.checkout_url)) {
+        throw new Error("Payme ruxsat etilgan checkout manzilini qaytarmadi.");
+      }
+      setPaymeStarted(true);
+    } catch (error) {
+      setPaymeError(error instanceof Error ? error.message : "Payme to'lovini boshlab bo'lmadi.");
+    } finally {
+      setPayingWithPayme(false);
+    }
+  }, [offline, subscriptionAmountUzs, subscriptionError]);
 
   return {
     cards,
@@ -189,8 +294,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     selectedCardId,
     setSelectedCardId,
     subscriptionAmountUzs,
+    subscriptionLoading,
+    subscriptionError,
+    retrySubscription: () => setPricingRevision((value) => value + 1),
     amount,
-    setAmount,
     note,
     setNote,
     file,
@@ -199,6 +306,10 @@ export function useDoctorPayment({ defaultAmountUzs }: { defaultAmountUzs: numbe
     submitError,
     submitted,
     latestReceipt,
-    submit
+    submit,
+    payingWithPayme,
+    paymeError,
+    paymeStarted,
+    payWithPayme
   };
 }

@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
-import type { RegisterRole, Service, Specialty, ViewId } from "../types";
-import { Button } from "../ui";
+import type { RegisterRole, Service, Specialty } from "../types";
 import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
@@ -15,8 +14,7 @@ export function RegisterView({
   onDoctorStepChange,
   onRoleChange,
   onUserSubmit,
-  onDoctorSubmit,
-  onNavigate
+  onDoctorSubmit
 }: {
   role: RegisterRole;
   specialties: Specialty[];
@@ -28,7 +26,6 @@ export function RegisterView({
   onRoleChange: (role: RegisterRole) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onNavigate: (view: ViewId) => void;
 }) {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["consultation"]);
   const [photoFileName, setPhotoFileName] = useState("");
@@ -86,16 +83,6 @@ export function RegisterView({
           onSubmit={onDoctorSubmit}
         />
       )}
-
-      <Button
-        variant="secondary"
-        size="lg"
-        type="button"
-        disabled={submitting}
-        onClick={() => onNavigate("profile")}
-      >
-        Kirishga qaytish
-      </Button>
     </div>
   );
 }

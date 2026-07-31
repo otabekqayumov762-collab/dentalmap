@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
-import { ArrowLeft, Building2, Clock3, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Navigation, Search, Star, Stethoscope } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -535,10 +535,6 @@ export function MapView({
                   <span className="truncate">
                     {activeClinic.district}, {activeClinic.address}
                   </span>
-                </small>
-                <small className="flex items-center gap-1 text-xs text-ink-500">
-                  <Clock3 size={13} className="shrink-0" />
-                  {activeClinic.workTime}
                 </small>
               </div>
             </Card>

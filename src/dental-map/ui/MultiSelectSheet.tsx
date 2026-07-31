@@ -53,7 +53,10 @@ export function MultiSelectSheet({
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title={title || label}>
-        <div className="flex max-h-[55vh] flex-col gap-1.5 overflow-auto no-scrollbar">
+        {/* Fraction of the TELEGRAM viewport: 55vh of the layout viewport left this
+            nested scroller taller than the sheet that contains it on a short
+            Telegram window, so the "Tayyor" button ended up below the fold. */}
+        <div className="flex max-h-[calc(var(--tg-viewport-height,100svh)*0.55)] flex-col gap-1.5 overflow-auto no-scrollbar">
           {options.map((option) => {
             const active = value.includes(option.value);
 

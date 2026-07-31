@@ -372,7 +372,7 @@ export function DoctorRegistrationForm({
             </>
           ) : (
             <>
-              Keyingi
+              Davom etish
               <ArrowRight size={18} />
             </>
           )}

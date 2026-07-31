@@ -11,12 +11,31 @@ RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "NEXT_PUBLIC_API_URL build arg is re
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ARG NEXT_PUBLIC_API_V1_URL
 ENV NEXT_PUBLIC_API_V1_URL=${NEXT_PUBLIC_API_V1_URL}
+ARG NEXT_PUBLIC_MEDIA_URL
+ENV NEXT_PUBLIC_MEDIA_URL=${NEXT_PUBLIC_MEDIA_URL}
+ARG NEXT_PUBLIC_BOT_URL
+ENV NEXT_PUBLIC_BOT_URL=${NEXT_PUBLIC_BOT_URL}
+ARG NEXT_PUBLIC_SUPPORT_URL
+ENV NEXT_PUBLIC_SUPPORT_URL=${NEXT_PUBLIC_SUPPORT_URL}
+ARG NEXT_PUBLIC_TELEGRAM_ONLY
+ENV NEXT_PUBLIC_TELEGRAM_ONLY=${NEXT_PUBLIC_TELEGRAM_ONLY}
+ARG NEXT_PUBLIC_ADMIN_URL
+ENV NEXT_PUBLIC_ADMIN_URL=${NEXT_PUBLIC_ADMIN_URL}
+ARG NEXT_PUBLIC_YANDEX_MAPS_API_KEY
+ENV NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
+# Exact Payme checkout host(s), comma separated. The doctor payment button opens
+# only a URL whose host is on this list, so a spoofed API response cannot send a
+# doctor to an attacker's page. Leave empty to keep online Payme unavailable.
+ARG NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS
+ENV NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS=${NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS}
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.30.3-alpine3.23
 
+# The runtime config comes from the private generated/ directory, never from the
+# published bundle, so the server cannot serve its own configuration.
 COPY --from=builder /app/out /usr/share/nginx/html
-COPY --from=builder /app/out/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/generated/nginx.conf /etc/nginx/conf.d/default.conf
 RUN chmod -R a+rX /usr/share/nginx/html
 
 EXPOSE 80

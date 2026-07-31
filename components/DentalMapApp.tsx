@@ -6,7 +6,7 @@ import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/d
 import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
-import { normalizeGender, persistAppointmentLead } from "@/src/dental-map/lib/appointmentLead";
+import { normalizeGender } from "@/src/dental-map/lib/gender";
 import { cn, RegionDistrictField, Select, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
@@ -33,6 +33,7 @@ import { DoctorDashboardView, type DoctorSection } from "@/src/dental-map/views/
 import { RegisterView } from "@/src/dental-map/views/RegisterView";
 import { RatingPromptSheet } from "@/src/dental-map/views/RatingPromptSheet";
 import { ServicesView } from "@/src/dental-map/views/ServicesView";
+import { DoctorPaymentView } from "@/src/dental-map/views/payment/DoctorPaymentView";
 import { isSupportedMapLink } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
@@ -405,14 +406,7 @@ function DentalMapAppInner() {
         webApp?.HapticFeedback?.notificationOccurred("error");
         return;
       }
-      const lead = {
-        id: `appointment-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        doctorId: selectedDoctor.id,
-        doctorName: selectedDoctor.name,
-        clinic: selectedDoctor.clinic,
-        district: selectedDoctor.district,
-        selectedSlot,
+      const appointmentDetails = {
         fullName,
         phone,
         gender: String(profile?.gender || "").trim(),
@@ -424,13 +418,13 @@ function DentalMapAppInner() {
       const appointmentBody = {
         doctor: selectedDoctor.id,
         doctor_name: selectedDoctor.name,
-        full_name: lead.fullName,
-        phone: lead.phone,
-        gender: normalizeGender(lead.gender),
-        age: lead.age ? Number(lead.age) : null,
-        appointment_date: lead.appointmentDate,
+        full_name: appointmentDetails.fullName,
+        phone: appointmentDetails.phone,
+        gender: normalizeGender(appointmentDetails.gender),
+        age: appointmentDetails.age ? Number(appointmentDetails.age) : null,
+        appointment_date: appointmentDetails.appointmentDate,
         appointment_time: selectedSlot,
-        note: lead.note
+        note: appointmentDetails.note
       };
 
       // Online mode must create a REAL backend appointment. Otherwise the UI would
@@ -452,7 +446,6 @@ function DentalMapAppInner() {
           setAppointmentSubmitting(true);
           setAppointmentError(null);
           await createAppointment(appointmentBody, token);
-          persistAppointmentLead(lead);
           submitConsultation();
           return;
         } catch (error) {
@@ -779,6 +772,26 @@ function DentalMapAppInner() {
     );
   }
 
+  // Mandatory doctor subscription: right after registration (and again whenever a
+  // subscription lapses) the doctor pays before the dashboard opens. Gated on
+  // is_subscription_active, which the backend reports `true` whenever a paid
+  // subscription is not required — so this stays a no-op unless
+  // DOCTOR_SUBSCRIPTION_REQUIRED is on server-side.
+  const activeDoctorProfile = nestedDoctorProfile ?? doctorProfile;
+  if (isDoctorAccount && activeDoctorProfile?.is_subscription_active === false) {
+    return (
+      <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
+        <section className="h-full w-full min-w-0 max-w-[640px] overflow-y-auto overscroll-contain px-5 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-[calc(2rem+env(safe-area-inset-top))] no-scrollbar">
+          <DoctorPaymentView
+            paid={false}
+            onPaid={() => void refreshPrivateData()}
+            onRefresh={() => void refreshPrivateData()}
+          />
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] items-start justify-items-center bg-surface-100">
       <section
@@ -1084,7 +1097,6 @@ function DentalMapAppInner() {
               onRoleChange={handleRoleChange}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
-              onNavigate={navigate}
             />
           )}
 

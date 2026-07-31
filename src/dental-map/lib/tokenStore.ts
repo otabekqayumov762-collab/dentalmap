@@ -12,15 +12,34 @@ export type AuthPayload = {
 };
 
 let authTokens: NonNullable<AuthPayload["tokens"]> = {};
+let authTokenOwnerTelegramId: number | null = null;
+
+function legacySessionEnabled() {
+  return process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE === "legacy-session";
+}
 
 export function storeAuthTokens(payload: AuthPayload) {
+  const legacySession = legacySessionEnabled();
+  const hasTokens =
+    typeof payload.tokens?.access === "string" || typeof payload.tokens?.refresh === "string";
   authTokens = {
-    access: payload.tokens?.access,
-    refresh: payload.tokens?.refresh
+    access: typeof payload.tokens?.access === "string" ? payload.tokens.access : "",
+    // Cookie mode deliberately makes the refresh credential unreachable to JS.
+    refresh:
+      legacySession && typeof payload.tokens?.refresh === "string" ? payload.tokens.refresh : ""
   };
+  if (payload.user !== undefined) {
+    authTokenOwnerTelegramId = normalizeTelegramId(payload.user?.telegram_id);
+  } else if (!hasTokens || (!authTokens.access && !authTokens.refresh)) {
+    authTokenOwnerTelegramId = null;
+  }
   try {
-    if (authTokens.access || authTokens.refresh) {
-      window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authTokens));
+    if (legacySession && (authTokens.access || authTokens.refresh)) {
+      window.sessionStorage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify({ ...authTokens, ownerTelegramId: authTokenOwnerTelegramId })
+      );
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
     } else {
       window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
       window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
@@ -38,20 +57,57 @@ export function getRefreshToken() {
   return authTokens.refresh || "";
 }
 
-export function restoreAuthTokens() {
+export function restoreAuthTokens(expectedTelegramId?: number) {
+  if (!legacySessionEnabled()) {
+    // Remove credentials left by a previous compatibility build. Cookie mode
+    // can restore only through the HttpOnly refresh endpoint.
+    authTokens = {};
+    authTokenOwnerTelegramId = null;
+    try {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    } catch {
+      // Storage is optional.
+    }
+    return "";
+  }
   try {
     const rawValue = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
     if (!rawValue) {
       window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
       return "";
     }
-    const parsedValue = JSON.parse(rawValue) as NonNullable<AuthPayload["tokens"]>;
+    window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    const parsedValue = JSON.parse(rawValue) as NonNullable<AuthPayload["tokens"]> & {
+      ownerTelegramId?: unknown;
+    };
+    const storedOwnerTelegramId = normalizeTelegramId(parsedValue.ownerTelegramId);
+    if (
+      expectedTelegramId !== undefined &&
+      normalizeTelegramId(expectedTelegramId) !== storedOwnerTelegramId
+    ) {
+      throw new Error("Stored auth session belongs to another Telegram user.");
+    }
     authTokens = {
       access: typeof parsedValue.access === "string" ? parsedValue.access : "",
       refresh: typeof parsedValue.refresh === "string" ? parsedValue.refresh : ""
     };
+    authTokenOwnerTelegramId = storedOwnerTelegramId;
     return authTokens.access || "";
   } catch {
+    authTokens = {};
+    authTokenOwnerTelegramId = null;
+    try {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+    } catch {
+      // Storage is optional; the in-memory store has still been cleared.
+    }
     return "";
   }
+}
+
+function normalizeTelegramId(value: unknown): number | null {
+  const telegramId = typeof value === "number" ? value : Number.NaN;
+  return Number.isSafeInteger(telegramId) && telegramId > 0 ? telegramId : null;
 }

@@ -1,4 +1,4 @@
-import { Building2, Clock, MapPin, Star } from "lucide-react";
+import { Building2, MapPin, Star } from "lucide-react";
 import { EmptyState } from "../components/common";
 import { Button, Card } from "../ui";
 import type { Clinic, ViewId } from "../types";
@@ -33,9 +33,6 @@ export function ClinicsView({
                 </em>
               </span>
               <p className="text-sm text-ink-700">{clinic.address || "Manzil kiritilmagan"}</p>
-              <small className="inline-flex items-center gap-1 text-xs text-ink-400">
-                <Clock size={12} /> {clinic.workTime || "Ish vaqti kiritilmagan"}
-              </small>
             </div>
           </div>
           <Button variant="secondary" size="sm" onClick={() => onNavigate("doctors")}>

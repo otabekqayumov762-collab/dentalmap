@@ -2,15 +2,11 @@
 
 import { MapPin } from "lucide-react";
 import { useState } from "react";
+import { isSafeMapUrl } from "../../lib/url";
 import { cn } from "../../ui";
 
 export function isSupportedMapLink(value: string) {
-  const cleanValue = value.trim();
-  return (
-    Boolean(cleanValue) &&
-    (/(^https?:\/\/)?([^/]+\.)?(yandex|google)\./i.test(cleanValue) ||
-      /(^https?:\/\/)?maps\.app\.goo\.gl/i.test(cleanValue))
-  );
+  return isSafeMapUrl(value);
 }
 
 export function LocationPickerField({
@@ -48,7 +44,7 @@ export function LocationPickerField({
           required={required}
           inputMode="url"
           autoComplete="url"
-          placeholder="Google yoki Yandex Maps linki"
+          placeholder="https:// Google yoki Yandex Maps linki"
           onChange={(event) => setValue(event.target.value)}
           className="min-w-0 flex-1 bg-transparent text-base font-semibold text-ink-900 outline-none placeholder:text-ink-400"
         />

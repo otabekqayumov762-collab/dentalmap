@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { EmptyState } from "../../components/common";
 import { formatUzDate } from "../../lib/date";
+import { toSafeTelHref } from "../../lib/phone";
 import type { ApiAppointment } from "../../types";
 import { Badge, Button, Card, Field, Chip } from "../../ui";
 import { SectionHeader, appointmentStatusLabel, statusTone } from "./common";
@@ -179,6 +180,7 @@ export function DoctorAppointmentRequests({
             const reason = reasons[appointment.id] ?? "";
             const rejectReasonValid = reason.trim().length >= 3;
             const actionPending = pendingActionId === appointment.id;
+            const phoneHref = toSafeTelHref(appointment.phone);
 
             return (
               <Card key={appointment.id} as="article" className="flex flex-col gap-3.5">
@@ -215,9 +217,9 @@ export function DoctorAppointmentRequests({
                       {appointment.appointment_time.slice(0, 5)}
                     </span>
                   </div>
-                  {appointment.phone && (
+                  {phoneHref && (
                     <a
-                      href={`tel:${appointment.phone}`}
+                      href={phoneHref}
                       className="inline-flex w-fit max-w-full items-center gap-1.5 font-semibold text-brand-600 transition-colors hover:text-brand-700"
                     >
                       <Phone size={15} className="shrink-0" />
