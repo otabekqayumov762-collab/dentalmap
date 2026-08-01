@@ -314,10 +314,24 @@ test("Telegram placeholder onboarding requires privacy consent and creates one r
   await expect(page.getByText("Telegram profilingizni yakunlang", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Kirish", exact: true })).toHaveCount(0);
 
+  // The patient wizard is stepped, so walk it the way a patient does. Panes are
+  // hidden rather than unmounted, which means a test that fills everything at
+  // once still resolves the locators — and then times out waiting for an
+  // off-screen field to become editable. Clicking through is also what proves
+  // per-step validation lets a COMPLETE step through.
+  const nextStep = page.getByRole("button", { name: "Davom etish" });
+
   await page.getByRole("textbox", { name: "F.I.O." }).fill("E2E Bemor");
   await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("901234567");
+  await nextStep.click();
+
   await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
   await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("StrongPass123!");
+  await nextStep.click();
+
+  // Gender and age are optional; step straight past them.
+  await nextStep.click();
+
   await page.locator('input[name="privacy_acknowledged"]').check();
   await page.getByRole("button", { name: "Profil yaratish" }).click();
 
@@ -345,6 +359,65 @@ test("Telegram placeholder onboarding requires privacy consent and creates one r
     appointment_time: "09:30"
   });
 });
+
+test("the patient wizard refuses to advance past an incomplete step", async ({ page }) => {
+  // The stepped form's whole safety property is that each pane is checked BEFORE
+  // the next one opens. Without this, per-step validation could be silently
+  // absent and the happy-path test above would still pass — it only ever
+  // supplies complete steps.
+  // Same id as placeholderPatient, or the app does not recognise the session
+  // as a Telegram placeholder and never shows the onboarding wizard at all.
+  await installTelegramHost(page, 777001);
+
+  let registerCalls = 0;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    if (await handlePreflight(route)) return;
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/auth/csrf/") {
+      return json(route, { csrf_token: "wizard-csrf" }, 200, {
+        "set-cookie": "csrftoken=wizard-csrf; Path=/; Secure; SameSite=None"
+      });
+    }
+    if (path === "/api/auth/telegram/") {
+      return json(route, { user: placeholderPatient, tokens: { access: "wizard-access" } });
+    }
+    if (path === "/api/users/me/") return json(route, placeholderPatient);
+    if (path === "/api/auth/register/") {
+      registerCalls += 1;
+      return json(route, { detail: "must not be reached" }, 400);
+    }
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+  await expect(page.getByText("Telegram profilingizni yakunlang", { exact: false })).toBeVisible();
+  const nextStep = page.getByRole("button", { name: "Davom etish" });
+
+  // Empty first pane: stays put.
+  await nextStep.click();
+  await expect(page.getByRole("textbox", { name: "F.I.O." })).toBeVisible();
+
+  // A name but no usable phone: still stays put.
+  await page.getByRole("textbox", { name: "F.I.O." }).fill("E2E Bemor");
+  await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("90");
+  await nextStep.click();
+  await expect(page.getByRole("textbox", { name: "F.I.O." })).toBeVisible();
+
+  // Complete it and the password pane opens.
+  await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("901234567");
+  await nextStep.click();
+  await expect(page.getByLabel("Parol", { exact: true })).toBeVisible();
+
+  // Mismatched confirmation is refused too.
+  await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
+  await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("Boshqacha123!");
+  await nextStep.click();
+  await expect(page.getByLabel("Parolni tasdiqlash", { exact: true })).toBeVisible();
+
+  // Nothing was ever submitted while the wizard was incomplete.
+  expect(registerCalls).toBe(0);
+});
+
 
 test("doctor payment fails closed on an untrusted checkout host and opens an exact Payme host", async ({ page }) => {
   await installTelegramHost(page, 777002);
