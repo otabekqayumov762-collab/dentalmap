@@ -18,24 +18,27 @@ function toneFor(accent: string) {
   return accentTone[doctorAccentClass(accent)] ?? accentTone["accent-teal"];
 }
 
+/**
+ * The brand mark, on transparency.
+ *
+ * It used to be the source PNG — opaque, 640px, with ~170px of baked-in white
+ * margin — painted `object-cover` at `scale-[1.55]` inside a white tile, because
+ * that was the only way to make the tooth fill anything. Three consequences: the
+ * scale factor cropped the mark's own highlights, the tile punched a bright
+ * white square into the dark theme, and the "logo" was really a CSS trick.
+ *
+ * dental-map-mark.png is the same artwork auto-cropped to its ink with the white
+ * keyed out to alpha, so it sits on any surface and needs no wrapper at all.
+ */
 export function BrandLogo({ className = "" }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl",
-        "border border-brand-200/70 bg-surface-0 text-brand-600 shadow-card",
-        "dark:border-white/10 dark:bg-surface-50",
-        className
-      )}
+    <img
+      src="/brand/dental-map-mark.png"
+      alt=""
       aria-hidden="true"
-    >
-      <img
-        src="/brand/dental-map-logo.png"
-        alt=""
-        className="h-full w-full scale-[1.55] object-cover"
-        draggable={false}
-      />
-    </span>
+      draggable={false}
+      className={cn("h-11 w-11 shrink-0 object-contain", className)}
+    />
   );
 }
 

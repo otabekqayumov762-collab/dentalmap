@@ -98,10 +98,12 @@ export function AuthGate({
           <Sun size={18} />
         </button>
 
-        <header className="mx-auto mt-8 flex w-full max-w-sm flex-col items-center gap-3 text-center">
+        {/* mt-4 and a tighter stack: the header, two toggles and a progress card
+            used to consume 60% of a 844px viewport before the first field. */}
+        <header className="mx-auto mt-4 flex w-full max-w-sm flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3">
-            <BrandLogo className="h-14 w-14 rounded-card" />
-            <h1 className="text-[1.55rem] font-black tracking-tight text-ink-900">
+            <BrandLogo className="h-11 w-11" />
+            <h1 className="text-2xl font-black tracking-tight text-ink-900">
               DENTAL <span className="text-brand-500">MAP</span>
             </h1>
           </div>

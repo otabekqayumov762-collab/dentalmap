@@ -23,14 +23,18 @@ const variants: Record<Variant, string> = {
   // washed-out version did and the colour survives. Contrast was never a reason
   // to dull the palette; it was a reason to stop using white here.
   gradient:
-    "bg-gradient-to-r from-brand-500 to-accent-500 text-ink-900 shadow-card hover:shadow-float " +
+    "bg-gradient-to-r from-brand-500 to-accent-500 text-on-brand shadow-card hover:shadow-float " +
     "motion-safe:active:scale-[0.99]"
 };
 
 const sizes: Record<Size, string> = {
   sm: "h-9 px-4 text-sm",
   md: "h-11 px-5 text-[0.95rem]",
-  lg: "h-12 px-6 text-base w-full"
+  // No w-full here. It used to be baked into the size, so two lg buttons in one
+  // row (Ortga + Davom etish) asked for 200% width and shifted the whole auth
+  // screen ~98px left, clipping the logo, the toggles and every field. Width is
+  // the caller's decision — a full-width button says className="w-full".
+  lg: "h-12 px-6 text-base"
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

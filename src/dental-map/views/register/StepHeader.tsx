@@ -14,8 +14,11 @@
 export function StepHeader({ step, total, title }: { step: number; total: number; title: string }) {
   const percent = Math.max(0, Math.min(100, (step / total) * 100));
 
+  // No card of its own: this describes the form below it, so a separate slab
+  // made the screen read as a column of unrelated boxes. It sits on the page now
+  // and lets the form be the only card.
   return (
-    <div className="rounded-card border border-surface-200 bg-surface-0 p-4 shadow-card dark:bg-surface-50">
+    <div className="px-1 pb-1">
       {/* A real progressbar, not a decorative div: panes swap via a `hidden`
           class and nothing moves focus, so without this a screen-reader user got
           six silent transitions across the flow with no idea anything changed. */}

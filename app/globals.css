@@ -100,7 +100,17 @@
      surface-50 fill on a surface-50 card was literally 1.00:1 — the inputs
      disappeared. These two are chosen to clear 3:1 against the card they sit on
      in BOTH themes, so the boundary survives whichever fill a component picks. */
-  --color-control: #f6fafb;
+  /* Ink for text that sits ON the brand gradient. The gradient is a
+     self-contained surface: it does not change with the theme, so its label must
+     not either. ink-900 inverts to near-white in dark, which put white text on
+     bright teal — the exact failure the gradient stops were once darkened to
+     avoid. 6.13:1 on brand-500 and 4.77:1 on accent-500, in both themes. */
+  --color-on-brand: #031c21;
+
+  /* A real fill, not a tint: #f6fafb was byte-identical to surface-50 and
+     landed 1.05:1 on a white card, so the whole boundary rested on the border
+     and the field read as an outline with nothing in it. */
+  --color-control: #eef4f7;
   --color-control-border: #788d99;
 
   /* Radius */
@@ -166,6 +176,9 @@
 
   /* Darker than every card in this theme, so a control reads as a recessed well
      instead of blending into whatever surface it was dropped on. */
+  /* Same value in dark on purpose — see the light-theme note. */
+  --color-on-brand: #031c21;
+
   --color-control: #121c23;
   --color-control-border: #6d7f8b;
 

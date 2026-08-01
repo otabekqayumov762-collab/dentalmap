@@ -25,7 +25,7 @@ import { cn } from "./cn";
    ring is invisible against surface-50 on a phone in daylight. */
 export const controlHeight = "h-12";
 export const controlBase =
-  "w-full rounded-card bg-control px-4 text-ink-900 placeholder:text-ink-400 " +
+  "w-full rounded-control bg-control px-4 text-ink-900 placeholder:text-ink-400 " +
   "transition-all duration-150 focus:bg-surface-0 focus:outline-none focus:ring-2";
 export const controlIdle =
   "border border-control-border focus:border-brand-500 focus:ring-brand-500/40 focus:shadow-card";
@@ -34,7 +34,7 @@ export const controlDanger = "border border-danger focus:border-danger focus:rin
 /** Wrapper variant for controls whose real <input> is nested (a prefix, an icon,
  *  a pair of time inputs) — same three cues, driven by focus-within. */
 export const controlShellBase =
-  "flex w-full items-center rounded-card bg-control transition-all duration-150 " +
+  "flex w-full items-center rounded-control bg-control transition-all duration-150 " +
   "focus-within:ring-2";
 export const controlShellIdle =
   "border border-control-border focus-within:border-brand-500 focus-within:ring-brand-500/40 focus-within:shadow-card";
@@ -44,7 +44,7 @@ export const controlShellDanger =
 /** Button-shaped controls that open a sheet: keyboard focus only, so the cues
  *  ride focus-visible instead of focus/focus-within. */
 export const controlTriggerBase =
-  "flex w-full items-center justify-between gap-2 rounded-card bg-control px-4 text-left " +
+  "flex w-full items-center justify-between gap-2 rounded-control bg-control px-4 text-left " +
   "transition-all duration-150 focus:outline-none focus-visible:ring-2";
 export const controlTriggerIdle =
   "border border-surface-200 hover:border-brand-300 focus-visible:border-brand-400 " +
