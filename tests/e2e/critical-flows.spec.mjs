@@ -99,6 +99,20 @@ async function installTelegramHost(page, userId = 777001) {
   }, userId);
 }
 
+// The doctor signup wizard confirms the phone before it can reach its final
+// POST. No spec drives that path today, but the mock tables 404 on anything
+// unstubbed, so an accidental call would fail the run with an opaque error
+// instead of an obvious one.
+function handleOtp(route, path) {
+  if (path === "/api/auth/otp/request/") {
+    return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+  }
+  if (path === "/api/auth/otp/verify/") {
+    return json(route, { otp_token: "e2e-otp-token", expires_in: 900 });
+  }
+  return null;
+}
+
 async function handlePreflight(route) {
   if (route.request().method() !== "OPTIONS") {
     return false;
@@ -155,6 +169,8 @@ test("password login consumes the atomic cookie-auth payload and persists no tok
     if (path === "/api/clinics/" || path === "/api/appointments/" || path === "/api/reviews/") {
       return json(route, { results: [] });
     }
+    const otp = handleOtp(route, path);
+    if (otp) return otp;
     if (path === "/api/specialties/" || path === "/api/services/") return json(route, { results: [] });
     return json(route, { detail: `Unhandled login E2E route: ${request.method()} ${path}` }, 404);
   });
@@ -203,6 +219,8 @@ test("cookie session restore posts an empty refresh request with CSRF", async ({
     if (path === "/api/clinics/" || path === "/api/appointments/" || path === "/api/reviews/") {
       return json(route, { results: [] });
     }
+    const otp = handleOtp(route, path);
+    if (otp) return otp;
     if (path === "/api/specialties/" || path === "/api/services/") return json(route, { results: [] });
     return json(route, { detail: `Unhandled restore E2E route: ${request.method()} ${path}` }, 404);
   });
@@ -254,6 +272,8 @@ test("Telegram placeholder onboarding requires privacy consent and creates one r
     if (path === "/api/clinics/") {
       return json(route, { results: [] });
     }
+    const otp = handleOtp(route, path);
+    if (otp) return otp;
     if (path === "/api/specialties/") {
       return json(route, { results: [{ id: "specialty-1", name: "Ortodont" }] });
     }
@@ -360,6 +380,8 @@ test("doctor payment fails closed on an untrusted checkout host and opens an exa
       return json(route, { results: [] });
     }
     if (path === "/api/availability/weekly/") return json(route, { results: [] });
+    const otp = handleOtp(route, path);
+    if (otp) return otp;
     if (path === "/api/specialties/") return json(route, { results: [] });
     if (path === "/api/services/") return json(route, { results: [] });
     return json(route, { detail: `Unhandled E2E route: ${request.method()} ${path}` }, 404);

@@ -18,7 +18,6 @@
 @import "./styles/base-shell.css" layer(legacy);
 @import "./styles/discovery.css" layer(legacy);
 @import "./styles/content-cards.css" layer(legacy);
-@import "./styles/registration-forms.css" layer(legacy);
 @import "./styles/profile-menu.css" layer(legacy);
 @import "./styles/superstat.css" layer(legacy);
 @import "./styles/responsive.css" layer(legacy);
@@ -74,6 +73,15 @@
   --color-surface-50: #f6fafb;
   --color-surface-100: #eef4f6;
   --color-surface-200: #e0eaed;
+
+  /* Form controls carry their own fill and border, separate from the surface
+     scale. surface-200 as a control border is 1.22:1 against a white card, far
+     under the 3:1 WCAG 1.4.11 floor for a control boundary, and in dark theme a
+     surface-50 fill on a surface-50 card was literally 1.00:1 — the inputs
+     disappeared. These two are chosen to clear 3:1 against the card they sit on
+     in BOTH themes, so the boundary survives whichever fill a component picks. */
+  --color-control: #f6fafb;
+  --color-control-border: #788d99;
 
   /* Radius */
   --radius-card: 1.25rem;
@@ -132,6 +140,11 @@
   --color-surface-50: #1f2b34;
   --color-surface-100: #101a21;
   --color-surface-200: #2a3a45;
+
+  /* Darker than every card in this theme, so a control reads as a recessed well
+     instead of blending into whatever surface it was dropped on. */
+  --color-control: #121c23;
+  --color-control-border: #6d7f8b;
 
   --shadow-card: 0 8px 24px -12px rgb(0 0 0 / 0.55);
   --shadow-float: 0 18px 40px -16px rgb(0 0 0 / 0.65);

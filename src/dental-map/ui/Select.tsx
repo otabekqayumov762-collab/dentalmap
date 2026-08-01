@@ -3,6 +3,16 @@
 import { ChevronDown } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import { cn } from "./cn";
+import {
+  ControlLabel,
+  controlBase,
+  controlDanger,
+  controlHeight,
+  controlIdle,
+  errorTextClass,
+  hintClass
+} from "./Field";
+import { useSettledEmpty } from "./useSettledEmpty";
 
 export type SelectOption = { value: string; label: string };
 
@@ -15,6 +25,12 @@ export type SelectProps = {
   name?: string;
   className?: string;
   error?: boolean;
+  errorText?: ReactNode;
+  disabled?: boolean;
+  /** Shown instead of the hint when the list arrives empty. An admin-managed
+   *  list that nobody has filled in yet is a fact about the service, not a
+   *  mistake the person in front of the form made — say so plainly. */
+  emptyHint?: ReactNode;
 };
 
 /** Native select semantics provide reliable keyboard, focus, screen-reader and
@@ -27,28 +43,35 @@ export function Select({
   label,
   name,
   className,
-  error
+  error,
+  errorText,
+  disabled,
+  emptyHint = "Ro'yxat hozircha bo'sh — administrator to'ldirgach ko'rinadi."
 }: SelectProps) {
   const generatedId = useId();
   const selectId = `select-${generatedId.replace(/:/g, "")}`;
   const hasEmptyOption = options.some((option) => option.value === "");
+  const invalid = Boolean(error || errorText);
+  // An empty picker with no explanation reads as a broken control; a disabled
+  // one with a reason reads as "not ready yet", which is what it is.
+  const isEmpty = useSettledEmpty(options.length === 0);
 
   return (
     <label htmlFor={selectId} className="block">
-      {label && <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>}
+      {label && <ControlLabel>{label}</ControlLabel>}
       <span className={cn("relative block", className)}>
         <select
           id={selectId}
           name={name}
           value={value}
-          aria-invalid={error || undefined}
+          disabled={disabled || isEmpty}
+          aria-invalid={invalid || undefined}
           onChange={(event) => onChange(event.target.value)}
           className={cn(
-            "w-full appearance-none rounded-2xl bg-surface-50 px-4 py-3 pr-11 text-ink-900",
-            "transition-colors focus:outline-none focus:ring-2",
-            error
-              ? "border border-danger focus:border-danger focus:ring-danger/30"
-              : "border border-surface-200 focus:border-brand-400 focus:ring-brand-100"
+            controlBase,
+            controlHeight,
+            invalid ? controlDanger : controlIdle,
+            "appearance-none pr-11 disabled:cursor-not-allowed disabled:opacity-60"
           )}
         >
           {!hasEmptyOption && !value && (
@@ -68,6 +91,18 @@ export function Select({
           className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-400"
         />
       </span>
+      {errorText ? (
+        <small className={errorTextClass} role="alert">
+          {errorText}
+        </small>
+      ) : (
+        isEmpty &&
+        emptyHint && (
+          <small className={hintClass} role="status">
+            {emptyHint}
+          </small>
+        )
+      )}
     </label>
   );
 }

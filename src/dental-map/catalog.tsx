@@ -229,6 +229,26 @@ export const genderOptions = ["Erkak", "Ayol"];
 
 export const specialtyOptions = ["Davolovchi stomatolog", "Protezchi", "Ortodont", "Jarroh stomatolog"];
 
+/**
+ * Which services a given specialty usually offers, most typical first.
+ *
+ * Purely a CLIENT-SIDE ordering + pre-selection hint. Specialty and Service have
+ * no relation in the schema (DoctorProfile.specialty is a free CharField and
+ * services is a flat M2M), and adding one would be a separate decision — this
+ * only decides what floats to the top of the services sheet, never what a doctor
+ * is allowed to pick. Keys mirror the seeded Specialty names; an unknown key
+ * simply falls through to the unsorted list.
+ */
+export const SPECIALTY_SERVICE_HINTS: Record<string, string[]> = {
+  "Terapevt stomatolog": ["Konsultatsiya", "Tish davolash", "Rentgen"],
+  "Jarroh stomatolog": ["Tish olish", "Rentgen", "Konsultatsiya"],
+  Implantolog: ["Implant", "Rentgen", "Konsultatsiya"],
+  Ortodont: ["Breket", "Rentgen", "Konsultatsiya"],
+  "Ortoped stomatolog (protezchi)": ["Implant", "Rentgen", "Konsultatsiya"],
+  "Bolalar stomatologi": ["Bolalar stomatologiyasi", "Tish davolash", "Konsultatsiya"],
+  "Estetik stomatolog": ["Oqartirish", "Tish davolash", "Konsultatsiya"]
+};
+
 export const feedbackTopics = ["Taklif", "Shikoyat", "Texnik muammo"];
 
 export const slots = ["09:30", "10:45", "12:15", "14:30", "16:00", "18:20"];

@@ -107,6 +107,22 @@ export const DoctorPaymentView = dynamic(
   { ssr: false, loading: ViewFallback }
 );
 
+// The 7-pane doctor signup wizard (OTP boxes, map link picker, region sheet,
+// photo uploader). The DEFAULT path is patient registration, which never needs
+// any of it — and the chunk is prefetched on the role toggle's pointer-down, so
+// by the time "Shifokor" is released it is already in cache and no fetch ever
+// lands mid-signup.
+export const DoctorRegistrationForm = dynamic(
+  () => import("./register/DoctorRegistrationForm").then((m) => m.DoctorRegistrationForm),
+  { ssr: false, loading: ViewFallback }
+);
+
+/** Warm the wizard chunk before it is rendered. Safe to call repeatedly: the
+ *  module registry dedupes, so extra taps cost nothing. */
+export function prefetchDoctorRegistrationForm() {
+  void import("./register/DoctorRegistrationForm");
+}
+
 // A sheet, not a view: it mounts at most once per completed appointment, so it
 // has no business being in the first-paint chunk. `loading: null` because a
 // spinner sliding up from the bottom would read as a broken sheet.

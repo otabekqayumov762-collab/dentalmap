@@ -3,13 +3,21 @@
 import { Sun } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "../components/common";
+import type { OtpIssue } from "../hooks/useDentalData";
 import { isDarkActive, setPreference } from "../lib/theme";
 import type { RegisterRole, Service, Specialty } from "../types";
-import { cn } from "../ui";
+import { SegmentedToggle, cn, type SegmentedOption } from "../ui";
 import { LoginView } from "./LoginView";
 import { RegisterView } from "./RegisterView";
 
 export type AuthMode = "login" | "register";
+
+// No icons here on purpose: "Ro'yxatdan o'tish" already fills half the pill at
+// 375px, and an icon in front of it forces the label to truncate.
+const modeOptions: Array<SegmentedOption<AuthMode>> = [
+  { value: "login", label: "Kirish" },
+  { value: "register", label: "Ro'yxatdan o'tish" }
+];
 
 export type AuthGateProps = {
   mode: AuthMode;
@@ -27,6 +35,9 @@ export type AuthGateProps = {
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
+  onRequestOtp: (phone: string) => Promise<OtpIssue>;
+  onVerifyOtp: (phone: string, code: string) => Promise<string>;
+  onOtpTokenChange: (token: string | null) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -51,6 +62,9 @@ export function AuthGate({
   doctorStep,
   onDoctorStepChange,
   onRoleChange,
+  onRequestOtp,
+  onVerifyOtp,
+  onOtpTokenChange,
   onUserSubmit,
   onDoctorSubmit
 }: AuthGateProps) {
@@ -99,24 +113,12 @@ export function AuthGate({
         </header>
 
         {!registrationOnly && (
-          <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-surface-200 bg-surface-0 p-1.5 shadow-card dark:bg-surface-50">
-            {(["login", "register"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={mode === value}
-                onClick={() => onModeChange(value)}
-                className={cn(
-                  "h-12 rounded-[19px] text-sm font-extrabold transition-colors",
-                  mode === value
-                    ? "bg-brand-500 text-white shadow-card"
-                    : "text-ink-500 hover:text-ink-700"
-                )}
-              >
-                {value === "login" ? "Kirish" : "Ro'yxatdan o'tish"}
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            value={mode}
+            options={modeOptions}
+            onChange={onModeChange}
+            ariaLabel="Kirish yoki ro'yxatdan o'tish"
+          />
         )}
 
         {!registrationOnly && mode === "login" ? (
@@ -134,6 +136,9 @@ export function AuthGate({
             doctorStep={doctorStep}
             onDoctorStepChange={onDoctorStepChange}
             onRoleChange={onRoleChange}
+            onRequestOtp={onRequestOtp}
+            onVerifyOtp={onVerifyOtp}
+            onOtpTokenChange={onOtpTokenChange}
             onUserSubmit={onUserSubmit}
             onDoctorSubmit={onDoctorSubmit}
           />

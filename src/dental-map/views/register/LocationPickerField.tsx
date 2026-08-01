@@ -1,9 +1,17 @@
 "use client";
 
 import { MapPin } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { isSafeMapUrl, mapUrlHasCoordinates } from "../../lib/url";
 import { cn } from "../../ui";
+import {
+  controlHeight,
+  controlShellBase,
+  controlShellDanger,
+  controlShellIdle,
+  errorTextClass,
+  labelClass
+} from "../../ui/Field";
 
 export const MAP_COORDINATE_REQUIRED_MESSAGE =
   "Karta linki aniq nuqtadan olingan bo'lishi kerak. Google yoki Yandex Maps'da klinika joyini tanlab, Share link yuboring.";
@@ -26,46 +34,64 @@ export function LocationPickerField({
   name,
   label = "Klinika lokatsiyasi linki",
   defaultValue = "",
-  required = false
+  required = false,
+  error = false,
+  errorText
 }: {
   name: string;
   label?: string;
   defaultValue?: string;
   required?: boolean;
+  /** Forced danger state from the host form (empty value the user never touched). */
+  error?: boolean;
+  errorText?: string;
 }) {
   const [value, setValue] = useState(defaultValue);
   const cleanValue = value.trim();
-  const validationError = cleanValue ? mapLinkValidationError(cleanValue) : "";
-  const supported = !validationError;
+  // Live feedback only once something has been typed; an untouched empty field
+  // is not "wrong" yet, it is just empty.
+  const liveError = cleanValue ? mapLinkValidationError(cleanValue) : "";
+  const message = liveError || errorText || "";
+  const generatedId = useId().replace(/:/g, "");
+  const inputId = `location-${generatedId}`;
+  const errorId = `${inputId}-error`;
+  const invalid = Boolean(liveError) || error || Boolean(errorText);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink-700">{label}</span>
-      <label
+    <div className="block">
+      {/* htmlFor, not a bare <span>: the label text was never associated with the
+          input, so the field had no accessible name at all. */}
+      <label htmlFor={inputId} className={labelClass}>
+        {label}
+      </label>
+      <div
         className={cn(
-          "flex h-14 w-full items-center gap-3 rounded-2xl border px-4 transition-colors",
-          supported
-            ? "border-surface-200 bg-surface-50 focus-within:border-brand-400 focus-within:bg-surface-0"
-            : "border-danger/40 bg-danger/5"
+          controlShellBase,
+          controlHeight,
+          "gap-3 px-4",
+          invalid ? controlShellDanger : controlShellIdle
         )}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
           <MapPin size={17} />
         </span>
         <input
+          id={inputId}
           name={name}
           value={value}
           required={required}
           inputMode="url"
           autoComplete="url"
+          aria-invalid={invalid || undefined}
+          aria-describedby={message ? errorId : undefined}
           placeholder="https:// Google yoki Yandex Maps linki"
           onChange={(event) => setValue(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-base font-semibold text-ink-900 outline-none placeholder:text-ink-400"
+          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink-900 outline-none placeholder:font-normal placeholder:text-ink-400"
         />
-      </label>
-      {!supported && (
-        <small className="block text-xs font-medium text-danger" role="alert">
-          {validationError}
+      </div>
+      {message && (
+        <small id={errorId} className={errorTextClass} role="alert">
+          {message}
         </small>
       )}
     </div>

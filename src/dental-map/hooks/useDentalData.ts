@@ -63,6 +63,30 @@ type UseDentalDataArgs = {
   telegramInitialized: boolean;
 };
 
+/** The only purpose these endpoints accept — they are NOT a generic OTP service
+ *  (no login-by-code, no password reset). Widening it is a separate decision. */
+const OTP_PURPOSE = "register-doctor";
+
+/** What one issued code is worth to the UI: the two clocks it has to run.
+ *  `issuedAt` is client-side, so a clock skew shows as a slightly early or late
+ *  countdown, never as a wrongly-accepted code — the server owns expiry. */
+export type OtpIssue = {
+  expiresIn: number;
+  resendAfter: number;
+  issuedAt: number;
+  /** DEBUG-only echo from the backend; never present in production. */
+  devCode?: string;
+};
+
+type OtpRequestPayload = {
+  expires_in?: number;
+  resend_after?: number;
+  code_length?: number;
+  dev_code?: string;
+};
+
+type OtpVerifyPayload = { otp_token?: string; expires_in?: number };
+
 /**
  * Central data layer for the mini app: public catalog, Telegram-backed auth,
  * private doctor data, and every server-mutating action. Keeps the UI shell free
@@ -445,7 +469,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
 
   // Taxonomies control registration and discovery. Online mode is authoritative:
   // a network error or empty admin list is visible and never replaced with demo
-  // values that the backend may reject.
+  // values that the backend may reject. taxonomyError means the REQUEST failed —
+  // an empty list is a state the controls render themselves, not an error.
   useEffect(() => {
     if (demoCatalogEnabled) {
       setSpecialties([]);
@@ -462,9 +487,11 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         if (controller.signal.aborted) {
           return;
         }
-        if (specialtyList.length === 0 || serviceList.length === 0) {
-          throw new Error("Yo'nalish yoki xizmatlar ro'yxati hali sozlanmagan.");
-        }
+        // An unfilled admin table is not a failed request. Throwing here raised a
+        // red alert for something nobody in front of the form did, and — worse —
+        // fell into the catch below that clears BOTH lists, so an empty Service
+        // table also hid every specialty the doctor could have chosen. Each list
+        // now stands on its own and the controls explain their own empty state.
         setSpecialties(specialtyList);
         setServices(serviceList);
       })
@@ -903,6 +930,89 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     [currentUser, refreshPrivateData, telegramUser, webApp]
   );
 
+  /**
+   * Ask the backend to SMS a one-time code to `phone`.
+   *
+   * The spaced "+998 90 123 45 67" string is sent verbatim — normalisation is
+   * the server's job (it keys the cache, the cooldown and the per-phone throttle
+   * off the normalized form). Normalising here would only create a second,
+   * divergent normalizer and split the rate-limit buckets by spacing variant.
+   */
+  const requestOtp = useCallback(async (phone: string): Promise<OtpIssue> => {
+    if (isOfflineMode()) {
+      // The static preview and local mode have no backend to call; dead-ending
+      // the wizard here would make the GitHub Pages demo unusable.
+      return { expiresIn: 120, resendAfter: 60, issuedAt: Date.now(), devCode: "000000" };
+    }
+    const controller = new AbortController();
+    const csrfToken = await getAuthCsrfToken();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    const response = await (async () => {
+      try {
+        return await fetch(getApiUrl("/api/auth/otp/request/"), {
+          method: "POST",
+          cache: "no-store",
+          credentials: authFetchCredentials(),
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken ? { "X-CSRFToken": csrfToken } : null)
+          },
+          signal: controller.signal,
+          body: JSON.stringify({ phone, purpose: OTP_PURPOSE })
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    })();
+    const payload = (await response.json().catch(() => null)) as OtpRequestPayload | null;
+    if (!response.ok) {
+      throw new Error(parseApiError(payload, "Kod yuborilmadi. Qayta urinib ko'ring."));
+    }
+    return {
+      expiresIn: typeof payload?.expires_in === "number" ? payload.expires_in : 120,
+      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 60,
+      issuedAt: Date.now(),
+      devCode: typeof payload?.dev_code === "string" ? payload.dev_code : undefined
+    };
+  }, []);
+
+  /** Exchange a code for the short-lived signed ticket the final register POST
+   *  carries. The ticket is returned, never stored by this hook — the caller
+   *  keeps it in a ref so it cannot reach any browser storage. */
+  const verifyOtp = useCallback(async (phone: string, code: string): Promise<string> => {
+    if (isOfflineMode()) {
+      return "offline-otp-token";
+    }
+    const controller = new AbortController();
+    const csrfToken = await getAuthCsrfToken();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    const response = await (async () => {
+      try {
+        return await fetch(getApiUrl("/api/auth/otp/verify/"), {
+          method: "POST",
+          cache: "no-store",
+          credentials: authFetchCredentials(),
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken ? { "X-CSRFToken": csrfToken } : null)
+          },
+          signal: controller.signal,
+          body: JSON.stringify({ phone, code, purpose: OTP_PURPOSE })
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    })();
+    const payload = (await response.json().catch(() => null)) as OtpVerifyPayload | null;
+    if (!response.ok) {
+      throw new Error(parseApiError(payload, "Kodni tasdiqlab bo'lmadi. Qayta urinib ko'ring."));
+    }
+    if (typeof payload?.otp_token !== "string" || !payload.otp_token) {
+      throw new Error("Tasdiqlash serveri noto'g'ri javob qaytardi.");
+    }
+    return payload.otp_token;
+  }, []);
+
   const submitDoctorReview = useCallback(
     async (doctorId: string, rating: number, text: string, appointmentId?: string) => {
       if (isOfflineMode()) {
@@ -1287,6 +1397,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     updateUserProfile,
     registerUser,
     registerDoctor,
+    requestOtp,
+    verifyOtp,
     submitDoctorReview,
     submitFeedback,
     submitDoctorProfileUpdate,

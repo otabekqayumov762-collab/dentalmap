@@ -69,7 +69,8 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
             <Field
               name="experience_years"
               numeric
-              label="Tajriba (yil)"
+              suffix="yil"
+              label="Tajriba"
               defaultValue={profile?.experience_years || 0}
             />
           </div>

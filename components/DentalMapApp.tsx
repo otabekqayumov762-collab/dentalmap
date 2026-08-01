@@ -77,6 +77,8 @@ function DentalMapAppInner() {
     updateUserProfile,
     registerUser,
     registerDoctor,
+    requestOtp,
+    verifyOtp,
     submitDoctorReview,
     submitFeedback,
     submitDoctorProfileUpdate,
@@ -107,6 +109,11 @@ function DentalMapAppInner() {
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [doctorStep, setDoctorStep] = useState(1);
+  // The signed phone-verification ticket, held in MEMORY ONLY for the length of
+  // the signup. It is appended to the FormData in sendDoctorRegistration and
+  // nowhere else — never a storage key, never a DOM value, never the URL. A
+  // reload loses it and the wizard restarts at the identity pane by design.
+  const doctorOtpTokenRef = useRef<string | null>(null);
   // Synchronous guard: blocks the rapid re-tap storm before React re-renders.
   const submittingRef = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -389,6 +396,7 @@ function DentalMapAppInner() {
     setSelectedSlot("");
     setRegisterRole("user");
     setDoctorStep(1);
+    doctorOtpTokenRef.current = null;
     setAuthMode("login");
     landedRef.current = false;
     ratingPromptShownRef.current = false;
@@ -398,9 +406,12 @@ function DentalMapAppInner() {
 
   function handleRoleChange(role: RegisterRole) {
     setRegisterRole(role);
-    // Reset the doctor wizard when leaving the doctor path so it re-enters at step 1.
+    // Reset the doctor wizard when leaving the doctor path so it re-enters at
+    // step 1 — and drop the verification ticket with it, so a ticket minted for
+    // one attempt can never ride along into a later, different one.
     if (role !== "doctor") {
       setDoctorStep(1);
+      doctorOtpTokenRef.current = null;
     }
   }
 
@@ -598,6 +609,13 @@ function DentalMapAppInner() {
       formData.set("doctor_gender", doctorGender);
     }
     formData.delete("password_confirm");
+    // The phone-verification ticket travels with the single atomic register POST;
+    // the raw code and the SMS consent checkbox are client-only and must not.
+    if (doctorOtpTokenRef.current) {
+      formData.set("otp_token", doctorOtpTokenRef.current);
+    }
+    formData.delete("otp_code");
+    formData.delete("sms_consent");
 
     if (submittingRef.current) {
       return;
@@ -729,6 +747,12 @@ function DentalMapAppInner() {
     };
   }, [activeView, isAuthenticated, refreshPrivateData]);
 
+  // Back INSIDE the doctor signup wizard. showPageBack alone can never cover it:
+  // activeView stays "home" for the whole auth wall (the gate returns before the
+  // view switch), so without this the native BackButton is simply absent during
+  // a seven-page flow. The in-pane "Orqaga" button remains the browser fallback.
+  const inDoctorWizard = !isAuthenticated && registerRole === "doctor" && doctorStep > 1;
+
   useTelegramButtons({
     webApp,
     activeView: telegramButtonView,
@@ -736,8 +760,14 @@ function DentalMapAppInner() {
     consultationSent,
     // Booking submits must also disable the MainButton (spinner + no re-taps).
     submitting: isSubmitting || appointmentSubmitting,
-    showBack: showPageBack,
-    onBack: () => navigate(backTarget),
+    showBack: showPageBack || inDoctorWizard,
+    onBack: () => {
+      if (inDoctorWizard) {
+        setDoctorStep(doctorStep - 1);
+        return;
+      }
+      navigate(backTarget);
+    },
     // Route through navigate() so the appointment view always enters via the
     // fresh-booking reset (stale success screen fix) — never raw changeView.
     changeView: navigate
@@ -795,6 +825,11 @@ function DentalMapAppInner() {
         doctorStep={doctorStep}
         onDoctorStepChange={setDoctorStep}
         onRoleChange={handleRoleChange}
+        onRequestOtp={requestOtp}
+        onVerifyOtp={verifyOtp}
+        onOtpTokenChange={(token) => {
+          doctorOtpTokenRef.current = token;
+        }}
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
       />
@@ -1132,6 +1167,11 @@ function DentalMapAppInner() {
               doctorStep={doctorStep}
               onDoctorStepChange={setDoctorStep}
               onRoleChange={handleRoleChange}
+              onRequestOtp={requestOtp}
+              onVerifyOtp={verifyOtp}
+              onOtpTokenChange={(token) => {
+                doctorOtpTokenRef.current = token;
+              }}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
             />

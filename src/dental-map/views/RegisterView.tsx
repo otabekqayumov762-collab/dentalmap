@@ -1,7 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { isOfflineMode } from "../api/dentalMapApi";
+import type { OtpIssue } from "../hooks/useDentalData";
 import type { RegisterRole, Service, Specialty } from "../types";
-import { DoctorRegistrationForm } from "./register/DoctorRegistrationForm";
+// The doctor wizard is code-split (see lazyViews.tsx): the patient form is the
+// default path and the one the e2e drives, and it must not pay for the OTP
+// boxes, the map picker and the region sheet it never renders.
+import { DoctorRegistrationForm, prefetchDoctorRegistrationForm } from "./lazyViews";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
 
@@ -17,6 +21,9 @@ export function RegisterView({
   doctorStep,
   onDoctorStepChange,
   onRoleChange,
+  onRequestOtp,
+  onVerifyOtp,
+  onOtpTokenChange,
   onUserSubmit,
   onDoctorSubmit
 }: {
@@ -31,6 +38,9 @@ export function RegisterView({
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
+  onRequestOtp: (phone: string) => Promise<OtpIssue>;
+  onVerifyOtp: (phone: string, code: string) => Promise<string>;
+  onOtpTokenChange: (token: string | null) => void;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
@@ -56,7 +66,17 @@ export function RegisterView({
 
   return (
     <div className="flex flex-col gap-4">
-      {!userRegistered && <RegisterRoleToggle role={role} onRoleChange={onRoleChange} />}
+      {!userRegistered && (
+        <RegisterRoleToggle
+          role={role}
+          onRoleChange={onRoleChange}
+          onRolePrefetch={(next) => {
+            if (next === "doctor") {
+              prefetchDoctorRegistrationForm();
+            }
+          }}
+        />
+      )}
 
       {role === "user" ? (
         <UserRegistrationForm
@@ -91,7 +111,11 @@ export function RegisterView({
           onRegionChange={setDoctorRegion}
           onDistrictChange={setDoctorDistrict}
           onToggleService={toggleService}
+          onSetServices={setSelectedServiceIds}
           onPhotoFileChange={setPhotoFileName}
+          onRequestOtp={onRequestOtp}
+          onVerifyOtp={onVerifyOtp}
+          onOtpTokenChange={onOtpTokenChange}
           onSubmit={onDoctorSubmit}
         />
       )}

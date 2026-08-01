@@ -1,19 +1,30 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "gradient";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-semibold rounded-pill transition-colors " +
+  "inline-flex items-center justify-center gap-2 font-semibold rounded-pill transition-all duration-150 " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 " +
-  "disabled:opacity-55 disabled:pointer-events-none active:scale-[0.98]";
+  "disabled:opacity-55 disabled:pointer-events-none motion-safe:active:scale-[0.98]";
 
 const variants: Record<Variant, string> = {
   primary: "bg-brand-500 text-white hover:bg-brand-600 shadow-card",
   secondary: "bg-surface-100 text-ink-700 hover:bg-surface-200",
   ghost: "bg-transparent text-brand-600 hover:bg-brand-50",
-  danger: "bg-danger text-white hover:brightness-95 shadow-card"
+  danger: "bg-danger text-white hover:brightness-95 shadow-card",
+  // The brand teal→blue gradient, declared ONCE. Call sites must not hand-roll
+  // it; a second copy is how the flow ended up with four different primaries.
+  // brand-700 -> accent-600, not the 500 ramp: white on brand-500 measures
+  // 2.54:1 and on accent-500 3.12:1, and `size="lg"` is 16px semibold — not
+  // large text — so the bar is 4.5:1 and both failed in BOTH themes. These stops
+  // clear it (6.18:1 / 5.16:1) while keeping the same teal->blue read. Dark
+  // theme needs no override: the gradient is a self-contained surface, so its
+  // contrast does not move with the page behind it.
+  gradient:
+    "bg-gradient-to-r from-brand-700 to-accent-600 text-white shadow-card hover:shadow-float " +
+    "motion-safe:active:scale-[0.99]"
 };
 
 const sizes: Record<Size, string> = {

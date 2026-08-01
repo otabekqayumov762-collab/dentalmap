@@ -6,7 +6,7 @@ export function PrivacyAcknowledgement({ error = false }: { error?: boolean }) {
   return (
     <label
       className={cn(
-        "flex items-start gap-3 rounded-2xl border bg-surface-50 px-3.5 py-3 text-sm text-ink-600",
+        "flex items-start gap-3 rounded-card border bg-surface-50 px-3.5 py-3 text-sm text-ink-600",
         error ? "border-danger" : "border-surface-200"
       )}
     >

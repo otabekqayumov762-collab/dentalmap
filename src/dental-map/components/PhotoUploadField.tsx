@@ -4,6 +4,7 @@ import { Camera, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { PHOTO_UPLOAD_TYPES, validatePhotoFile } from "../lib/fileUpload";
 import { cn, useToast } from "../ui";
+import { labelClass } from "../ui/Field";
 
 export type PhotoUploadFieldProps = {
   name: string;
@@ -64,7 +65,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
 
   return (
     <div>
-      {label ? <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span> : null}
+      {label ? <span className={labelClass}>{label}</span> : null}
       {/* The input stays mounted in both states so the form always submits the file field. */}
       <input
         ref={inputRef}
@@ -75,7 +76,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
         onChange={handleChange}
       />
       {hasSelection ? (
-        <div className={cn("flex items-center gap-3 rounded-2xl border p-2.5", cardTone)}>
+        <div className={cn("flex items-center gap-3 rounded-card border p-2.5", cardTone)}>
           <button
             type="button"
             onClick={openPicker}
@@ -112,9 +113,9 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
         <button
           type="button"
           onClick={openPicker}
-          className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50"
+          className="flex w-full flex-col items-center gap-2 rounded-card border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
+          <span className="flex h-12 w-12 items-center justify-center rounded-card bg-brand-500/10 text-brand-500">
             <Camera size={22} />
           </span>
           <span className="text-sm font-semibold text-ink-900">Rasm yuklash</span>

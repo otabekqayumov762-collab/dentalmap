@@ -1,19 +1,35 @@
 "use client";
 
 import { Check, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "./cn";
+import {
+  ControlLabel,
+  controlHeight,
+  controlTriggerBase,
+  controlTriggerDanger,
+  controlTriggerIdle,
+  errorTextClass,
+  hintClass
+} from "./Field";
 import type { Option } from "./OptionGrid";
 import { Sheet } from "./Sheet";
+import { useSettledEmpty } from "./useSettledEmpty";
 
 export type MultiSelectSheetProps = {
-  label?: string;
+  label?: ReactNode;
   title?: string;
   name?: string;
   value: string[];
   options: Option[];
   onToggle: (value: string) => void;
   placeholder?: string;
+  error?: boolean;
+  errorText?: ReactNode;
+  disabled?: boolean;
+  /** Shown when the list arrives empty. States plainly that the field can be
+   *  left as it is, so a missing catalogue never reads as a dead end. */
+  emptyHint?: ReactNode;
 };
 
 /**
@@ -28,9 +44,17 @@ export function MultiSelectSheet({
   value,
   options,
   onToggle,
-  placeholder = "Tanlang"
+  placeholder = "Tanlang",
+  error,
+  errorText,
+  disabled,
+  emptyHint = "Ro'yxat hozircha bo'sh — bu maydonsiz ham davom etish mumkin."
 }: MultiSelectSheetProps) {
   const [open, setOpen] = useState(false);
+  const invalid = Boolean(error || errorText);
+  // Opening a sheet with nothing in it is a dead end, so the trigger closes
+  // itself off — but only once the list has settled, never mid-load.
+  const isEmpty = useSettledEmpty(options.length === 0);
   const selectedLabels = options.filter((option) => value.includes(option.value)).map((option) => option.label);
   const summary =
     selectedLabels.length === 0
@@ -41,16 +65,39 @@ export function MultiSelectSheet({
 
   return (
     <div className="block">
-      {label && <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>}
+      {label && <ControlLabel>{label}</ControlLabel>}
       {name && <input type="hidden" name={name} value={value.join(",")} />}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-left transition-colors hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+        disabled={disabled || isEmpty}
+        // No aria-invalid: it is not supported on the implicit button role.
+        // The danger border plus the role="alert" message below carry the state.
+        className={cn(
+          controlTriggerBase,
+          controlHeight,
+          invalid ? controlTriggerDanger : controlTriggerIdle,
+          "disabled:cursor-not-allowed disabled:opacity-60"
+        )}
       >
         <span className={cn("truncate", summary ? "text-ink-900" : "text-ink-400")}>{summary || placeholder}</span>
-        <ChevronRight size={18} className={cn("shrink-0 text-ink-400 transition-transform", open && "rotate-90")} />
+        <ChevronRight
+          size={18}
+          className={cn("shrink-0 text-ink-400 motion-safe:transition-transform", open && "rotate-90")}
+        />
       </button>
+      {errorText ? (
+        <small className={errorTextClass} role="alert">
+          {errorText}
+        </small>
+      ) : (
+        isEmpty &&
+        emptyHint && (
+          <small className={hintClass} role="status">
+            {emptyHint}
+          </small>
+        )
+      )}
 
       <Sheet open={open} onClose={() => setOpen(false)} title={title || label}>
         {/* Fraction of the TELEGRAM viewport: 55vh of the layout viewport left this
@@ -67,7 +114,7 @@ export function MultiSelectSheet({
                 aria-pressed={active}
                 onClick={() => onToggle(option.value)}
                 className={cn(
-                  "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left text-[0.95rem] transition-colors",
+                  "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-[0.95rem] transition-colors",
                   active ? "border-brand-500 bg-brand-50 font-semibold text-brand-700" : "border-surface-200 bg-surface-0 text-ink-700"
                 )}
               >

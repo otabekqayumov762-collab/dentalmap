@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { cn } from "./cn";
+import { controlHeight } from "./Field";
 
 export type Option = { value: string; label: string };
 
@@ -40,7 +41,7 @@ export function OptionGrid(props: OptionGridProps) {
     <div
       className={cn(
         "grid grid-cols-2 gap-2.5",
-        error && "rounded-2xl p-1 ring-1 ring-danger",
+        error && "rounded-card p-1 ring-2 ring-danger/30",
         className
       )}
     >
@@ -55,10 +56,15 @@ export function OptionGrid(props: OptionGridProps) {
             aria-pressed={active}
             onClick={() => props.onChange(option.value)}
             className={cn(
-              "relative flex min-h-12 items-center justify-center rounded-2xl border px-3 py-2.5 text-center text-sm font-medium leading-tight transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]",
+              "relative flex items-center justify-center rounded-card border px-3 text-center text-sm font-semibold leading-tight",
+              controlHeight,
+              "motion-safe:transition-all motion-safe:duration-150",
+              // brand-100 is the halo that sits BEHIND a brand-400 border on the
+              // text controls; alone on a tile it is not a focus indicator, so
+              // these take the same ring colour as every other button.
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 motion-safe:active:scale-[0.98]",
               active
-                ? "border-brand-500 bg-brand-50 text-brand-700"
+                ? "border-brand-400 bg-brand-50 text-brand-700 shadow-card"
                 : "border-surface-200 bg-surface-0 text-ink-600 hover:border-brand-300"
             )}
           >

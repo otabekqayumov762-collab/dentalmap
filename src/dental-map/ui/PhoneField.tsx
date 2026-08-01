@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "./cn";
+import {
+  controlHeight,
+  controlShellBase,
+  controlShellDanger,
+  controlShellIdle,
+  errorTextClass,
+  labelClass
+} from "./Field";
 
 /** Strips to national digits (drops the 998 country code), max 9 digits. */
 function parseDigits(value?: string | null) {
@@ -34,6 +42,9 @@ export type PhoneFieldProps = {
   className?: string;
   /** Swap the border to a danger tone when the field is invalid. */
   error?: boolean;
+  /** Message rendered under the control. */
+  errorText?: ReactNode;
+  disabled?: boolean;
 };
 
 /**
@@ -49,7 +60,9 @@ export function PhoneField({
   onValueChange,
   required,
   className,
-  error
+  error,
+  errorText,
+  disabled
 }: PhoneFieldProps) {
   const controlled = value !== undefined;
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -65,6 +78,11 @@ export function PhoneField({
     setDigits((current) => (current === next ? current : next));
   }, [controlled, value]);
 
+  const invalid = Boolean(error || errorText);
+  const generatedId = useId().replace(/:/g, "");
+  const inputId = `phone-${generatedId}`;
+  const errorId = `${inputId}-error`;
+
   function update(raw: string) {
     const next = parseDigits(raw);
     setDigits(next);
@@ -72,23 +90,35 @@ export function PhoneField({
   }
 
   return (
-    <label className="block">
-      {label && <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>}
+    // A DIV, not a wrapping <label>: inside one, the "+998" prefix and any error
+    // text are concatenated into the input's accessible name, so the field
+    // announced itself as "Telefon raqam +998" and renamed itself on every
+    // validation pass. htmlFor keeps the click-to-focus behaviour.
+    <div className="block">
+      {label && (
+        <label htmlFor={inputId} className={labelClass}>
+          {label}
+        </label>
+      )}
       <div
         className={cn(
-          "flex h-12 items-center rounded-2xl bg-surface-50 transition-colors focus-within:bg-surface-0 focus-within:ring-2",
-          error
-            ? "border border-danger focus-within:border-danger focus-within:ring-danger/30"
-            : "border border-surface-200 focus-within:border-brand-400 focus-within:ring-brand-100",
+          controlShellBase,
+          controlHeight,
+          invalid ? controlShellDanger : controlShellIdle,
+          disabled && "opacity-60",
           className
         )}
       >
-        <span className="select-none pl-4 pr-2 font-medium text-ink-500">+998</span>
+        <span className="select-none pl-4 pr-2 font-semibold text-ink-500">+998</span>
         <input
           ref={inputRef}
+          id={inputId}
           type="tel"
           inputMode="numeric"
           autoComplete="tel"
+          aria-invalid={invalid || undefined}
+          aria-describedby={errorText ? errorId : undefined}
+          disabled={disabled}
           className="min-w-0 flex-1 bg-transparent pr-4 text-ink-900 outline-none placeholder:text-ink-400"
           value={formatNational(digits)}
           onChange={(event) => update(event.target.value)}
@@ -97,6 +127,11 @@ export function PhoneField({
         />
       </div>
       {name && <input type="hidden" name={name} value={fullValue(digits)} />}
-    </label>
+      {errorText && (
+        <small id={errorId} className={errorTextClass} role="alert">
+          {errorText}
+        </small>
+      )}
+    </div>
   );
 }
