@@ -54,6 +54,16 @@ export const TOTAL_DOCTOR_STEPS = DOCTOR_STEPS.length;
 const IDENTITY_STEP = 1;
 const OTP_STEP = 2;
 
+/**
+ * Phone verification can be switched off for the window between shipping this
+ * flow and having an SMS provider configured. Default ON: the secure state is
+ * what you get by doing nothing, and disabling it takes an explicit
+ * NEXT_PUBLIC_OTP_ENABLED=false at build time, matched by OTP_ROLLOUT_PENDING on
+ * the backend. With it off the OTP pane is skipped entirely rather than shown
+ * and waved through — a code entry that accepts anything is worse than none.
+ */
+export const otpEnabled = process.env.NEXT_PUBLIC_OTP_ENABLED !== "false";
+
 type DoctorField =
   | "full_name"
   | "doctor_phone"
@@ -231,7 +241,7 @@ export function DoctorRegistrationForm({
     }
 
     if (target === 2) {
-      if (!otpTokenRef.current) {
+      if (otpEnabled && !otpTokenRef.current) {
         return { field: "otp_token", message: "Avval telefon raqamni kod orqali tasdiqlang." };
       }
       return null;
@@ -320,6 +330,12 @@ export function DoctorRegistrationForm({
     if (!form) {
       return;
     }
+    if (!otpEnabled) {
+      // No provider configured: skip straight past the pane instead of asking
+      // for a code nothing will ever send.
+      goToStep(OTP_STEP + 1);
+      return;
+    }
     const phone = String(new FormData(form).get("doctor_phone") || "").trim();
     // Coming back to edit an unrelated field must not burn one of the three
     // codes per hour the backend allows for this number.
@@ -354,6 +370,12 @@ export function DoctorRegistrationForm({
   }
 
   function goBack() {
+    // Hop over the skipped pane in both directions, or Back would land on a
+    // step the user was never shown and cannot complete.
+    if (!otpEnabled && step === OTP_STEP + 1) {
+      goToStep(IDENTITY_STEP);
+      return;
+    }
     goToStep(step - 1);
   }
 
@@ -393,7 +415,7 @@ export function DoctorRegistrationForm({
     busy ||
     // The OTP pane advances only once a ticket is in memory; its own CTA is the
     // verify button, so a dead "Davom etish" here would be a trap.
-    (step === OTP_STEP && !otpVerified) ||
+    (otpEnabled && step === OTP_STEP && !otpVerified) ||
     (step === 6 && taxonomyBlocked);
 
   return (
@@ -404,7 +426,14 @@ export function DoctorRegistrationForm({
       className="flex flex-col gap-4"
       onSubmit={handleSubmit}
     >
-      <StepHeader step={step} total={TOTAL_DOCTOR_STEPS} title={DOCTOR_STEPS[step - 1].title} />
+      <StepHeader
+        // Count only the panes the doctor is actually shown. With OTP off the
+        // raw index would read "1/8" then jump to "3/8", telling them they
+        // skipped something they were never offered.
+        step={otpEnabled || step < OTP_STEP ? step : step - 1}
+        total={otpEnabled ? TOTAL_DOCTOR_STEPS : TOTAL_DOCTOR_STEPS - 1}
+        title={DOCTOR_STEPS[step - 1].title}
+      />
 
       <Pane
         hidden={step !== 1}

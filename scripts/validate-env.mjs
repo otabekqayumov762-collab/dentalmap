@@ -99,6 +99,14 @@ if (/\/(?:your_support|your_bot)\/?$/i.test(rawSupportUrl)) {
   fail("NEXT_PUBLIC_SUPPORT_URL must not use the example placeholder.");
 }
 
+// Only the two literals. A typo like "False" or "0" would otherwise read as
+// "not false" and silently leave phone verification ON while ops believed it was
+// off — or, if the default ever flips, the reverse.
+const otpFlag = process.env.NEXT_PUBLIC_OTP_ENABLED?.trim();
+if (otpFlag !== undefined && otpFlag !== "" && otpFlag !== "true" && otpFlag !== "false") {
+  fail('NEXT_PUBLIC_OTP_ENABLED must be exactly "true" or "false".');
+}
+
 const authMode = process.env.NEXT_PUBLIC_AUTH_TOKEN_MODE?.trim() || "cookie";
 if (!["cookie", "legacy-session"].includes(authMode)) {
   fail("NEXT_PUBLIC_AUTH_TOKEN_MODE must be cookie or legacy-session.");
