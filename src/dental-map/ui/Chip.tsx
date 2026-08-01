@@ -17,7 +17,7 @@ export function Chip({ active = false, onClick, className, children }: ChipProps
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-pill px-3.5 py-2 text-sm font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 motion-safe:active:scale-[0.97]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 motion-safe:active:scale-[0.97]",
         active
           ? "bg-brand-500 text-white shadow-card"
           : "border border-surface-200 bg-surface-0 text-ink-600 hover:border-brand-300 hover:bg-brand-50/40",

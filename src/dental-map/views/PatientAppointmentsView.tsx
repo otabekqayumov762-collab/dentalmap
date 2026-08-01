@@ -78,7 +78,7 @@ export function PatientAppointmentsView({
             onClick={onRefresh}
             disabled={loading}
             aria-label="Yangilash"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-200 bg-surface-0 text-ink-500 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-95 disabled:opacity-60"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-200 bg-surface-0 text-ink-500 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-95 disabled:opacity-60"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
           </button>
@@ -247,7 +247,7 @@ export function PatientAppointmentsView({
                       setReviewError("");
                     }}
                     className={cn(
-                      "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-90",
+                      "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-90",
                       value <= rating ? "text-warning" : "text-surface-200 hover:text-ink-400"
                     )}
                   >

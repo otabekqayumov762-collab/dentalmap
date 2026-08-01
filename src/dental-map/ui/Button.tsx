@@ -6,7 +6,7 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 font-semibold rounded-pill transition-all duration-150 " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 focus-visible:ring-offset-2 " +
   "disabled:opacity-55 disabled:pointer-events-none motion-safe:active:scale-[0.98]";
 
 const variants: Record<Variant, string> = {
@@ -16,14 +16,14 @@ const variants: Record<Variant, string> = {
   danger: "bg-danger text-white hover:brightness-95 shadow-card",
   // The brand teal→blue gradient, declared ONCE. Call sites must not hand-roll
   // it; a second copy is how the flow ended up with four different primaries.
-  // brand-700 -> accent-600, not the 500 ramp: white on brand-500 measures
-  // 2.54:1 and on accent-500 3.12:1, and `size="lg"` is 16px semibold — not
-  // large text — so the bar is 4.5:1 and both failed in BOTH themes. These stops
-  // clear it (6.18:1 / 5.16:1) while keeping the same teal->blue read. Dark
-  // theme needs no override: the gradient is a self-contained surface, so its
-  // contrast does not move with the page behind it.
+  // The brand's own teal->blue, at full strength. An earlier pass darkened these
+  // stops to brand-700/accent-600 so WHITE text would clear 4.5:1 — it did, but
+  // it drained the brand out of the primary button on every screen. Dark ink on
+  // the bright ramp measures 6.11:1 and 4.76:1, so it reads BETTER than the
+  // washed-out version did and the colour survives. Contrast was never a reason
+  // to dull the palette; it was a reason to stop using white here.
   gradient:
-    "bg-gradient-to-r from-brand-700 to-accent-600 text-white shadow-card hover:shadow-float " +
+    "bg-gradient-to-r from-brand-500 to-accent-500 text-ink-900 shadow-card hover:shadow-float " +
     "motion-safe:active:scale-[0.99]"
 };
 

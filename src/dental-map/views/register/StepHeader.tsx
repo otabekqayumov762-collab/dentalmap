@@ -28,7 +28,7 @@ export function StepHeader({ step, total, title }: { step: number; total: number
         aria-valuetext={`${total} qadamdan ${step}-si: ${title}`}
       >
         <div
-          className="h-full rounded-pill bg-gradient-to-r from-brand-700 to-accent-600 motion-safe:transition-[width] motion-safe:duration-300 ease-out"
+          className="h-full rounded-pill bg-gradient-to-r from-brand-500 to-accent-500 motion-safe:transition-[width] motion-safe:duration-300 ease-out"
           style={{ width: `${percent}%` }}
         />
       </div>

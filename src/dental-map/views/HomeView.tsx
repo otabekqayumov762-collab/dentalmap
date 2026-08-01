@@ -69,7 +69,7 @@ export function HomeView({
             className={cn(
               "flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card",
               "transition-transform hover:-translate-y-0.5 active:scale-[0.99]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 focus-visible:ring-offset-2"
             )}
           >
             <DoctorAvatar doctor={doctor} size="sm" />

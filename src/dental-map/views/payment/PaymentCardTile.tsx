@@ -36,7 +36,7 @@ export function PaymentCardTile({
       onKeyDown={onKeyDown}
       className={cn(
         "flex flex-col gap-3 rounded-card border p-4 transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
         disabled && "pointer-events-none opacity-55",
         selected
           ? "border-brand-400 bg-brand-50 shadow-card"

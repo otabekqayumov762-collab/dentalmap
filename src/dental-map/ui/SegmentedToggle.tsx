@@ -57,12 +57,12 @@ export function SegmentedToggle<T extends string>({
             onClick={() => onChange(optionValue)}
             className={cn(
               "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-pill px-2 text-sm font-bold",
-              "motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
+              "motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
               active
-                // Same stops as Button's gradient variant, deliberately: two
-                // rules for one gradient is how this screen ended up with a
-                // readable toggle sitting 80px above an unreadable CTA.
-                ? "bg-gradient-to-r from-brand-700 to-accent-600 text-white shadow-card"
+                // Same stops and the same ink as Button's gradient variant,
+                // deliberately: two rules for one gradient is how this screen
+                // ended up with a readable toggle above an unreadable CTA.
+                ? "bg-gradient-to-r from-brand-500 to-accent-500 text-ink-900 shadow-card"
                 : "text-ink-500 hover:text-ink-700"
             )}
           >
