@@ -20,6 +20,7 @@ export function RegisterView({
   submitting,
   doctorStep,
   onDoctorStepChange,
+  onPatientStepChange,
   onRoleChange,
   onRequestOtp,
   onVerifyOtp,
@@ -37,6 +38,7 @@ export function RegisterView({
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
+  onPatientStepChange: (step: number) => void;
   onRoleChange: (role: RegisterRole) => void;
   onRequestOtp: (phone: string) => Promise<OtpIssue>;
   onVerifyOtp: (phone: string, code: string) => Promise<string>;
@@ -44,6 +46,8 @@ export function RegisterView({
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const [patientStep, setPatientStep] = useState(1);
+  const activeStep = role === "doctor" ? doctorStep : patientStep;
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(() =>
     isOfflineMode() ? ["consultation"] : []
   );
@@ -66,7 +70,10 @@ export function RegisterView({
 
   return (
     <div className="flex flex-col gap-4">
-      {!userRegistered && (
+      {/* Also a chooser, and it lives here rather than in AuthGate — so it
+          survived the header collapse and sat alone above the form, still
+          offering a switch that would discard everything typed. */}
+      {!userRegistered && activeStep <= 1 && (
         <RegisterRoleToggle
           role={role}
           onRoleChange={onRoleChange}
@@ -80,6 +87,10 @@ export function RegisterView({
 
       {role === "user" ? (
         <UserRegistrationForm
+          onStepChange={(next) => {
+            setPatientStep(next);
+            onPatientStepChange(next);
+          }}
           userGender={userGender}
           userRegion={userRegion}
           userDistrict={userDistrict}

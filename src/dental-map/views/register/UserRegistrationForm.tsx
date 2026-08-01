@@ -65,7 +65,8 @@ export function UserRegistrationForm({
   onGenderChange,
   onRegionChange,
   onDistrictChange,
-  onSubmit
+  onSubmit,
+  onStepChange
 }: {
   userGender: string;
   userRegion: string | null;
@@ -76,10 +77,17 @@ export function UserRegistrationForm({
   onRegionChange: (region: string | null) => void;
   onDistrictChange: (district: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** Mirrored to the shell so the auth chrome can collapse once a choice is made. */
+  onStepChange?: (step: number) => void;
 }) {
   const { toast } = useToast();
   const [invalidField, setInvalidField] = useState<UserField | null>(null);
   const [step, setStep] = useState(1);
+
+  function goToStep(next: number) {
+    setStep(next);
+    onStepChange?.(next);
+  }
   const formRef = useRef<HTMLFormElement | null>(null);
 
   function fail(field: UserField, message: string) {
@@ -140,12 +148,12 @@ export function UserRegistrationForm({
       return;
     }
     setInvalidField(null);
-    setStep((current) => Math.min(current + 1, TOTAL_USER_STEPS));
+    goToStep(Math.min(step + 1, TOTAL_USER_STEPS));
   }
 
   function goBack() {
     setInvalidField(null);
-    setStep((current) => Math.max(current - 1, 1));
+    goToStep(Math.max(step - 1, 1));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -159,7 +167,7 @@ export function UserRegistrationForm({
       const result = validateStep(target);
       if (result) {
         event.preventDefault();
-        setStep(target);
+        goToStep(target);
         fail(result.field, result.message);
         return;
       }

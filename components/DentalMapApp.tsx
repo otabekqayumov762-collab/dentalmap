@@ -114,6 +114,9 @@ function DentalMapAppInner() {
   const [doctorRegistrationSent, setDoctorRegistrationSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [doctorStep, setDoctorStep] = useState(1);
+  // The patient wizard owns its own step internally; the shell mirrors it so the
+  // auth chrome knows whether a choice has already been made.
+  const [patientStep, setPatientStep] = useState(1);
   // The signed phone-verification ticket, held in MEMORY ONLY for the length of
   // the signup. It is appended to the FormData in sendDoctorRegistration and
   // nowhere else — never a storage key, never a DOM value, never the URL. A
@@ -826,6 +829,13 @@ function DentalMapAppInner() {
       <AuthGate
         mode={needsTelegramOnboarding ? "register" : authMode}
         registrationOnly={needsTelegramOnboarding}
+        registerStep={registerRole === "doctor" ? doctorStep : patientStep}
+        onPatientStepChange={setPatientStep}
+        onExitWizard={() => {
+          setDoctorStep(1);
+          setPatientStep(1);
+          setAuthMode("login");
+        }}
         onModeChange={setAuthMode}
         onLogin={handleLogin}
         role={registerRole}
@@ -1180,6 +1190,7 @@ function DentalMapAppInner() {
               submitting={isSubmitting}
               doctorStep={doctorStep}
               onDoctorStepChange={setDoctorStep}
+              onPatientStepChange={setPatientStep}
               onRoleChange={handleRoleChange}
               onRequestOtp={requestOtp}
               onVerifyOtp={verifyOtp}

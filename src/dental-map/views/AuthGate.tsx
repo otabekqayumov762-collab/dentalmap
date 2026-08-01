@@ -1,6 +1,6 @@
 "use client";
 
-import { Sun } from "lucide-react";
+import { ArrowLeft, Sun } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "../components/common";
 import type { OtpIssue } from "../hooks/useDentalData";
@@ -34,6 +34,11 @@ export type AuthGateProps = {
   submitting: boolean;
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
+  onPatientStepChange: (step: number) => void;
+  /** Which step the ACTIVE wizard is on — doctor or patient. 1 means the chooser
+   *  is still relevant; anything higher means a choice has been made. */
+  registerStep: number;
+  onExitWizard: () => void;
   onRoleChange: (role: RegisterRole) => void;
   onRequestOtp: (phone: string) => Promise<OtpIssue>;
   onVerifyOtp: (phone: string, code: string) => Promise<string>;
@@ -61,6 +66,9 @@ export function AuthGate({
   submitting,
   doctorStep,
   onDoctorStepChange,
+  onPatientStepChange,
+  registerStep,
+  onExitWizard,
   onRoleChange,
   onRequestOtp,
   onVerifyOtp,
@@ -68,6 +76,9 @@ export function AuthGate({
   onUserSubmit,
   onDoctorSubmit
 }: AuthGateProps) {
+  // Login is a single screen with nothing to step through, so only the
+  // registration wizard can be "in progress".
+  const inWizard = mode === "register" && registerStep > 1;
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   useEffect(() => {
@@ -98,8 +109,11 @@ export function AuthGate({
           <Sun size={18} />
         </button>
 
-        {/* mt-4 and a tighter stack: the header, two toggles and a progress card
-            used to consume 60% of a 844px viewport before the first field. */}
+        {/* The header and both toggles are CHOOSERS. Once the doctor is past the
+            first step they have chosen, and leaving the controls on screen only
+            eats vertical space and invites a mid-flow switch that would discard
+            everything typed. They collapse into a single exit affordance. */}
+        {!inWizard && (
         <header className="mx-auto mt-4 flex w-full max-w-sm flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3">
             <BrandLogo className="h-11 w-11" />
@@ -113,8 +127,20 @@ export function AuthGate({
               : "Telefon raqam orqali kiring yoki yangi profil yarating"}
           </p>
         </header>
+        )}
 
-        {!registrationOnly && (
+        {inWizard && (
+          <button
+            type="button"
+            onClick={onExitWizard}
+            className="mt-4 inline-flex h-11 w-fit items-center gap-1.5 rounded-pill border border-control-border/60 bg-control px-4 text-sm font-bold text-ink-700 transition-colors hover:bg-surface-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0"
+          >
+            <ArrowLeft size={17} />
+            Chiqish
+          </button>
+        )}
+
+        {!inWizard && !registrationOnly && (
           <SegmentedToggle
             value={mode}
             options={modeOptions}
@@ -137,6 +163,7 @@ export function AuthGate({
             submitting={submitting}
             doctorStep={doctorStep}
             onDoctorStepChange={onDoctorStepChange}
+            onPatientStepChange={onPatientStepChange}
             onRoleChange={onRoleChange}
             onRequestOtp={onRequestOtp}
             onVerifyOtp={onVerifyOtp}
