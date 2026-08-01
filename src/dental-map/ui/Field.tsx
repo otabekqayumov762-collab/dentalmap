@@ -48,7 +48,7 @@ export const controlTriggerBase =
   "transition-all duration-150 focus:outline-none focus-visible:ring-2";
 export const controlTriggerIdle =
   "border border-surface-200 hover:border-brand-300 focus-visible:border-brand-400 " +
-  "focus-visible:ring-brand-100 focus-visible:shadow-card";
+  "focus-visible:ring-brand-500/40 focus-visible:shadow-card";
 export const controlTriggerDanger =
   "border border-danger focus-visible:border-danger focus-visible:ring-danger/30";
 
@@ -270,3 +270,15 @@ export function TextareaField({
     </div>
   );
 }
+
+/** Text-only actions (resend, change number, retry).
+ *
+ * They looked like links, so they were built like links: no height, no padding,
+ * no focus ring — a hit box the size of the text line, around 20px, well under
+ * the 44px touch minimum. These are the recovery paths on the panes where people
+ * get stuck, so they were the hardest things on screen to tap. The negative
+ * margin keeps the enlarged target from pushing the surrounding text apart. */
+export const inlineActionClass =
+  "inline-flex min-h-11 items-center gap-2 rounded-pill px-2 -mx-2 text-sm font-bold text-brand-600 " +
+  "transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 " +
+  "focus-visible:ring-brand-500/40 disabled:font-semibold disabled:text-ink-400";

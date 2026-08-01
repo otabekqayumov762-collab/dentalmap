@@ -6,7 +6,7 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 font-semibold rounded-pill transition-all duration-150 " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 " +
   "disabled:opacity-55 disabled:pointer-events-none motion-safe:active:scale-[0.98]";
 
 const variants: Record<Variant, string> = {

@@ -22,6 +22,26 @@
 @import "./styles/superstat.css" layer(legacy);
 @import "./styles/responsive.css" layer(legacy);
 
+/* One global reduced-motion rule instead of a `motion-safe:` prefix per call
+   site. Seventeen animated elements were missing theirs, and per-site prefixes
+   only ever cover the code that exists today — this covers what gets written
+   next too.
+
+   Durations are collapsed rather than set to `none`: a zero-length transition
+   still fires transitionend, so JS that waits for one (the Sheet's drag
+   spring-back, the map's fly-to) keeps working instead of hanging. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
 /* ── Dental Map design tokens ───────────────────────────────────────────────
    Built around the brand logo gradient (teal #16A8B5 → blue #1686EF).
    Exposes Tailwind utilities like bg-brand-500, text-ink-600, rounded-card,
@@ -84,6 +104,9 @@
   --color-control-border: #788d99;
 
   /* Radius */
+  /* Small controls: rounded-card (20px) on a ~42px OTP cell turns it into a
+     lozenge. A dedicated step down keeps the family without the distortion. */
+  --radius-control: 0.75rem;
   --radius-card: 1.25rem;
   --radius-sheet: 1.75rem;
   --radius-pill: 999px;

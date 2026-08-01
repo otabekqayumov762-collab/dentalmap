@@ -57,7 +57,7 @@ export function SegmentedToggle<T extends string>({
             onClick={() => onChange(optionValue)}
             className={cn(
               "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-pill px-2 text-sm font-bold",
-              "motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+              "motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
               active
                 // Same stops as Button's gradient variant, deliberately: two
                 // rules for one gradient is how this screen ended up with a

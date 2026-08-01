@@ -250,7 +250,7 @@ export function AppointmentView({
           <button
             type="button"
             onClick={() => setRetryNonce((nonce) => nonce + 1)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-pill border border-surface-200 bg-surface-0 px-4 text-sm font-bold text-brand-600 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-pill border border-surface-200 bg-surface-0 px-4 text-sm font-bold text-brand-600 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-[0.98]"
           >
             <RotateCw size={16} />
             Qayta urinish
@@ -270,7 +270,7 @@ export function AppointmentView({
                     onDismissError?.();
                   }}
                   className={
-                    "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97] " +
+                    "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-[0.97] " +
                     (active
                       ? "border-brand-500 bg-brand-500 text-white shadow-card"
                       : "border-surface-200 bg-surface-0 text-ink-700 hover:border-brand-300")
@@ -312,7 +312,7 @@ export function AppointmentView({
                     }}
                     className={cn(
                       "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.97]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-[0.97]",
                       active
                         ? "border-brand-500 bg-brand-500 text-white shadow-card"
                         : "border-surface-200 bg-surface-50 text-ink-700 hover:border-brand-300 hover:bg-brand-50"
@@ -358,7 +358,7 @@ export function AppointmentView({
             name="sharePhoneConsent"
             checked={sharePhoneConsent}
             onChange={(event) => setSharePhoneConsent(event.target.checked)}
-            className="mt-0.5 size-5 shrink-0 rounded border-surface-300 text-brand-500 focus:ring-brand-400"
+            className="mt-0.5 size-5 shrink-0 rounded border-surface-300 text-brand-500 focus:ring-brand-600"
           />
           <span className="leading-relaxed">
             Telefon raqamim tanlangan shifokorga qabulni tasdiqlash va bog&apos;lanish uchun yuborilishiga roziman.

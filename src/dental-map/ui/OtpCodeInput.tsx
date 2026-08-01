@@ -131,7 +131,7 @@ export function OtpCodeInput({
               onPaste={handlePaste}
               onFocus={(event) => event.currentTarget.select()}
               className={cn(
-                "h-14 w-full rounded-card border bg-control text-center text-xl font-black tabular-nums text-ink-900",
+                "h-14 w-full rounded-control border bg-control text-center text-xl font-black tabular-nums text-ink-900",
                 "transition-all duration-150 focus:outline-none focus:ring-2 disabled:opacity-55",
                 invalid
                   ? "border-danger ring-2 ring-danger/30"

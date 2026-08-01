@@ -449,7 +449,7 @@ export function MapView({
           type="button"
           aria-label="Ortga qaytish"
           onClick={onBack}
-          className="pointer-events-auto inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-pill bg-surface-0 px-3.5 text-sm font-semibold text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95"
+          className="pointer-events-auto inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-pill bg-surface-0 px-3.5 text-sm font-semibold text-ink-700 shadow-float transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-95"
         >
           <ArrowLeft size={22} />
           <span>Ortga</span>
@@ -464,7 +464,7 @@ export function MapView({
             await canvasRef.current?.searchTo(mapQuery);
             setSearching(false);
           }}
-          className="pointer-events-auto flex h-11 flex-1 items-center gap-2 rounded-pill bg-surface-0 px-4 text-ink-900 shadow-float focus-within:ring-2 focus-within:ring-brand-400"
+          className="pointer-events-auto flex h-11 flex-1 items-center gap-2 rounded-pill bg-surface-0 px-4 text-ink-900 shadow-float focus-within:ring-2 focus-within:ring-brand-600"
         >
           <Search size={19} className="shrink-0 text-ink-400" />
           <input
@@ -501,7 +501,7 @@ export function MapView({
           type="button"
           onClick={() => void centerNearby()}
           disabled={locating}
-          className="mb-3 mr-4 inline-flex items-center gap-2 rounded-pill bg-surface-0 px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-float transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95 disabled:opacity-70"
+          className="mb-3 mr-4 inline-flex items-center gap-2 rounded-pill bg-surface-0 px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-float transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-95 disabled:opacity-70"
         >
           <Navigation size={20} className={locating ? "animate-pulse" : undefined} />
           <span>{locating ? "Aniqlanmoqda..." : "Yaqinimda"}</span>
@@ -583,7 +583,7 @@ export function MapView({
                   key={clinic.id}
                   type="button"
                   onClick={() => handleSelect(clinic)}
-                  className="flex min-w-44 shrink-0 items-center gap-2 rounded-2xl bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-[0.98]"
+                  className="flex min-w-44 shrink-0 items-center gap-2 rounded-2xl bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-[0.98]"
                 >
                   {clinic.image ? (
                     <img src={clinic.image} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-xl object-cover" />

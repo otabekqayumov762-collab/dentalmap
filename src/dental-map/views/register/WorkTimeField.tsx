@@ -33,11 +33,11 @@ export function WorkTimeField({
       <input type="hidden" name={name} value={value} />
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink-400">Dan</span>
+          <span className="text-xs font-semibold text-ink-500">Dan</span>
           <input type="time" value={start} onChange={(event) => setStart(event.target.value)} className={control} />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink-400">Gacha</span>
+          <span className="text-xs font-semibold text-ink-500">Gacha</span>
           <input type="time" value={end} onChange={(event) => setEnd(event.target.value)} className={control} />
         </label>
       </div>

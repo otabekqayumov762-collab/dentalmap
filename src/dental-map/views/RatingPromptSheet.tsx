@@ -95,7 +95,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
                   }}
                   onMouseEnter={() => setHover(value)}
                   className={cn(
-                    "transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 rounded-full active:scale-90",
+                    "transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 rounded-full active:scale-90",
                     filled ? "text-warning" : "text-surface-200 hover:text-ink-400"
                   )}
                 >

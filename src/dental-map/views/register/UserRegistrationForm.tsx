@@ -2,7 +2,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { genderOptions } from "../../catalog";
 import { PrivacyAcknowledgement } from "../../components/PrivacyAcknowledgement";
-import { Button, Field, OptionGrid, PhoneField, RegionDistrictField, useToast } from "../../ui";
+import { Button, Field, OptionGrid, PhoneField, RegionDistrictField, labelClass, useToast } from "../../ui";
 
 type UserField = "full_name" | "phone" | "password" | "password_confirm" | "privacy_acknowledged";
 
@@ -70,7 +70,7 @@ export function UserRegistrationForm({
 
   if (userRegistered) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3.5">
+      <div className="flex items-center gap-3 rounded-card bg-brand-50 px-4 py-3.5">
         <CheckCircle2 size={18} className="shrink-0 text-brand-500" />
         <span>
           <strong className="block text-sm font-semibold text-ink-900">Profil tayyor</strong>
@@ -84,7 +84,7 @@ export function UserRegistrationForm({
     <form
       id="user-register-form"
       noValidate
-      className="flex flex-col gap-4 rounded-card bg-surface-0 p-5 shadow-card"
+      className="flex flex-col gap-4 rounded-card border border-surface-200 bg-surface-0 p-5 shadow-card dark:bg-surface-50"
       onSubmit={handleSubmit}
     >
       <Field
@@ -123,7 +123,7 @@ export function UserRegistrationForm({
         onChange={() => clear("password_confirm")}
       />
       <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-1.5 block text-sm font-medium text-ink-700">Jinsi</legend>
+        <legend className={labelClass}>Jinsi</legend>
         <OptionGrid
           name="gender"
           value={userGender}
@@ -145,7 +145,7 @@ export function UserRegistrationForm({
         placeholder="Tumanni tanlang"
       />
       <PrivacyAcknowledgement error={invalidField === "privacy_acknowledged"} />
-      <Button type="submit" size="lg" disabled={submitting}>
+      <Button type="submit" variant="gradient" size="lg" disabled={submitting}>
         {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
         {submitting ? "Yuborilmoqda…" : "Profil yaratish"}
       </Button>

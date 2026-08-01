@@ -21,6 +21,8 @@ import {
   cn,
   errorTextClass,
   labelClass,
+  inlineActionClass,
+  useSettledEmpty,
   useToast
 } from "../../ui";
 import { LocationPickerField, mapLinkValidationError } from "./LocationPickerField";
@@ -181,7 +183,13 @@ export function DoctorRegistrationForm({
       })
     : rawServiceChoices;
 
-  const taxonomyBlocked = !allowDemoTaxonomies && specialtyChoices.length === 0;
+  // Wait for the list to SETTLE empty before treating it as blocked. Without
+  // this the flag is true during every cold fetch, so entering this pane mid-load
+  // showed "loading…", a red "the list is empty, retry" alert and the Select's
+  // own neutral empty note all at once — three answers, one of them wrong.
+  const taxonomySettledEmpty = useSettledEmpty(specialtyChoices.length === 0);
+  const servicesSettledEmpty = useSettledEmpty(serviceChoices.length === 0);
+  const taxonomyBlocked = !allowDemoTaxonomies && taxonomySettledEmpty && !taxonomyLoading;
 
   function fail(field: DoctorField, message: string) {
     setInvalidField(field);
@@ -546,7 +554,7 @@ export function DoctorRegistrationForm({
           >
             <p>{taxonomyLoading ? "Yo'nalish va xizmatlar yuklanmoqda…" : taxonomyError}</p>
             {taxonomyError && onRetryTaxonomies && (
-              <button type="button" className="mt-2 font-semibold underline" onClick={onRetryTaxonomies}>
+              <button type="button" className={cn(inlineActionClass, "mt-1 underline")} onClick={onRetryTaxonomies}>
                 Qayta urinish
               </button>
             )}
@@ -573,7 +581,7 @@ export function DoctorRegistrationForm({
           }}
           options={specialtyChoices}
           placeholder="Yo'nalishni tanlang"
-          disabled={taxonomyBlocked}
+          disabled={taxonomyBlocked}  /* settled, not raw length — see above */
           {...errorFor("specialty")}
         />
         <MultiSelectSheet
@@ -588,7 +596,7 @@ export function DoctorRegistrationForm({
           onToggle={onToggleService}
           options={serviceChoices}
           placeholder="Xizmatlarni tanlang"
-          disabled={serviceChoices.length === 0}
+          disabled={servicesSettledEmpty}
         />
         <Field
           label="Ish staji"
@@ -704,11 +712,10 @@ export function DoctorRegistrationForm({
         </Button>
       )}
 
-      {step === 6 && taxonomyBlocked && (
-        <p className={cn(errorTextClass, "text-center")} role="alert">
-          Yo&apos;nalish ro&apos;yxati hozircha bo&apos;sh. Qayta urinib ko&apos;ring.
-        </p>
-      )}
+      {/* No third message here: the pane's own status banner covers loading and
+          errors, and the Select explains a genuinely empty list in place. A red
+          alert on top of those told the doctor to retry something that is not
+          theirs to fix. */}
     </form>
   );
 }

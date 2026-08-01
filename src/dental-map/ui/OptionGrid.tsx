@@ -62,7 +62,7 @@ export function OptionGrid(props: OptionGridProps) {
               // brand-100 is the halo that sits BEHIND a brand-400 border on the
               // text controls; alone on a tile it is not a focus indicator, so
               // these take the same ring colour as every other button.
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 motion-safe:active:scale-[0.98]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 motion-safe:active:scale-[0.98]",
               active
                 ? "border-brand-400 bg-brand-50 text-brand-700 shadow-card"
                 : "border-surface-200 bg-surface-0 text-ink-600 hover:border-brand-300"

@@ -23,7 +23,7 @@ export function BrandLogo({ className = "" }: { className?: string }) {
     <span
       className={cn(
         "relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl",
-        "border border-brand-200/70 bg-surface-0 text-brand-600 shadow-sm",
+        "border border-brand-200/70 bg-surface-0 text-brand-600 shadow-card",
         "dark:border-white/10 dark:bg-surface-50",
         className
       )}

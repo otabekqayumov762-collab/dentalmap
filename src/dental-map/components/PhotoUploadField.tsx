@@ -80,7 +80,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
           <button
             type="button"
             onClick={openPicker}
-            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-100 ring-1 ring-surface-200"
+            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-control bg-surface-100 ring-1 ring-control-border/60"
             aria-label="Rasmni almashtirish"
           >
             {thumbnailSrc ? (
@@ -95,7 +95,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
           <span className="min-w-0 flex-1">
             <strong className="block truncate text-sm font-semibold text-ink-900">{fileName || "Joriy rasm"}</strong>
             {fileName ? (
-              <small className="mt-0.5 flex items-center gap-1 text-xs font-medium text-emerald-600">
+              <small className="mt-0.5 flex items-center gap-1 text-xs font-medium text-success">
                 <CheckCircle2 size={13} /> Rasm tanlandi
               </small>
             ) : null}
@@ -104,7 +104,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
             type="button"
             onClick={clearPhoto}
             aria-label="Rasmni o'chirish"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-500 shadow-sm ring-1 ring-surface-200 transition-colors hover:bg-danger/10 hover:text-danger active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-500 shadow-card ring-1 ring-control-border/60 transition-colors hover:bg-danger/10 hover:text-danger motion-safe:active:scale-95"
           >
             <X size={16} />
           </button>

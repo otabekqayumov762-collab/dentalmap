@@ -156,7 +156,7 @@ function DayRow({
           aria-expanded={open}
           aria-controls={panelId}
           onClick={onToggle}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-ink-900">{weekdayLabel(weekday)}</span>
@@ -174,13 +174,13 @@ function DayRow({
           disabled={loading || (enabled && ranges.length > 0 && !onScheduleDelete)}
           onClick={handleWorkdayToggle}
           className={cn(
-            "relative h-8 w-14 shrink-0 rounded-pill border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-50",
+            "relative h-8 w-14 shrink-0 rounded-pill border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-50",
             enabled ? "border-brand-500 bg-brand-500" : "border-surface-200 bg-surface-200"
           )}
         >
           <span
             className={cn(
-              "absolute left-1 top-1 size-6 rounded-full bg-white shadow-sm transition-transform",
+              "absolute left-1 top-1 size-6 rounded-full bg-white shadow-card transition-transform",
               enabled ? "translate-x-6" : "translate-x-0"
             )}
           />

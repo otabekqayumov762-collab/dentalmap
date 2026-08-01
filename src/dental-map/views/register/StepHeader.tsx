@@ -16,17 +16,32 @@ export function StepHeader({ step, total, title }: { step: number; total: number
 
   return (
     <div className="rounded-card border border-surface-200 bg-surface-0 p-4 shadow-card dark:bg-surface-50">
-      <div className="h-1.5 w-full overflow-hidden rounded-pill bg-surface-200" aria-hidden="true">
+      {/* A real progressbar, not a decorative div: panes swap via a `hidden`
+          class and nothing moves focus, so without this a screen-reader user got
+          six silent transitions across the flow with no idea anything changed. */}
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-pill bg-control-border/40"
+        role="progressbar"
+        aria-valuenow={step}
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuetext={`${total} qadamdan ${step}-si: ${title}`}
+      >
         <div
-          className="h-full rounded-pill bg-gradient-to-r from-brand-500 to-accent-500 transition-[width] duration-300 ease-out"
+          className="h-full rounded-pill bg-gradient-to-r from-brand-700 to-accent-600 motion-safe:transition-[width] motion-safe:duration-300 ease-out"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <span role="heading" aria-level={2} className="min-w-0 truncate text-[15px] font-black text-ink-900">
+      {/* aria-live on the wrapper, so the title AND the counter are announced
+          together as one change rather than as two unrelated updates. */}
+      <div className="mt-3 flex items-center justify-between gap-3" aria-live="polite">
+        <span role="heading" aria-level={2} className="min-w-0 truncate text-sm font-black text-ink-900">
           {title}
         </span>
-        <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-400">
+        {/* ink-500, not ink-400: in dark theme the unfilled track is the only
+            other carrier of "how much is left", and it measures 1.23:1 against
+            this card — so the counter was doing that job alone at 2.99:1. */}
+        <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-500">
           {step}/{total}
         </span>
       </div>

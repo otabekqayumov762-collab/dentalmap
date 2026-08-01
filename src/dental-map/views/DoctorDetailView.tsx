@@ -52,7 +52,7 @@ export function DoctorDetailView({
           onClick={onToggleSaved}
           className={cn(
             "inline-flex shrink-0 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 active:scale-95",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:scale-95",
             isSaved ? "bg-danger/10 text-danger" : "bg-surface-100 text-ink-500 hover:bg-surface-200"
           )}
         >
@@ -179,7 +179,7 @@ export function DoctorDetailView({
                     aria-current={index === activeReview ? "true" : undefined}
                     onClick={() => showReview(index)}
                     className={cn(
-                      "h-2 rounded-pill transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+                      "h-2 rounded-pill transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
                       index === activeReview ? "w-4 bg-brand-500" : "w-1.5 bg-surface-200"
                     )}
                   />

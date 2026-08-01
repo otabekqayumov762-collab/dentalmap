@@ -73,7 +73,7 @@ export function ReceiptFileField({
           onClick={() => inputRef.current?.click()}
           className={cn(
             "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors",
-            "hover:border-brand-300 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+            "hover:border-brand-300 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
             "disabled:pointer-events-none disabled:opacity-55"
           )}
         >

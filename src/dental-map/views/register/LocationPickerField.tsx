@@ -72,7 +72,7 @@ export function LocationPickerField({
           invalid ? controlShellDanger : controlShellIdle
         )}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
           <MapPin size={17} />
         </span>
         <input

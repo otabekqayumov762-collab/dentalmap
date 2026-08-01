@@ -89,7 +89,7 @@ export function AuthGate({
           aria-pressed={isDarkTheme}
           onClick={toggleTheme}
           className={cn(
-            "absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+            "absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
             isDarkTheme
               ? "border-surface-200 bg-surface-0 text-brand-600 dark:border-white/10 dark:bg-surface-50 dark:text-ink-700"
               : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
@@ -100,7 +100,7 @@ export function AuthGate({
 
         <header className="mx-auto mt-8 flex w-full max-w-sm flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-3">
-            <BrandLogo className="h-14 w-14 rounded-[22px]" />
+            <BrandLogo className="h-14 w-14 rounded-card" />
             <h1 className="text-[1.55rem] font-black tracking-tight text-ink-900">
               DENTAL <span className="text-brand-500">MAP</span>
             </h1>

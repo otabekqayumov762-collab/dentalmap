@@ -3,7 +3,7 @@
 import { CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OtpIssue } from "../../hooks/useDentalData";
-import { Button, cn } from "../../ui";
+import { Button, cn, inlineActionClass } from "../../ui";
 import { OTP_CODE_LENGTH, OtpCodeInput } from "../../ui/OtpCodeInput";
 
 /** "+998 90 123 45 67" → "+998 90 ••• •• 67": enough to recognise your own
@@ -151,7 +151,7 @@ export function OtpStep({
         <button
           type="button"
           onClick={onEditPhone}
-          className="self-start text-sm font-bold text-brand-600 transition-colors hover:text-brand-700"
+          className={cn(inlineActionClass, "self-start")}
         >
           Raqamni o&apos;zgartirish
         </button>
@@ -187,7 +187,7 @@ export function OtpStep({
             type="button"
             onClick={onEditPhone}
             disabled={busy}
-            className="font-bold text-brand-600 transition-colors hover:text-brand-700 disabled:text-ink-400"
+            className={inlineActionClass}
           >
             O&apos;zgartirish
           </button>
@@ -209,10 +209,7 @@ export function OtpStep({
           type="button"
           onClick={() => void resend()}
           disabled={resendBlocked || resending || formSubmitting}
-          className={cn(
-            "inline-flex items-center gap-2 self-start text-sm font-bold text-brand-600 transition-colors",
-            "disabled:font-semibold disabled:text-ink-400"
-          )}
+          className={cn(inlineActionClass, "self-start")}
         >
           {resending ? (
             <Loader2 size={15} className="animate-spin" aria-hidden="true" />
