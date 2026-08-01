@@ -123,6 +123,12 @@ export function prefetchDoctorRegistrationForm() {
   void import("./register/DoctorRegistrationForm");
 }
 
+// Reached only from the payment history inside the doctor cabinet.
+export const ReceiptView = dynamic(() => import("./ReceiptView").then((m) => m.ReceiptView), {
+  ssr: false,
+  loading: ViewFallback
+});
+
 // A sheet, not a view: it mounts at most once per completed appointment, so it
 // has no business being in the first-paint chunk. `loading: null` because a
 // spinner sliding up from the bottom would read as a broken sheet.

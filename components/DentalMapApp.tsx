@@ -39,7 +39,8 @@ import {
   NotificationsView,
   PatientAppointmentsView,
   ProfileView,
-  RatingPromptSheet
+  RatingPromptSheet,
+  ReceiptView
 } from "@/src/dental-map/views/lazyViews";
 import { mapLinkValidationError } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
@@ -96,6 +97,10 @@ function DentalMapAppInner() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<ApiAppointment | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("");
+  // Which settled payment the receipt page is showing. Held here rather than in
+  // the card because the page is a view of its own, and the card unmounts the
+  // moment we navigate away from the cabinet.
+  const [receiptPaymentId, setReceiptPaymentId] = useState("");
   const [consultationSent, setConsultationSent] = useState(false);
   // Which doctor the pending request was actually sent for — the boolean alone
   // made Home label ANY selected doctor as "Administrator tasdiqini kutmoqda".
@@ -285,6 +290,7 @@ function DentalMapAppInner() {
   function renderDoctorDashboard(section: DoctorSection) {
     return (
       <DoctorDashboardView
+        onOpenReceipt={openReceipt}
         section={section}
         user={currentUser}
         specialties={specialties}
@@ -345,6 +351,14 @@ function DentalMapAppInner() {
       changeView("appointment");
     },
     [changeView, webApp]
+  );
+
+  const openReceipt = useCallback(
+    (paymentId: string) => {
+      setReceiptPaymentId(paymentId);
+      changeView("receipt");
+    },
+    [changeView]
   );
 
   const openDoctor = useCallback(
@@ -1199,6 +1213,10 @@ function DentalMapAppInner() {
 
           {activeView === "feedback" && (
             <FeedbackView onSubmit={submitFeedback} />
+          )}
+
+          {activeView === "receipt" && receiptPaymentId && (
+            <ReceiptView paymentId={receiptPaymentId} onBack={() => navigate("profile")} />
           )}
 
           {activeView === "notifications" && (

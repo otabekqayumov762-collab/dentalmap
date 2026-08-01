@@ -1,11 +1,10 @@
 "use client";
 
-import { AlertTriangle, Download, Loader2, ReceiptText, RefreshCw } from "lucide-react";
+import { AlertTriangle, Loader2, ReceiptText, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { isOfflineMode } from "../../api/dentalMapApi";
 import { fetchPayments, isBillingDisabledError, type PaymentHistoryItem } from "../../api/paymentsApi";
-import { openReceiptDocument } from "../../lib/paymentSecurity";
-import { Badge, Button, Card, useToast } from "../../ui";
+import { Badge, Button, Card } from "../../ui";
 import { SectionHeader } from "./common";
 
 const METHOD_LABELS: Record<string, string> = {
@@ -44,9 +43,8 @@ function methodLabel(payment: PaymentHistoryItem) {
  * payments rather than receipt uploads is what makes both routes visible here,
  * since a Payme payment has no uploaded receipt behind it.
  */
-export function DoctorPaymentsCard() {
+export function DoctorPaymentsCard({ onOpenReceipt }: { onOpenReceipt: (paymentId: string) => void }) {
   const offline = isOfflineMode();
-  const { toast } = useToast();
   const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
   const [loading, setLoading] = useState(!offline);
   const [loadError, setLoadError] = useState("");
@@ -96,14 +94,10 @@ export function DoctorPaymentsCard() {
     };
   }, [offline, revision]);
 
-  const openDocument = useCallback(
-    (url: string) => {
-      if (!openReceiptDocument(url)) {
-        toast.error("Chek havolasi yaroqsiz.");
-      }
-    },
-    [toast]
-  );
+  // Opens the in-app receipt page rather than the document. The document is
+  // still one tap away from there, for the download itself — but looking at your
+  // own receipt should not cost you the app.
+  const openDocument = useCallback((paymentId: string) => onOpenReceipt(paymentId), [onOpenReceipt]);
 
   // Render nothing at all rather than an empty card with a heading: with billing
   // off there is no payment history to head.
@@ -165,10 +159,10 @@ export function DoctorPaymentsCard() {
                     variant="secondary"
                     size="sm"
                     className="self-start"
-                    onClick={() => openDocument(documentUrl)}
+                    onClick={() => openDocument(String(payment.id))}
                   >
-                    <Download size={15} />
-                    Chekni yuklab olish
+                    <ReceiptText size={15} />
+                    Chekni ochish
                   </Button>
                 ) : (
                   <small className="text-xs text-ink-400">Chek mavjud emas</small>

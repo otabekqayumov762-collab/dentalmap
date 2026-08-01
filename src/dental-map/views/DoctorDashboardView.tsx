@@ -32,6 +32,7 @@ export function DoctorDashboardView({
   onAppointmentAction,
   onScheduleDelete,
   onNavigate,
+  onOpenReceipt,
   onLogout
 }: {
   section?: DoctorSection;
@@ -52,6 +53,7 @@ export function DoctorDashboardView({
   ) => Promise<void>;
   onScheduleDelete?: (item: ApiWeeklyAvailability) => Promise<void> | void;
   onNavigate: (view: ViewId) => void;
+  onOpenReceipt: (paymentId: string) => void;
   onLogout: () => void;
 }) {
   const [demoAppointments, setDemoAppointments] = useState<ApiAppointment[]>(() => createDemoAppointments());
@@ -241,7 +243,7 @@ export function DoctorDashboardView({
 
       {/* Last in the stack on purpose: it is a record the doctor goes looking for,
           and putting it above the request list would demote the primary action. */}
-      <DoctorPaymentsCard />
+      <DoctorPaymentsCard onOpenReceipt={onOpenReceipt} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type ViewId =
   | "home"
+  | "receipt"
   | "services"
   | "clinics"
   | "appointment"

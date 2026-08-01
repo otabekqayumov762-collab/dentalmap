@@ -196,3 +196,45 @@ export function initiatePayme(returnUrl = ""): Promise<PaymeCheckout> {
     body: JSON.stringify({ method: "payme", return_url: returnUrl })
   });
 }
+
+/** Every line the receipt document prints, for rendering it inside the app. */
+export type ReceiptData = {
+  serial: string;
+  paid_at: string;
+  status_label: string;
+  service_label: string;
+  amount_display: string;
+  period_start: string;
+  period_end: string;
+  invoice_reference: string;
+  method_label: string;
+  payer_name: string;
+  payer_phone: string;
+  clinic_name: string;
+  clinic_address: string;
+  specialty: string;
+  generated_at: string;
+  payme_id: string;
+  internal_payment_id: string;
+  card_holder: string;
+  card_masked_number: string;
+  uploaded_receipt_id: string;
+  reviewed_at: string;
+  decided_by: string;
+  issuer_legal_name: string;
+  issuer_tax_id: string;
+  issuer_address: string;
+  receipt_url: string | null;
+};
+
+/**
+ * The receipt as data, so the app can show it as a page of its own.
+ *
+ * The printable document still exists and is still what gets saved as a PDF —
+ * this is the same content rendered natively, because sending a doctor out to an
+ * external browser just to LOOK at their own receipt costs them the app, and
+ * Telegram's in-app browser is not somewhere people expect to land.
+ */
+export async function fetchReceiptData(paymentId: string, signal?: AbortSignal): Promise<ReceiptData> {
+  return requestV1<ReceiptData>(`/billing/receipt-data/${encodeURIComponent(paymentId)}/`, { signal });
+}
