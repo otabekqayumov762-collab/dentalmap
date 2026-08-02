@@ -172,7 +172,7 @@ export function AppointmentView({
   if (sent) {
     return (
       <div className="flex min-h-[72vh] flex-col items-center justify-center px-2 text-center">
-        <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-brand-500 shadow-card">
+        <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-pill bg-brand-50 text-brand-500 shadow-card">
           <CheckCircle2 size={40} />
         </span>
         <strong className="text-xl font-bold text-ink-900">So&apos;rov yuborildi</strong>
@@ -270,7 +270,7 @@ export function AppointmentView({
                     onDismissError?.();
                   }}
                   className={
-                    "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.97] " +
+                    "flex min-w-[3.6rem] shrink-0 flex-col items-center gap-0.5 rounded-card border px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.97] " +
                     (active
                       ? "border-brand-500 bg-brand-500 text-white shadow-card"
                       : "border-surface-200 bg-surface-0 text-ink-700 hover:border-brand-300")
@@ -287,7 +287,7 @@ export function AppointmentView({
 
           <div className="rounded-card border border-surface-200 bg-surface-0 p-3 shadow-card">
             <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                 <Clock size={20} />
               </span>
               <span className="min-w-0 flex-1">
@@ -311,7 +311,7 @@ export function AppointmentView({
                       onDismissError?.();
                     }}
                     className={cn(
-                      "relative flex h-12 items-center justify-center rounded-2xl border text-base font-extrabold tabular-nums transition",
+                      "relative flex h-12 items-center justify-center rounded-control border text-base font-extrabold tabular-nums transition",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.97]",
                       active
                         ? "border-brand-500 bg-brand-500 text-white shadow-card"
@@ -319,7 +319,7 @@ export function AppointmentView({
                     )}
                   >
                     {active && (
-                      <span className="absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-white/85" />
+                      <span className="absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-pill bg-white/85" />
                     )}
                     {slot}
                   </button>
@@ -352,7 +352,7 @@ export function AppointmentView({
           }}
         />
 
-        <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-700">
+        <label className="flex items-start gap-3 rounded-card border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-700">
           <input
             type="checkbox"
             name="sharePhoneConsent"
@@ -368,7 +368,7 @@ export function AppointmentView({
         {submitError && (
           <div
             role="alert"
-            className="flex items-start gap-3 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3.5 text-danger"
+            className="flex items-start gap-3 rounded-card border border-danger/30 bg-danger/10 px-4 py-3.5 text-danger"
           >
             <AlertCircle size={18} className="mt-0.5 shrink-0" />
             <span className="min-w-0 flex-1 text-sm font-semibold leading-snug">{submitError}</span>

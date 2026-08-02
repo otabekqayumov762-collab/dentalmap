@@ -186,7 +186,7 @@ export function DoctorAppointmentRequests({
               <Card key={appointment.id} as="article" className="flex flex-col gap-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                       <UserRound size={20} />
                     </span>
                     <div className="min-w-0">
@@ -205,7 +205,7 @@ export function DoctorAppointmentRequests({
                   </Badge>
                 </div>
 
-                <div className="flex flex-col gap-2.5 rounded-2xl bg-surface-50 px-3.5 py-3 text-sm">
+                <div className="flex flex-col gap-2.5 rounded-card bg-surface-50 px-3.5 py-3 text-sm">
                   <div className="flex items-center gap-3 font-medium text-ink-700">
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <CalendarDays size={15} className="shrink-0 text-brand-500" />
@@ -229,14 +229,14 @@ export function DoctorAppointmentRequests({
                 </div>
 
                 {appointment.note && (
-                  <div className="rounded-2xl bg-surface-50 px-3.5 py-3 text-sm text-ink-700">
+                  <div className="rounded-card bg-surface-50 px-3.5 py-3 text-sm text-ink-700">
                     <span className="mb-1 block text-xs font-semibold uppercase text-ink-400">Bemor holati</span>
                     <p className="leading-relaxed">{appointment.note}</p>
                   </div>
                 )}
 
                 {appointment.status === "doctor_rejected" && appointment.reject_reason && (
-                  <p className="flex items-start gap-2 rounded-2xl bg-danger/10 px-3.5 py-3 text-sm leading-relaxed text-danger">
+                  <p className="flex items-start gap-2 rounded-card bg-danger/10 px-3.5 py-3 text-sm leading-relaxed text-danger">
                     <XCircle size={16} className="mt-0.5 shrink-0" />
                     <span>{appointment.reject_reason}</span>
                   </p>

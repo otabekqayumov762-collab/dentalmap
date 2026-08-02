@@ -123,7 +123,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
             type="button"
             aria-label="Yopish"
             onClick={onClose}
-            className="-mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-500 hover:bg-surface-100"
+            className="-mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-ink-500 hover:bg-surface-100"
           >
             <X size={18} />
           </button>

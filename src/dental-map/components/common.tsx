@@ -45,7 +45,7 @@ export function BrandLogo({ className = "" }: { className?: string }) {
 export function EmptyState({ title, text, Icon }: { title: string; text: string; Icon: LucideIcon }) {
   return (
     <section className="flex flex-col items-center gap-2 rounded-card bg-surface-50 px-6 py-10 text-center">
-      <span className="mb-1 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+      <span className="mb-1 inline-flex h-12 w-12 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
         <Icon size={18} />
       </span>
       <strong className="text-base font-semibold text-ink-900">{title}</strong>
@@ -65,7 +65,7 @@ export function DistrictFilter({
     <section className="min-w-0 rounded-card bg-surface-0 p-4 shadow-card" aria-label="Hudud tanlash">
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2.5">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
             <MapPin size={15} />
           </span>
           <span className="flex min-w-0 flex-col">
@@ -133,7 +133,7 @@ export function DoctorAvatar({ doctor, size = "md" }: { doctor: Doctor; size?: "
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-2xl",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-card",
         avatarSize[size],
         tone.softBg,
         tone.text
@@ -162,11 +162,11 @@ export function NotificationPanel({ sent, onOpenAppointment }: { sent: boolean; 
         </button>
       </div>
       <button
-        className="flex w-full items-center gap-3 rounded-2xl bg-surface-50 p-3 text-left transition-colors hover:bg-surface-100"
+        className="flex w-full items-center gap-3 rounded-card bg-surface-50 p-3 text-left transition-colors hover:bg-surface-100"
         type="button"
         onClick={onOpenAppointment}
       >
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
           <CheckCircle2 size={17} />
         </span>
         <span className="min-w-0">

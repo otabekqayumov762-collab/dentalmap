@@ -916,7 +916,7 @@ function DentalMapAppInner() {
                         aria-pressed={searchOpen}
                         onClick={() => setSearchOpen((open) => !open)}
                         className={cn(
-                          "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                          "inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
                           searchOpen
                             ? "border-brand-300 bg-brand-50 text-brand-600"
                             : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
@@ -931,7 +931,7 @@ function DentalMapAppInner() {
                       aria-pressed={isDarkTheme}
                       onClick={toggleTheme}
                       className={cn(
-                        "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                        "inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
                         isDarkTheme
                           ? "border-brand-300 bg-brand-50 text-brand-600 dark:border-white/10 dark:bg-surface-100 dark:text-ink-700"
                           : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
@@ -944,7 +944,7 @@ function DentalMapAppInner() {
                       aria-label="Bildirishnomalar"
                       onClick={() => navigate("notifications")}
                       className={cn(
-                        "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors",
+                        "inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
                         activeView === "notifications"
                           ? "border-brand-300 bg-brand-50 text-brand-600"
                           : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"
@@ -956,7 +956,7 @@ function DentalMapAppInner() {
                 </div>
 
                 {showSearch && searchOpen && (
-                  <label className="flex h-12 animate-[modal-in_0.15s_ease-out] items-center gap-2.5 rounded-2xl border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+                  <label className="flex h-12 animate-[modal-in_0.15s_ease-out] items-center gap-2.5 rounded-control border border-surface-200 bg-surface-50 px-4 text-ink-400 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
                     <Search size={17} />
                     <input
                       autoFocus
@@ -1035,13 +1035,13 @@ function DentalMapAppInner() {
                         type="button"
                         onClick={() => navigate(id)}
                         className={cn(
-                          "flex flex-col items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-semibold transition-colors",
+                          "flex flex-col items-center justify-center gap-2 rounded-card border py-3.5 text-sm font-semibold transition-colors",
                           activeView === id
                             ? "border-brand-300 bg-brand-50 text-brand-700"
                             : "border-surface-100 bg-surface-0 text-brand-600 shadow-card"
                         )}
                       >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                           <Icon size={18} />
                         </span>
                         <span>{label}</span>
@@ -1283,7 +1283,7 @@ function DentalMapAppInner() {
 
         {showBottomNav && (
           <nav
-            className="absolute inset-x-5 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 grid gap-1 rounded-[22px] border border-surface-200/90 bg-surface-0/96 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-0/90 dark:shadow-none"
+            className="absolute inset-x-5 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 grid gap-1 rounded-card border border-surface-200/90 bg-surface-0/96 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-0/90 dark:shadow-none"
             style={{ gridTemplateColumns: `repeat(${navTabs.length}, minmax(0, 1fr))` }}
             aria-label="Pastki navigatsiya"
           >
@@ -1295,7 +1295,7 @@ function DentalMapAppInner() {
                 title={label}
                 onClick={() => navigate(id)}
                 className={cn(
-                  "relative flex min-h-[54px] items-center justify-center rounded-[18px] transition-all",
+                  "relative flex min-h-[54px] items-center justify-center rounded-card transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300",
                   activeTabId === id
                     ? "bg-brand-50 text-brand-700 shadow-[inset_0_0_0_1px_rgba(55,126,208,0.08)]"
@@ -1304,14 +1304,14 @@ function DentalMapAppInner() {
               >
                 <span
                   className={cn(
-                    "grid h-7 w-7 place-items-center rounded-full transition-colors",
+                    "grid h-7 w-7 place-items-center rounded-pill transition-colors",
                     activeTabId === id ? "bg-surface-0 text-brand-600 shadow-sm" : "text-inherit"
                   )}
                 >
                   <Icon size={20} strokeWidth={2.2} />
                 </span>
                 {activeTabId === id && (
-                  <span className="absolute bottom-1.5 h-1 w-6 rounded-full bg-brand-500/70" aria-hidden="true" />
+                  <span className="absolute bottom-1.5 h-1 w-6 rounded-pill bg-brand-500/70" aria-hidden="true" />
                 )}
               </button>
             ))}

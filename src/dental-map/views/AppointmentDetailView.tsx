@@ -138,7 +138,7 @@ export function AppointmentDetailView({
         {doctor ? (
           <DoctorAvatar doctor={doctor} size="lg" />
         ) : (
-          <span className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 text-brand-500">
+          <span className="inline-flex h-20 w-20 items-center justify-center rounded-card bg-brand-50 text-brand-500">
             <Stethoscope size={34} />
           </span>
         )}

@@ -507,7 +507,7 @@ export function MapView({
           <span>{locating ? "Aniqlanmoqda..." : "Yaqinimda"}</span>
         </button>
         {locationError && (
-          <p role="status" className="mx-4 mb-3 rounded-2xl bg-surface-0 px-3 py-2 text-xs text-danger shadow-card">
+          <p role="status" className="mx-4 mb-3 rounded-card bg-surface-0 px-3 py-2 text-xs text-danger shadow-card">
             {locationError}
           </p>
         )}
@@ -539,10 +539,10 @@ export function MapView({
                 <img
                   src={activeClinic.image}
                   alt={activeClinic.name}
-                  className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+                  className="h-16 w-16 shrink-0 rounded-card object-cover"
                 />
               ) : (
-                <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-brand-50 text-brand-600">
                   <Building2 size={22} />
                 </span>
               )}
@@ -570,7 +570,7 @@ export function MapView({
           )}
 
           {!activeClinic && (
-            <p className="mb-3 rounded-2xl bg-surface-50 px-3 py-4 text-center text-sm text-ink-500">
+            <p className="mb-3 rounded-card bg-surface-50 px-3 py-4 text-center text-sm text-ink-500">
               Hozircha klinikalarning tasdiqlangan xarita koordinatalari yo&apos;q.
             </p>
           )}
@@ -583,12 +583,12 @@ export function MapView({
                   key={clinic.id}
                   type="button"
                   onClick={() => handleSelect(clinic)}
-                  className="flex min-w-44 shrink-0 items-center gap-2 rounded-2xl bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.98]"
+                  className="flex min-w-44 shrink-0 items-center gap-2 rounded-card bg-surface-50 px-3 py-2.5 text-left transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.98]"
                 >
                   {clinic.image ? (
-                    <img src={clinic.image} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+                    <img src={clinic.image} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-control object-cover" />
                   ) : (
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                       <Building2 size={15} />
                     </span>
                   )}

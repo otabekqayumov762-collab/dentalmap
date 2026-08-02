@@ -82,6 +82,20 @@ function matchCoordinatePair(value: string) {
 }
 
 /** Mirrors the backend coordinate extraction contract for Google/Yandex links. */
+/** Hosts that answer with a redirect rather than a point — Google's own "Share"
+ *  button produces one. The server resolves these; refusing them here would
+ *  reject the exact link the instruction asks people to send. */
+const SHORT_LINK_HOSTS = ["maps.app.goo.gl", "goo.gl", "clck.ru"];
+
+export function isShortMapLink(value?: string | null) {
+  const url = parseSafeHttpUrl(value);
+  if (!url) {
+    return false;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  return SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
 export function mapUrlHasCoordinates(value?: string | null) {
   if (!value) {
     return false;

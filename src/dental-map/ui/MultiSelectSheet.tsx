@@ -121,7 +121,7 @@ export function MultiSelectSheet({
                 <span className="min-w-0">{option.label}</span>
                 <span
                   className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-pill border transition-colors",
                     active ? "border-brand-500 bg-brand-500 text-white" : "border-surface-200 text-transparent"
                   )}
                 >

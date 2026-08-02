@@ -104,7 +104,7 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
             type="button"
             onClick={clearPhoto}
             aria-label="Rasmni o'chirish"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-ink-500 shadow-card ring-1 ring-control-border/60 transition-colors hover:bg-danger/10 hover:text-danger motion-safe:active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-surface-0 text-ink-500 shadow-card ring-1 ring-control-border/60 transition-colors hover:bg-danger/10 hover:text-danger motion-safe:active:scale-95"
           >
             <X size={16} />
           </button>

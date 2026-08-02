@@ -46,7 +46,7 @@ export function PaymentCardTile({
       <div className="flex items-center justify-between gap-3">
         <span
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-pill",
             selected ? "bg-brand-500 text-white" : "bg-surface-100 text-ink-500"
           )}
         >

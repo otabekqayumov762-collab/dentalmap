@@ -57,7 +57,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
               type="button"
               aria-label="Yopish"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-500 hover:bg-surface-100"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-500 hover:bg-surface-100"
             >
               <X size={18} />
             </button>

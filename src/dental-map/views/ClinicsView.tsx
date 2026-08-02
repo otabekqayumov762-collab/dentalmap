@@ -19,7 +19,7 @@ export function ClinicsView({
       {clinics.map((clinic) => (
         <Card as="article" key={clinic.id} className="flex flex-col gap-3">
           <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
               <Building2 size={24} />
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-1">

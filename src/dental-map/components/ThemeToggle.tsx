@@ -30,7 +30,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-2xl border border-surface-200 bg-surface-50 p-1",
+        "inline-flex items-center gap-1 rounded-card border border-surface-200 bg-surface-50 p-1",
         className
       )}
       role="radiogroup"
@@ -47,7 +47,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-checked={active}
             onClick={() => select(value)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-control px-3 py-2 text-sm font-semibold transition-colors",
               active ? "bg-surface-0 text-ink-900 shadow-card" : "text-ink-500 hover:text-ink-700"
             )}
           >

@@ -41,7 +41,7 @@ function PriceHero({ amountUzs, loading }: { amountUzs: number | null; loading: 
       {/* Decorative wash; aria-hidden + pointer-events-none so it never eats a tap. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-brand-400/25 blur-2xl"
+        className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-pill bg-brand-400/25 blur-2xl"
       />
       <div className="relative flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -170,8 +170,8 @@ export function DoctorPaymentView({
           <span
             className={
               approved
-                ? "flex size-10 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
-                : "flex size-10 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning"
+                ? "flex size-10 shrink-0 items-center justify-center rounded-pill bg-success/15 text-success"
+                : "flex size-10 shrink-0 items-center justify-center rounded-pill bg-warning/15 text-warning"
             }
           >
             {approved ? <CheckCircle2 size={20} /> : <Clock size={20} />}
@@ -216,7 +216,7 @@ export function DoctorPaymentView({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start gap-3 rounded-card bg-brand-50 px-4 py-3.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-600">
           <CheckCircle2 size={17} />
         </span>
         <span className="min-w-0 flex-1">
@@ -247,7 +247,7 @@ export function DoctorPaymentView({
       {/* Tavsiya etilgan yo'l — brand rangi, ko'tarilgan soya */}
       <Card className="flex flex-col gap-3.5 border-brand-200 shadow-float">
         <div className="flex items-start gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-surface-0">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-500 text-surface-0">
             <Sparkles size={20} />
           </span>
           <span className="min-w-0 flex-1">
@@ -262,14 +262,14 @@ export function DoctorPaymentView({
         </div>
 
         {paymeError && (
-          <div role="alert" className="flex items-start gap-2.5 rounded-2xl bg-danger/10 px-3.5 py-2.5 text-danger">
+          <div role="alert" className="flex items-start gap-2.5 rounded-card bg-danger/10 px-3.5 py-2.5 text-danger">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <small className="text-xs leading-relaxed">{paymeError}</small>
           </div>
         )}
 
         {paymeStarted ? (
-          <div className="flex flex-col gap-2.5 rounded-2xl bg-brand-50 px-3.5 py-3">
+          <div className="flex flex-col gap-2.5 rounded-card bg-brand-50 px-3.5 py-3">
             <p className="text-xs leading-relaxed text-ink-600">
               To&apos;lovni Payme sahifasida yakunlang, so&apos;ng tekshiring.
             </p>
@@ -315,7 +315,7 @@ export function DoctorPaymentView({
       {showCardTransfer && (
       <Card className="flex flex-col gap-3.5 border-surface-200 bg-surface-50 shadow-none">
         <div className="flex items-start gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent-100 text-accent-700">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-accent-100 text-accent-700">
             <Upload size={20} />
           </span>
           <span className="min-w-0 flex-1">
@@ -343,7 +343,7 @@ export function DoctorPaymentView({
 
         {/* The amount is server-authoritative, so it is shown as a locked value
             instead of an input a doctor might believe they can change. */}
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-0 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-card bg-surface-0 px-4 py-3">
           <span className="flex items-center gap-2 text-xs font-medium text-ink-500">
             <Lock size={13} className="shrink-0" />
             To&apos;lov summasi
@@ -366,7 +366,7 @@ export function DoctorPaymentView({
         />
 
         {submitError && (
-          <div role="alert" className="flex items-start gap-3 rounded-2xl bg-danger/10 px-4 py-3 text-danger">
+          <div role="alert" className="flex items-start gap-3 rounded-card bg-danger/10 px-4 py-3 text-danger">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" />
             <span className="min-w-0 flex-1">
               <strong className="block text-sm font-semibold">Chek yuborilmadi</strong>

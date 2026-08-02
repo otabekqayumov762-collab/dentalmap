@@ -110,12 +110,12 @@ export function DoctorPaymentsCard({ onOpenReceipt }: { onOpenReceipt: (paymentI
       <SectionHeader Icon={ReceiptText} title="To'lovlar va cheklar" subtitle="Obuna to'lovlari tarixi" />
 
       {loading ? (
-        <div className="flex items-center gap-2 rounded-2xl bg-surface-50 px-4 py-6 text-sm text-ink-500" role="status">
+        <div className="flex items-center gap-2 rounded-card bg-surface-50 px-4 py-6 text-sm text-ink-500" role="status">
           <Loader2 size={16} className="animate-spin shrink-0" />
           To&apos;lovlar yuklanmoqda…
         </div>
       ) : loadError ? (
-        <div role="alert" className="flex items-start gap-2.5 rounded-2xl bg-danger/10 px-3.5 py-3 text-danger">
+        <div role="alert" className="flex items-start gap-2.5 rounded-card bg-danger/10 px-3.5 py-3 text-danger">
           <AlertTriangle size={17} className="mt-0.5 shrink-0" />
           <span className="flex min-w-0 flex-1 flex-col gap-2">
             <small className="text-xs leading-relaxed">{loadError}</small>
@@ -132,7 +132,7 @@ export function DoctorPaymentsCard({ onOpenReceipt }: { onOpenReceipt: (paymentI
           </span>
         </div>
       ) : payments.length === 0 ? (
-        <p className="rounded-2xl bg-surface-50 px-4 py-6 text-center text-sm text-ink-500">
+        <p className="rounded-card bg-surface-50 px-4 py-6 text-center text-sm text-ink-500">
           Hozircha to&apos;lov qilinmagan.
         </p>
       ) : (

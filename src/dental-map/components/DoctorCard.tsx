@@ -47,7 +47,7 @@ function DoctorCardComponent({
       <div className="relative">
         <button
           className={cn(
-            "flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl",
+            "flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-card",
             tone.softBg,
             tone.text
           )}
@@ -63,7 +63,7 @@ function DoctorCardComponent({
         </button>
         <button
           className={cn(
-            "absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-card transition-colors active:scale-95",
+            "absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-pill shadow-card transition-colors active:scale-95",
             isSaved
               ? "bg-danger text-white"
               : "bg-surface-0/90 text-ink-500 backdrop-blur hover:text-danger"

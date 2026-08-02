@@ -73,7 +73,7 @@ export function NotificationsView({
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+        <span className="flex h-11 w-11 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
           <Bell size={20} />
         </span>
         <div className="min-w-0">
@@ -85,7 +85,7 @@ export function NotificationsView({
       {isDoctor ? (
         pendingCount > 0 ? (
           <Card as="article" interactive onClick={onOpenRequests} className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
               <Inbox size={20} />
             </span>
             <div className="min-w-0 flex-1">
@@ -138,7 +138,7 @@ export function NotificationsView({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                       <Stethoscope size={20} />
                     </span>
                     <div className="min-w-0">
@@ -158,7 +158,7 @@ export function NotificationsView({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
+                <div className="flex items-center gap-3 rounded-card bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                     <CalendarDays size={15} className="shrink-0 text-brand-500" />
                     {formatUzDate(appointment.appointment_date)}
@@ -176,7 +176,7 @@ export function NotificationsView({
                 </div>
 
                 {appointment.status === "doctor_rejected" && appointment.reject_reason && (
-                  <div className="rounded-2xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+                  <div className="rounded-card bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
                     <span className="mb-1 block text-xs font-semibold uppercase text-danger/70">Rad etish sababi</span>
                     <p className="leading-relaxed">{appointment.reject_reason}</p>
                   </div>

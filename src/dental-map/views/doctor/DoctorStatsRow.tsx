@@ -12,7 +12,7 @@ type StatTileProps = {
 function StatTile({ Icon, value, label, sublabel }: StatTileProps) {
   return (
     <Card className="flex h-full items-center gap-3">
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
         <Icon size={20} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

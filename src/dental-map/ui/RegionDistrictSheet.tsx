@@ -83,7 +83,7 @@ export function RegionDistrictSheet({
               className={cn(rowBase, isAllSelected ? rowActive : rowIdle)}
             >
               <span className="flex min-w-0 items-center gap-2.5">
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
                   <MapPin size={15} />
                 </span>
                 <span className="min-w-0 truncate">Barcha hududlar</span>
@@ -106,7 +106,7 @@ export function RegionDistrictSheet({
                 className={cn(rowBase, isRegionSelected ? "border-brand-300 bg-brand-50/60 text-ink-900" : rowIdle)}
               >
                 <span className="flex min-w-0 items-center gap-2.5">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
                     <MapPin size={15} />
                   </span>
                   <span className="min-w-0 truncate">{region}</span>
@@ -222,7 +222,7 @@ export function RegionDistrictField({
         )}
       >
         <span className="flex min-w-0 items-center gap-2.5">
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600">
             <MapPin size={15} />
           </span>
           <span className={cn("truncate", summary ? "text-ink-900" : "text-ink-400")}>{summary || placeholder}</span>

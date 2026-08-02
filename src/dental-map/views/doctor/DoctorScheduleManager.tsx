@@ -146,7 +146,7 @@ function DayRow({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border transition-colors",
+        "overflow-hidden rounded-card border transition-colors",
         enabled ? "border-brand-100 bg-surface-0" : "border-surface-100 bg-surface-50"
       )}
     >
@@ -180,7 +180,7 @@ function DayRow({
         >
           <span
             className={cn(
-              "absolute left-1 top-1 size-6 rounded-full bg-white shadow-card transition-transform",
+              "absolute left-1 top-1 size-6 rounded-pill bg-white shadow-card transition-transform",
               enabled ? "translate-x-6" : "translate-x-0"
             )}
           />

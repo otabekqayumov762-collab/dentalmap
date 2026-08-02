@@ -41,7 +41,7 @@ export function NativeSelect({
       <div className="relative">
         <select
           className={cn(
-            "w-full appearance-none rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 pr-10 text-ink-900",
+            "w-full appearance-none rounded-card border border-surface-200 bg-surface-50 px-4 py-3 pr-10 text-ink-900",
             "transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40",
             className
           )}

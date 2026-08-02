@@ -74,7 +74,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
           <span className="font-semibold text-ink-700">{doctorName}</span> bilan qabulingiz qanday o&apos;tdi?
         </p>
 
-        <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface-50 py-5">
+        <div className="flex flex-col items-center gap-2 rounded-card bg-surface-50 py-5">
           <div
             className="flex items-center gap-2"
             aria-label="Reyting tanlash"
@@ -95,7 +95,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
                   }}
                   onMouseEnter={() => setHover(value)}
                   className={cn(
-                    "transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 focus-visible:ring-offset-2 rounded-full active:scale-90",
+                    "transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 focus-visible:ring-offset-2 rounded-pill active:scale-90",
                     filled ? "text-warning" : "text-surface-200 hover:text-ink-400"
                   )}
                 >
@@ -121,7 +121,7 @@ export function RatingPromptSheet({ open, doctorName, onSubmit, onDismiss }: Rat
           placeholder="Shifokor haqida fikringiz"
         />
 
-        <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
+        <label className="flex items-start gap-3 rounded-card border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
           <input
             type="checkbox"
             checked={publicConsent}

@@ -42,7 +42,7 @@ export function ReceiptStatusCard({
   const canDownload = receipt.status === "approved" && Boolean(documentUrl) && Boolean(onDownload);
 
   return (
-    <div className={cn("flex flex-col gap-2 rounded-2xl px-4 py-3.5", meta.wrap)}>
+    <div className={cn("flex flex-col gap-2 rounded-card px-4 py-3.5", meta.wrap)}>
       <div className="flex items-start gap-3">
         <Icon size={18} className={cn("mt-0.5 shrink-0", meta.icon)} />
         <span>
@@ -51,7 +51,7 @@ export function ReceiptStatusCard({
         </span>
       </div>
       {receipt.status === "rejected" && receipt.reject_reason && (
-        <p className="rounded-xl bg-surface-0/70 px-3 py-2 text-xs font-medium">
+        <p className="rounded-control bg-surface-0/70 px-3 py-2 text-xs font-medium">
           Sabab: {receipt.reject_reason}
         </p>
       )}

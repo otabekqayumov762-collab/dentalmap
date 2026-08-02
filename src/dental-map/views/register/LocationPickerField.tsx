@@ -2,7 +2,7 @@
 
 import { MapPin } from "lucide-react";
 import { useId, useState } from "react";
-import { isSafeMapUrl, mapUrlHasCoordinates } from "../../lib/url";
+import { isSafeMapUrl, isShortMapLink, mapUrlHasCoordinates } from "../../lib/url";
 import { cn } from "../../ui";
 import {
   controlHeight,
@@ -14,11 +14,16 @@ import {
 } from "../../ui/Field";
 
 export const MAP_COORDINATE_REQUIRED_MESSAGE =
-  "Karta linki aniq nuqtadan olingan bo'lishi kerak. Google yoki Yandex Maps'da klinika joyini tanlab, Share link yuboring.";
+  "Klinika joyini Google yoki Yandex Maps'da toping va «Share» (Ulashish) havolasini shu yerga qo'ying — biz undan aniq nuqtani o'zimiz olamiz.";
 
 export function mapLinkValidationError(value: string) {
   if (!isSafeMapUrl(value)) {
     return "Klinika lokatsiyasiga Yandex yoki Google Maps linkini kiriting.";
+  }
+  // A short link has no coordinates YET — the server follows it. Rejecting it
+  // here told the doctor to fix something that was already correct.
+  if (isShortMapLink(value)) {
+    return "";
   }
   if (!mapUrlHasCoordinates(value)) {
     return MAP_COORDINATE_REQUIRED_MESSAGE;

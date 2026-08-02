@@ -106,7 +106,7 @@ export function DoctorDashboardView({
   }
 
   const errorBanner = error ? (
-    <div className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
+    <div className="flex items-center gap-2 rounded-card bg-danger/10 px-4 py-3 text-sm font-medium text-danger" role="alert">
       <XCircle size={17} className="shrink-0" />
       <span>{error}</span>
     </div>
@@ -182,7 +182,7 @@ export function DoctorDashboardView({
           onClick={() => onNavigate("feedback")}
           className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.99]"
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
             <MessageCircle size={18} />
           </span>
           <span className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ export function DoctorDashboardView({
         onClick={() => onNavigate("doctorRequests")}
         className="flex w-full items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-4 text-left shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-[0.99]"
       >
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
           <CalendarCheck2 size={20} />
         </span>
         <span className="min-w-0 flex-1">

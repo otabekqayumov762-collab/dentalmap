@@ -13,7 +13,7 @@ export function TelegramGate() {
   return (
     <main className="grid min-h-[var(--tg-viewport-height)] place-items-center bg-surface-100 px-6">
       <section className="flex w-full max-w-sm flex-col items-center gap-5 rounded-card bg-surface-0 p-8 text-center shadow-card">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-50">
+        <span className="inline-flex h-16 w-16 items-center justify-center rounded-sheet bg-brand-50">
           <BrandLogo />
         </span>
         <div className="flex flex-col gap-1.5">

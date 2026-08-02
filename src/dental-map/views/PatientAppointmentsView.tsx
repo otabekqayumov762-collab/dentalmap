@@ -78,7 +78,7 @@ export function PatientAppointmentsView({
             onClick={onRefresh}
             disabled={loading}
             aria-label="Yangilash"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-200 bg-surface-0 text-ink-500 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-95 disabled:opacity-60"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-pill border border-surface-200 bg-surface-0 text-ink-500 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-95 disabled:opacity-60"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
           </button>
@@ -87,7 +87,7 @@ export function PatientAppointmentsView({
 
       {error && (
         <div
-          className="flex items-center gap-2 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
+          className="flex items-center gap-2 rounded-card bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
           role="alert"
         >
           <XCircle size={17} className="shrink-0" />
@@ -143,7 +143,7 @@ export function PatientAppointmentsView({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
                       <Stethoscope size={20} />
                     </span>
                     <div className="min-w-0">
@@ -158,7 +158,7 @@ export function PatientAppointmentsView({
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
+                <div className="flex items-center gap-3 rounded-card bg-surface-50 px-3.5 py-2.5 text-sm font-medium text-ink-700">
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                     <CalendarDays size={15} className="shrink-0 text-brand-500" />
                     {formatUzDate(appointment.appointment_date)}
@@ -171,14 +171,14 @@ export function PatientAppointmentsView({
                 </div>
 
                 {appointment.note && (
-                  <div className="rounded-2xl bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">
+                  <div className="rounded-card bg-surface-50 px-3.5 py-2.5 text-sm text-ink-700">
                     <span className="mb-1 block text-xs font-semibold uppercase text-ink-400">Bemor holati</span>
                     <p className="leading-relaxed">{appointment.note}</p>
                   </div>
                 )}
 
                 {appointment.status === "doctor_rejected" && appointment.reject_reason && (
-                  <div className="rounded-2xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+                  <div className="rounded-card bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
                     <span className="mb-1 block text-xs font-semibold uppercase text-danger/70">Rad etish sababi</span>
                     <p className="leading-relaxed">{appointment.reject_reason}</p>
                   </div>
@@ -266,7 +266,7 @@ export function PatientAppointmentsView({
             }}
             placeholder="Shifokor haqida fikringiz"
           />
-          <label className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
+          <label className="flex items-start gap-3 rounded-card border border-surface-200 bg-surface-50 px-3.5 py-3 text-sm text-ink-600">
             <input
               type="checkbox"
               checked={publicConsent}

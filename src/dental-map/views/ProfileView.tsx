@@ -89,7 +89,7 @@ function MenuRow({
       );
   const content = (
     <>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
         <Icon size={18} />
       </span>
       <span className="min-w-0 flex-1">
@@ -186,7 +186,7 @@ export function ProfileView({
       {/* Hero — avatar, name, role + progressive-profiling completion */}
       <Card className="border-0 bg-gradient-to-br from-brand-500 to-brand-600 text-white">
         <div className="flex items-center gap-4">
-          <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl font-extrabold ring-1 ring-white/25">
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-card bg-white/15 text-xl font-extrabold ring-1 ring-white/25">
             {initials ? initials : <User size={30} />}
           </span>
           <div className="min-w-0 flex-1">
@@ -195,13 +195,13 @@ export function ProfileView({
             </strong>
           </div>
           {isSaved && completionPercent === 100 && (
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/20" aria-hidden="true">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-white/20" aria-hidden="true">
               <CheckCircle2 size={18} />
             </span>
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-white/10 p-3.5">
+        <div className="mt-4 rounded-card bg-white/10 p-3.5">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-medium text-white/90">Profil to&apos;ldirilgan</span>
             <span className="font-bold tabular-nums">{completionPercent}%</span>

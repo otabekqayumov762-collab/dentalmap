@@ -75,7 +75,7 @@ function StatusRow({
 
 function InfoRow({ Icon, label, value }: { Icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-start gap-2 rounded-xl bg-white/10 px-3 py-2 text-left">
+    <div className="flex min-w-0 items-start gap-2 rounded-control bg-white/10 px-3 py-2 text-left">
       <Icon size={15} className="mt-0.5 shrink-0 text-white/75" />
       <span className="min-w-0">
         <span className="block text-xs font-semibold uppercase text-white/55">{label}</span>
@@ -127,11 +127,11 @@ export function DoctorHeaderCard({
     <Card className="flex flex-col gap-4 border-0 bg-gradient-to-br from-brand-500 to-brand-600 text-white">
       <div className="flex items-center gap-4">
         {hasPhoto ? (
-          <span className="shrink-0 rounded-2xl ring-1 ring-white/30">
+          <span className="shrink-0 rounded-card ring-1 ring-white/30">
             <DoctorAvatar doctor={toAvatarDoctor(profile, user)} size="lg" />
           </span>
         ) : (
-          <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+          <span className="flex size-20 shrink-0 items-center justify-center rounded-card bg-white/15 ring-1 ring-white/25">
             <Stethoscope size={34} />
           </span>
         )}
@@ -176,7 +176,7 @@ export function DoctorHeaderCard({
         <InfoRow Icon={BriefcaseBusiness} label="Tajriba" value={experience} />
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white/10 ring-1 ring-inset ring-white/10">
+      <div className="overflow-hidden rounded-card bg-white/10 ring-1 ring-inset ring-white/10">
         <StatusRow first Icon={ApprovalIcon} title="Profil holati" value={approvalValue} state={approvalState} />
         <StatusRow
           Icon={isPublished ? Globe : EyeOff}

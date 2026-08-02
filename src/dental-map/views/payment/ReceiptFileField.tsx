@@ -72,20 +72,20 @@ export function ReceiptFileField({
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
           className={cn(
-            "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors",
+            "flex flex-col items-center justify-center gap-2 rounded-card border border-dashed border-surface-200 bg-surface-50 px-4 py-6 text-center transition-colors",
             "hover:border-brand-300 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
             "disabled:pointer-events-none disabled:opacity-55"
           )}
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+          <span className="flex h-10 w-10 items-center justify-center rounded-pill bg-brand-50 text-brand-500">
             <Paperclip size={18} />
           </span>
           <span className="text-sm font-semibold text-ink-900">Chek faylini tanlang</span>
           <span className="text-xs text-ink-500">PNG, JPG yoki PDF — 8 MB gacha</span>
         </button>
       ) : (
-        <div className="flex items-center gap-3 rounded-2xl border border-surface-100 bg-surface-0 p-3 shadow-card">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-100 text-ink-500">
+        <div className="flex items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-3 shadow-card">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-control bg-surface-100 text-ink-500">
             {previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={previewUrl} alt="Chek ko'rinishi" className="h-full w-full object-cover" />
@@ -110,7 +110,7 @@ export function ReceiptFileField({
                 inputRef.current.value = "";
               }
             }}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors hover:bg-surface-100 disabled:opacity-55"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-surface-100 disabled:opacity-55"
           >
             <X size={16} />
           </button>

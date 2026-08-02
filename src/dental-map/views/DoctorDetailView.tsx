@@ -51,7 +51,7 @@ export function DoctorDetailView({
           aria-pressed={isSaved}
           onClick={onToggleSaved}
           className={cn(
-            "inline-flex shrink-0 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors",
+            "inline-flex shrink-0 flex-col items-center gap-1 rounded-card px-3 py-2 text-xs font-semibold transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 active:scale-95",
             isSaved ? "bg-danger/10 text-danger" : "bg-surface-100 text-ink-500 hover:bg-surface-200"
           )}
@@ -103,7 +103,7 @@ export function DoctorDetailView({
         </div>
 
         {reviews.length === 0 ? (
-          <p className="rounded-2xl bg-surface-50 px-3 py-6 text-center text-sm text-ink-500">
+          <p className="rounded-card bg-surface-50 px-3 py-6 text-center text-sm text-ink-500">
             Hozircha tasdiqlangan sharh yo&apos;q. Qabuldan keyin bemorlar shifokorni baholaydi.
           </p>
         ) : (
@@ -131,7 +131,7 @@ export function DoctorDetailView({
                 <article
                   key={review.id}
                   className={cn(
-                    "shrink-0 snap-start rounded-2xl bg-surface-50 p-3.5",
+                    "shrink-0 snap-start rounded-card bg-surface-50 p-3.5",
                     reviews.length > 1 ? "min-w-[85%]" : "w-full"
                   )}
                 >
@@ -167,7 +167,7 @@ export function DoctorDetailView({
                   aria-label="Oldingi sharh"
                   disabled={activeReview === 0}
                   onClick={() => showReview(activeReview - 1)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-600 disabled:opacity-40"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-pill bg-surface-100 text-ink-600 disabled:opacity-40"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -189,7 +189,7 @@ export function DoctorDetailView({
                   aria-label="Keyingi sharh"
                   disabled={activeReview === reviews.length - 1}
                   onClick={() => showReview(activeReview + 1)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-600 disabled:opacity-40"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-pill bg-surface-100 text-ink-600 disabled:opacity-40"
                 >
                   <ChevronRight size={16} />
                 </button>
