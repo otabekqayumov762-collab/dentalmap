@@ -1,52 +1,55 @@
 "use client";
 
 /**
- * Progress header for the doctor wizard.
+ * Where you are in the wizard.
  *
- * Replaces the hardcoded `grid grid-cols-3` bar strip, which could only ever
- * describe three steps. One continuous track with a proportional fill scales to
- * any N and, unlike N separate bars, does not shrink each segment to a sliver as
- * steps are added.
+ * The previous version said the same thing three ways — a continuous bar, a
+ * title, and a "4/6" counter — inside a card of its own, so a two-line fact took
+ * four lines and a border.
  *
- * The teal→blue fill is the one place the brand gradient shows up on EVERY page
- * of the flow; it is what makes seven separate panes read as one journey.
+ * One segment per step says more than a percentage does: in a six-pane flow the
+ * question is "how many screens left", and discrete marks answer it at a glance,
+ * where 66% still has to be converted. The title becomes the page's actual
+ * heading rather than a caption under a graphic, and the counter disappears
+ * because the segments already carry it.
  */
 export function StepHeader({ step, total, title }: { step: number; total: number; title: string }) {
-  const percent = Math.max(0, Math.min(100, (step / total) * 100));
+  const clamped = Math.max(1, Math.min(step, total));
 
-  // No card of its own: this describes the form below it, so a separate slab
-  // made the screen read as a column of unrelated boxes. It sits on the page now
-  // and lets the form be the only card.
   return (
-    <div className="px-1 pb-1">
-      {/* A real progressbar, not a decorative div: panes swap via a `hidden`
-          class and nothing moves focus, so without this a screen-reader user got
-          six silent transitions across the flow with no idea anything changed. */}
+    <div className="flex flex-col gap-2.5 px-1">
+      <h2
+        // aria-live because panes swap via a `hidden` class and nothing moves
+        // focus — without it the flow is six silent transitions.
+        aria-live="polite"
+        className="text-xl font-black leading-tight tracking-tight text-ink-900"
+      >
+        {title}
+      </h2>
       <div
-        className="h-1.5 w-full overflow-hidden rounded-pill bg-control-border/40"
+        className="flex items-center gap-1.5"
         role="progressbar"
-        aria-valuenow={step}
+        aria-valuenow={clamped}
         aria-valuemin={1}
         aria-valuemax={total}
-        aria-valuetext={`${total} qadamdan ${step}-si: ${title}`}
+        aria-valuetext={`${total} qadamdan ${clamped}-si: ${title}`}
       >
-        <div
-          className="h-full rounded-pill bg-gradient-to-r from-brand-500 to-accent-500 motion-safe:transition-[width] motion-safe:duration-300 ease-out"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      {/* aria-live on the wrapper, so the title AND the counter are announced
-          together as one change rather than as two unrelated updates. */}
-      <div className="mt-3 flex items-center justify-between gap-3" aria-live="polite">
-        <span role="heading" aria-level={2} className="min-w-0 truncate text-sm font-black text-ink-900">
-          {title}
-        </span>
-        {/* ink-500, not ink-400: in dark theme the unfilled track is the only
-            other carrier of "how much is left", and it measures 1.23:1 against
-            this card — so the counter was doing that job alone at 2.99:1. */}
-        <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-500">
-          {step}/{total}
-        </span>
+        {Array.from({ length: total }, (_, index) => {
+          const done = index < clamped;
+          return (
+            <span
+              key={index}
+              aria-hidden="true"
+              className={[
+                "h-1 flex-1 rounded-pill motion-safe:transition-colors motion-safe:duration-300",
+                // The completed run reads as one continuous stroke because the
+                // segments share the brand ramp; the only visible boundary is the
+                // one to the remaining steps, which is the boundary that matters.
+                done ? "bg-gradient-to-r from-brand-500 to-accent-500" : "bg-control-border/40"
+              ].join(" ")}
+            />
+          );
+        })}
       </div>
     </div>
   );

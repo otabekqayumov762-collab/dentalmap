@@ -2,7 +2,8 @@
 
 import { ArrowLeft, Bell, Loader2, Moon, Search, SlidersHorizontal, Stethoscope, Sun, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
+import { isBackendConfigured, isStaticPreviewHost, isOfflineMode, isTelegramAlreadyRegistered } from "@/src/dental-map/api/dentalMapApi";
+import { getFreshTelegramInitData } from "@/src/dental-map/lib/telegramInitData";
 import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
@@ -117,6 +118,11 @@ function DentalMapAppInner() {
   // The patient wizard owns its own step internally; the shell mirrors it so the
   // auth chrome knows whether a choice has already been made.
   const [patientStep, setPatientStep] = useState(1);
+  // Asked once, when the app knows it is inside Telegram. The same refusal used
+  // to arrive at the LAST pane of registration, after name, phone, password,
+  // gender, photo, specialty and clinic were all filled in — none of which ever
+  // changed the answer, and none of which could be salvaged.
+  const [telegramTaken, setTelegramTaken] = useState(false);
   // The signed phone-verification ticket, held in MEMORY ONLY for the length of
   // the signup. It is appended to the FormData in sendDoctorRegistration and
   // nowhere else — never a storage key, never a DOM value, never the URL. A
@@ -282,6 +288,21 @@ function DentalMapAppInner() {
   useEffect(() => {
     setIsDarkTheme(isDarkActive());
   }, []);
+
+  useEffect(() => {
+    if (!telegramInitialized) {
+      return;
+    }
+    let active = true;
+    void isTelegramAlreadyRegistered(getFreshTelegramInitData(webApp)).then((taken) => {
+      if (active) {
+        setTelegramTaken(taken);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [telegramInitialized, webApp]);
 
   function toggleTheme() {
     const nextDark = !isDarkTheme;
@@ -831,6 +852,7 @@ function DentalMapAppInner() {
         registrationOnly={needsTelegramOnboarding}
         registerStep={registerRole === "doctor" ? doctorStep : patientStep}
         onPatientStepChange={setPatientStep}
+        telegramTaken={telegramTaken}
         onExitWizard={() => {
           setDoctorStep(1);
           setPatientStep(1);

@@ -234,7 +234,10 @@ export function DoctorRegistrationForm({
       if (value("doctor_phone").replace(/\D/g, "").length < 12) {
         return { field: "doctor_phone", message: "Telefon raqamni to'liq kiriting." };
       }
-      if (value("sms_consent") !== "yes") {
+      // Only when a code will actually be sent. With OTP off the pane is
+      // skipped, so demanding consent for an SMS that never happens blocked the
+      // whole flow on a promise nobody was making.
+      if (otpEnabled && value("sms_consent") !== "yes") {
         return { field: "sms_consent", message: "SMS kod yuborilishiga rozilik bering." };
       }
       return null;
@@ -463,10 +466,13 @@ export function DoctorRegistrationForm({
             }
           }}
         />
+        {/* Hidden, not just un-validated: a consent box for an SMS that will
+            never be sent is a question with no meaning behind it. */}
+        {otpEnabled && (
         <label
           className={cn(
-            "flex items-start gap-3 rounded-card border bg-surface-50 px-3.5 py-3",
-            invalidField === "sms_consent" ? "border-danger" : "border-surface-200"
+            "flex items-start gap-3 rounded-control border bg-control px-3.5 py-3",
+            invalidField === "sms_consent" ? "border-danger" : "border-control-border"
           )}
         >
           <input
@@ -482,6 +488,7 @@ export function DoctorRegistrationForm({
             yuboriladi.
           </span>
         </label>
+        )}
         {invalidField === "sms_consent" && (
           <small className={errorTextClass} role="alert">
             {invalidMessage}

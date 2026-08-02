@@ -412,3 +412,38 @@ export async function fetchServices(signal?: AbortSignal): Promise<Service[]> {
   }
   return normalizeApiList<Service>(await response.json());
 }
+
+/**
+ * Is the caller's Telegram account already registered?
+ *
+ * Asked when the registration wizard opens. register/ already refuses an
+ * established Telegram account, but only at submit — after six panes of work
+ * that never changed the answer and cannot be salvaged. Fails open on any
+ * error: a false "you already have an account" would send someone to a login
+ * they do not have, which is worse than the late refusal this replaces.
+ */
+export async function isTelegramAlreadyRegistered(initData: string): Promise<boolean> {
+  if (!initData || !isBackendConfigured() || isOfflineMode()) {
+    return false;
+  }
+  try {
+    const csrfToken = await getAuthCsrfToken();
+    const response = await fetch(getApiUrl("/api/auth/telegram/status/"), {
+      method: "POST",
+      cache: "no-store",
+      credentials: authFetchCredentials(),
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+      },
+      body: JSON.stringify({ init_data: initData })
+    });
+    if (!response.ok) {
+      return false;
+    }
+    const payload = (await response.json()) as { registered?: boolean };
+    return payload.registered === true;
+  } catch {
+    return false;
+  }
+}

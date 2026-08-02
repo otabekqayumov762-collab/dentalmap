@@ -35,6 +35,9 @@ export type AuthGateProps = {
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onPatientStepChange: (step: number) => void;
+  /** This Telegram account already has a full profile — registering again cannot
+   *  succeed, so the wizard is replaced by the action that can. */
+  telegramTaken?: boolean;
   /** Which step the ACTIVE wizard is on — doctor or patient. 1 means the chooser
    *  is still relevant; anything higher means a choice has been made. */
   registerStep: number;
@@ -67,6 +70,7 @@ export function AuthGate({
   doctorStep,
   onDoctorStepChange,
   onPatientStepChange,
+  telegramTaken = false,
   registerStep,
   onExitWizard,
   onRoleChange,
@@ -140,7 +144,23 @@ export function AuthGate({
           </button>
         )}
 
-        {!inWizard && !registrationOnly && (
+        {telegramTaken && mode === "register" ? (
+          <div className="mx-auto w-full max-w-sm rounded-card border border-surface-200 bg-surface-0 p-5 text-center dark:bg-surface-50">
+            <p className="text-base font-bold text-ink-900">Bu Telegram hisobida profil bor</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-500">
+              Qaytadan ro&apos;yxatdan o&apos;tish shart emas. Telefon raqam va parol bilan kiring.
+            </p>
+            <button
+              type="button"
+              onClick={() => onModeChange("login")}
+              className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-pill bg-gradient-to-r from-brand-500 to-accent-500 text-base font-bold text-on-brand shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0"
+            >
+              Kirish
+            </button>
+          </div>
+        ) : null}
+
+        {!inWizard && !registrationOnly && !telegramTaken && (
           <SegmentedToggle
             value={mode}
             options={modeOptions}
@@ -151,7 +171,7 @@ export function AuthGate({
 
         {!registrationOnly && mode === "login" ? (
           <LoginView onLogin={onLogin} onNavigate={() => onModeChange("register")} />
-        ) : (
+        ) : telegramTaken ? null : (
           <RegisterView
             role={role}
             specialties={specialties}
