@@ -67,6 +67,21 @@ export const controlTriggerDanger =
    Hint and placeholder move off ink-400, which measures 2.69:1 on the control
    fill and 2.99:1 on a card — both under 4.5:1 for the small text they are. */
 export const sectionTitleClass = "text-base font-black tracking-tight text-ink-900";
+
+/* Vertical rhythm. Four steps, and the point is that they DIFFER: field-to-field,
+   card-to-card and form-to-header were all 16px, so a pane read as a list of
+   equally-related boxes and the eye had nothing to group by. Related things sit
+   closer than unrelated ones — that is the whole signal.
+
+   fieldGap   things inside one group (a label and its control are closer still,
+              handled by the control's own mb-1.5)
+   groupGap   one field to the next
+   blockGap   one card/section to the next
+   screenGap  the page's own major regions */
+export const fieldGap = "gap-2";
+export const groupGap = "gap-4";
+export const blockGap = "gap-6";
+export const screenGap = "gap-8";
 export const labelClass = "mb-1.5 block text-sm font-semibold text-ink-700";
 export const hintClass = "mt-1.5 block text-xs font-medium text-ink-500";
 export const errorTextClass = "mt-1.5 block text-xs font-semibold text-danger";

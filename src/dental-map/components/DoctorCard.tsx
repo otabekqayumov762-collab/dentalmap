@@ -83,7 +83,7 @@ function DoctorCardComponent({
           className="min-w-0 text-left"
           onClick={() => onOpen(doctor)}
         >
-          <strong className="block truncate text-[0.95rem] font-semibold text-ink-900">{doctor.name}</strong>
+          <strong className="block truncate text-sm font-semibold text-ink-900">{doctor.name}</strong>
         </button>
         <small className="block truncate text-xs text-ink-500">{doctor.specialty}</small>
         <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-900">

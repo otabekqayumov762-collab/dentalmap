@@ -66,7 +66,7 @@ function StatusRow({
         <Icon size={16} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.68rem] font-semibold uppercase text-white/55">{title}</span>
+        <span className="block text-xs font-semibold uppercase text-white/55">{title}</span>
         <span className="block truncate text-sm font-semibold text-white/90">{value}</span>
       </span>
     </div>
@@ -78,7 +78,7 @@ function InfoRow({ Icon, label, value }: { Icon: LucideIcon; label: string; valu
     <div className="flex min-w-0 items-start gap-2 rounded-xl bg-white/10 px-3 py-2 text-left">
       <Icon size={15} className="mt-0.5 shrink-0 text-white/75" />
       <span className="min-w-0">
-        <span className="block text-[0.68rem] font-semibold uppercase text-white/55">{label}</span>
+        <span className="block text-xs font-semibold uppercase text-white/55">{label}</span>
         <span className="block truncate text-sm font-medium text-white/90">{value}</span>
       </span>
     </div>

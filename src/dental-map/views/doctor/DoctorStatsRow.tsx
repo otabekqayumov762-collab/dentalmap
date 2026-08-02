@@ -20,7 +20,7 @@ function StatTile({ Icon, value, label, sublabel }: StatTileProps) {
           {value}
         </strong>
         <small className="block truncate text-xs font-medium leading-tight text-ink-500">{label}</small>
-        {sublabel && <small className="block truncate text-[0.7rem] leading-tight text-ink-400">{sublabel}</small>}
+        {sublabel && <small className="block truncate text-xs leading-tight text-ink-400">{sublabel}</small>}
       </span>
     </Card>
   );

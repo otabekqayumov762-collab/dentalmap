@@ -197,7 +197,7 @@ export function UserRegistrationForm({
       id="user-register-form"
       ref={formRef}
       noValidate
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6"
       onSubmit={handleSubmit}
     >
       <StepHeader step={step} total={TOTAL_USER_STEPS} title={USER_STEPS[step - 1].title} />

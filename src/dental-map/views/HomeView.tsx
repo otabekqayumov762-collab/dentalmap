@@ -74,7 +74,7 @@ export function HomeView({
           >
             <DoctorAvatar doctor={doctor} size="sm" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <strong className="truncate text-[0.95rem] font-bold text-ink-900">{doctor.name}</strong>
+              <strong className="truncate text-sm font-bold text-ink-900">{doctor.name}</strong>
               <small className="truncate text-sm text-ink-500">{doctor.clinic}</small>
               <em className="truncate text-xs font-medium not-italic text-brand-600">
                 {consultationSent ? "Shifokor tasdig'i kutilmoqda" : "Qabulga yozilish tayyor"}

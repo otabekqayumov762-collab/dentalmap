@@ -35,9 +35,6 @@ export type AuthGateProps = {
   doctorStep: number;
   onDoctorStepChange: (step: number) => void;
   onPatientStepChange: (step: number) => void;
-  /** This Telegram account already has a full profile — registering again cannot
-   *  succeed, so the wizard is replaced by the action that can. */
-  telegramTaken?: boolean;
   /** Which step the ACTIVE wizard is on — doctor or patient. 1 means the chooser
    *  is still relevant; anything higher means a choice has been made. */
   registerStep: number;
@@ -70,7 +67,6 @@ export function AuthGate({
   doctorStep,
   onDoctorStepChange,
   onPatientStepChange,
-  telegramTaken = false,
   registerStep,
   onExitWizard,
   onRoleChange,
@@ -97,7 +93,7 @@ export function AuthGate({
 
   return (
     <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
-      <section className="relative flex h-full w-full min-w-0 max-w-[640px] flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] no-scrollbar">
+      <section className="relative flex h-full w-full min-w-0 max-w-[640px] flex-col gap-8 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] no-scrollbar">
         <button
           type="button"
           aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
@@ -144,23 +140,7 @@ export function AuthGate({
           </button>
         )}
 
-        {telegramTaken && mode === "register" ? (
-          <div className="mx-auto w-full max-w-sm rounded-card border border-surface-200 bg-surface-0 p-5 text-center dark:bg-surface-50">
-            <p className="text-base font-bold text-ink-900">Bu Telegram hisobida profil bor</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-ink-500">
-              Qaytadan ro&apos;yxatdan o&apos;tish shart emas. Telefon raqam va parol bilan kiring.
-            </p>
-            <button
-              type="button"
-              onClick={() => onModeChange("login")}
-              className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-pill bg-gradient-to-r from-brand-500 to-accent-500 text-base font-bold text-on-brand shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0"
-            >
-              Kirish
-            </button>
-          </div>
-        ) : null}
-
-        {!inWizard && !registrationOnly && !telegramTaken && (
+        {!inWizard && !registrationOnly && (
           <SegmentedToggle
             value={mode}
             options={modeOptions}
@@ -171,7 +151,7 @@ export function AuthGate({
 
         {!registrationOnly && mode === "login" ? (
           <LoginView onLogin={onLogin} onNavigate={() => onModeChange("register")} />
-        ) : telegramTaken ? null : (
+        ) : (
           <RegisterView
             role={role}
             specialties={specialties}

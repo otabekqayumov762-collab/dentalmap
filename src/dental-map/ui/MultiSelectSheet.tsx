@@ -114,7 +114,7 @@ export function MultiSelectSheet({
                 aria-pressed={active}
                 onClick={() => onToggle(option.value)}
                 className={cn(
-                  "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-[0.95rem] transition-colors",
+                  "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-sm transition-colors",
                   active ? "border-brand-500 bg-brand-50 font-semibold text-brand-700" : "border-control-border bg-control text-ink-700"
                 )}
               >

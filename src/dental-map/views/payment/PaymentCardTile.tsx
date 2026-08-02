@@ -62,7 +62,7 @@ export function PaymentCardTile({
       <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
         {card.holder_name}
       </span>
-      <small className="text-[0.7rem] text-ink-400">
+      <small className="text-xs text-ink-400">
         Xavfsizlik uchun niqoblangan raqam nusxalanmaydi. To&apos;lov rekvizitini bankingizda tekshiring.
       </small>
     </div>

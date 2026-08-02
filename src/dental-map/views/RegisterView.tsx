@@ -69,7 +69,7 @@ export function RegisterView({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {/* Also a chooser, and it lives here rather than in AuthGate — so it
           survived the header collapse and sat alone above the form, still
           offering a switch that would discard everything typed. */}

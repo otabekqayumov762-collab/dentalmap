@@ -23,7 +23,7 @@ export function ClinicsView({
               <Building2 size={24} />
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <strong className="truncate text-[0.95rem] font-bold text-ink-900">{clinic.name}</strong>
+              <strong className="truncate text-sm font-bold text-ink-900">{clinic.name}</strong>
               <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
                 <em className="inline-flex items-center gap-1 not-italic">
                   <Star size={14} className="text-warning" /> {clinic.rating || "0.0"}

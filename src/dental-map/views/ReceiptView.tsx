@@ -26,7 +26,7 @@ function Row({ label, value, mono = false }: { label: string; value: string; mon
   }
   return (
     <div className="flex items-baseline gap-4 border-t border-surface-100 py-2.5 first:border-t-0">
-      <dt className="w-[42%] shrink-0 text-[13px] text-ink-500">{label}</dt>
+      <dt className="w-[42%] shrink-0 text-sm text-ink-500">{label}</dt>
       <dd
         className={cn(
           "min-w-0 flex-1 text-right text-sm font-semibold tabular-nums text-ink-900",
@@ -45,7 +45,7 @@ function Row({ label, value, mono = false }: { label: string; value: string; mon
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-card border border-surface-200 bg-surface-0 p-4 dark:bg-surface-50">
-      <h2 className="mb-1 text-[11px] font-bold uppercase tracking-[0.11em] text-ink-400">{title}</h2>
+      <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.11em] text-ink-400">{title}</h2>
       <dl className="m-0">{children}</dl>
     </section>
   );
@@ -148,23 +148,23 @@ export function ReceiptView({ paymentId, onBack }: { paymentId: string; onBack: 
             <div className="text-sm font-black tracking-tight text-ink-900">
               Dental <span className="text-brand-600">Map</span>
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.11em] text-ink-400">
+            <div className="text-xs font-bold uppercase tracking-[0.11em] text-ink-400">
               To&apos;lov tasdiqnomasi
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-ink-400">Chek raqami</div>
+            <div className="text-xs font-bold uppercase tracking-[0.08em] text-ink-400">Chek raqami</div>
             <div className="text-xs font-bold tabular-nums text-ink-900">{data.serial}</div>
           </div>
         </div>
 
-        <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.11em] text-ink-400">
+        <p className="mt-4 text-xs font-bold uppercase tracking-[0.11em] text-ink-400">
           To&apos;langan summa
         </p>
-        <p className="mt-0.5 text-[2rem] font-black leading-tight tracking-tight tabular-nums text-ink-900">
+        <p className="mt-0.5 text-3xl font-black leading-tight tracking-tight tabular-nums text-ink-900">
           {data.amount_display}
         </p>
-        <span className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-success/10 px-3 py-1.5 text-[13px] font-bold text-success">
+        <span className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-success/10 px-3 py-1.5 text-sm font-bold text-success">
           <CheckCircle2 size={15} />
           {data.status_label}
         </span>

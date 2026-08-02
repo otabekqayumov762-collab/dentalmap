@@ -21,7 +21,11 @@ export {
   controlTriggerIdle,
   errorTextClass,
   hintClass,
+  blockGap,
+  fieldGap,
+  groupGap,
   labelClass,
+  screenGap,
   sectionTitleClass,
   type FieldProps,
   type TextareaFieldProps

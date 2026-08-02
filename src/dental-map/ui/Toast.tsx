@@ -113,7 +113,7 @@ function Toaster({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: n
             role={variant === "error" ? "alert" : "status"}
             className={cn(
               "pointer-events-auto flex w-full max-w-md animate-[modal-in_0.15s_ease-out] items-center gap-3",
-              "rounded-2xl border bg-surface-0 px-4 py-3.5 text-sm font-semibold text-ink-900 shadow-lg",
+              "rounded-card border bg-surface-0 px-4 py-3.5 text-sm font-semibold text-ink-900 shadow-float dark:bg-surface-50",
               border
             )}
           >

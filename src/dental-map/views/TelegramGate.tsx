@@ -20,7 +20,7 @@ export function TelegramGate() {
           <h1 className="text-xl font-extrabold tracking-tight text-ink-900">
             DENTAL <span className="text-brand-500">MAP</span>
           </h1>
-          <p className="text-[0.95rem] leading-relaxed text-ink-500">
+          <p className="text-sm leading-relaxed text-ink-500">
             Ilova faqat Telegram bot ichida ishlaydi. Iltimos, uni botimiz orqali oching.
           </p>
         </div>

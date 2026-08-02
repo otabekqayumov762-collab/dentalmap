@@ -128,7 +128,7 @@ export function AppointmentDetailView({
       <button
         type="button"
         onClick={onBack}
-        className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-[13px] font-bold text-accent-700 shadow-card"
+        className="my-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-pill border border-surface-200 bg-surface-0 px-3.5 text-sm font-bold text-accent-700 shadow-card"
       >
         <ArrowLeft size={17} />
         <span>Ortga</span>

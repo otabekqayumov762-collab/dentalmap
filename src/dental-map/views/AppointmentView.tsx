@@ -276,7 +276,7 @@ export function AppointmentView({
                       : "border-surface-200 bg-surface-0 text-ink-700 hover:border-brand-300")
                   }
                 >
-                  <span className={"text-[0.7rem] font-medium " + (active ? "text-white/80" : "text-ink-400")}>
+                  <span className={"text-xs font-medium " + (active ? "text-white/80" : "text-ink-400")}>
                     {day.weekdayLabel}
                   </span>
                   <strong className="text-lg font-bold tabular-nums leading-none">{day.dayNum}</strong>

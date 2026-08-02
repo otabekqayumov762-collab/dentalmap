@@ -17,7 +17,7 @@ import { Sheet } from "./Sheet";
 export type RegionDistrictSelection = { region: string | null; district: string | null };
 
 const rowBase =
-  "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-[0.95rem] transition-colors";
+  "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-sm transition-colors";
 // bg-control, not bg-surface-0: the sheet itself is surface-0, so a row drawn
 // on it measured 1.00:1 and the list read as unmarked text with no rows at all.
 const rowIdle = "border-control-border bg-control text-ink-700 hover:border-brand-400";

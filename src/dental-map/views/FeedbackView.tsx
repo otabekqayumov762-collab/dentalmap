@@ -102,7 +102,7 @@ export function FeedbackView({
             <CheckCircle2 size={18} />
           </span>
           <span className="flex flex-col">
-            <strong className="text-[0.95rem] font-semibold">Xabar yuborildi</strong>
+            <strong className="text-sm font-semibold">Xabar yuborildi</strong>
             <small className="text-xs text-success">Administrator xabaringizni ko&apos;rib chiqadi.</small>
           </span>
         </div>

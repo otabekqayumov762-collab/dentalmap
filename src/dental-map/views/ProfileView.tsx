@@ -64,7 +64,7 @@ function initialsOf(name: string) {
 /** Small muted uppercase label above a grouped card (iOS-settings style). */
 function GroupLabel({ children }: { children: ReactNode }) {
   return (
-    <span className="mb-2 ml-1 block text-[0.7rem] font-semibold uppercase tracking-wide text-ink-400">{children}</span>
+    <span className="mb-2 ml-1 block text-xs font-semibold uppercase tracking-wide text-ink-400">{children}</span>
   );
 }
 

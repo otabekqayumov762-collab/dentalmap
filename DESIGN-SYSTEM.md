@@ -28,8 +28,27 @@ upgrading the visual quality (modern, calm, medical-grade, mobile-first).
 - Color: `brand-{50..900}` (teal), `accent-{50..900}` (blue),
   `ink-{400,500,700,900}` (text), `surface-{0,50,100,200}` (bg),
   `success`, `warning`, `danger`.
-- Radius: `rounded-card`, `rounded-sheet`, `rounded-pill`.
-- Shadow: `shadow-card`, `shadow-float`.
+- **Controls**: `bg-control` + `border-control-border`. Do NOT dress a control in
+  the surface scale — `control` was once byte-identical to `surface-50`, which
+  put an input at 1.05:1 against its card and left the whole boundary resting on
+  a border that was itself under 3:1.
+- **On the gradient**: `text-on-brand`. It does NOT flip with the theme, because
+  the gradient does not either — `text-ink-900` inverts to near-white in dark and
+  put white on bright teal.
+- Radius: `rounded-control` (small controls: inputs, OTP cells, icon tiles),
+  `rounded-card`, `rounded-sheet`, `rounded-pill`. Four values, no more.
+  `rounded-card` on a 48px control makes it a lozenge — that is what
+  `rounded-control` exists for.
+- Shadow: `shadow-card`, `shadow-float`. Tailwind v4 inlines these, so a
+  `.dark { --shadow-card }` override is DEAD — the dark variants live as
+  `.dark .shadow-card` rules in globals.css. Do not "fix" them back into @theme.
+- Spacing rhythm: `fieldGap` (2) < `groupGap` (4) < `blockGap` (6) <
+  `screenGap` (8). They must differ: when field-to-field, card-to-card and
+  form-to-header were all 16px, the screen read as a list of equally-related
+  boxes and the eye had nothing to group by.
+- Type: `sectionTitleClass` > `labelClass` > `hintClass`. A section title has to
+  outrank a label by SIZE, not only weight — both were 14px.
+- No arbitrary values. `text-[0.95rem]` is not a scale step.
 
 ## Primitives (`import { ... } from "@/src/dental-map/ui"`)
 - `Button` — `variant: primary|secondary|ghost|danger`, `size: sm|md|lg`.
@@ -53,11 +72,23 @@ must be `grid-cols-1` (not bare `grid`) and flex/grid children need `min-w-0`.
 Verify nothing is wider than the screen.
 
 ## Visual language
-- Calm medical palette; generous whitespace; `rounded-card`/`rounded-2xl`.
+- Calm medical palette; generous whitespace; `rounded-card` for surfaces,
+  `rounded-control` for controls.
 - Soft shadows (`shadow-card`), not borders, for elevation.
-- Primary actions = `brand-500`; secondary = `surface-100`.
-- Section titles: `text-ink-900 font-bold`; meta text: `text-ink-500 text-sm`.
-- Lists/grids: comfortable gaps (`gap-3`/`gap-4`), avoid cramped layouts.
+- **The brand gradient means ONE thing: the action that moves you forward.**
+  Three identical gradient pills once competed on the auth screen — two toggles
+  and the CTA — so nothing read as primary. Toggles use a raised neutral.
+- Section titles: `sectionTitleClass`; meta text: `text-ink-500 text-sm`.
+  `ink-400` fails 4.5:1 on both the card and the control fill — it is not a text
+  colour, only a decorative one.
+- Choosers disappear once the choice is made. A wizard past step one shows an
+  exit, not the controls that got you in.
+
+## Contrast floors (measured, not assumed)
+- Text: 4.5:1 against whatever it actually sits on — check the CONTROL fill for
+  placeholders, not the card.
+- Control boundary and focus ring: 3:1.
+- Check BOTH themes. Most regressions here were dark-only.
 
 ## Definition of done (per file)
 - File renders with Tailwind only (no legacy classes).

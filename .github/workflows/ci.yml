@@ -94,6 +94,11 @@ jobs:
       # mocked API origins pinned in — see README for why that is mandatory.
       - run: npm run test:e2e
 
+      # The OTP flow needs the flag ON, and production currently ships it OFF —
+      # so the suite above builds the shipped configuration and this covers the
+      # other one. Without both, whichever is not built goes untested.
+      - run: npm run test:e2e:otp
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

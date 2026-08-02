@@ -29,7 +29,7 @@ const variants: Record<Variant, string> = {
 
 const sizes: Record<Size, string> = {
   sm: "h-9 px-4 text-sm",
-  md: "h-11 px-5 text-[0.95rem]",
+  md: "h-11 px-5 text-sm",
   // No w-full here. It used to be baked into the size, so two lg buttons in one
   // row (Ortga + Davom etish) asked for 200% width and shifted the whole auth
   // screen ~98px left, clipping the logo, the toggles and every field. Width is

@@ -474,7 +474,7 @@ export function MapView({
             value={mapQuery}
             onChange={(event) => setMapQuery(event.target.value)}
             placeholder="Manzil yoki joyni qidirish"
-            className="w-full bg-transparent text-[0.95rem] text-ink-900 placeholder:text-ink-500 focus:outline-none"
+            className="w-full bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none"
           />
           {searching && <span className="shrink-0 text-xs text-ink-500">...</span>}
         </form>
@@ -548,14 +548,14 @@ export function MapView({
               )}
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-start justify-between gap-2">
-                  <strong className="truncate text-[0.95rem] font-semibold text-ink-900">{activeClinic.name}</strong>
+                  <strong className="truncate text-sm font-semibold text-ink-900">{activeClinic.name}</strong>
                   <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning">
                     <Star size={13} />
                     {activeClinic.rating.toFixed(1)}
                   </span>
                 </div>
                 {activeClinic.partner && (
-                  <span className="w-fit rounded-pill bg-brand-50 px-2 py-0.5 text-[0.65rem] font-bold text-brand-600">
+                  <span className="w-fit rounded-pill bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand-600">
                     Hamkor
                   </span>
                 )}

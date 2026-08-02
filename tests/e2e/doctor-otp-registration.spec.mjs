@@ -1,5 +1,20 @@
 import { expect, test } from "@playwright/test";
 
+/**
+ * Covers the OTP-enabled build. Production currently ships with OTP OFF (no
+ * eSKIZ credentials yet), and `npm run test:e2e` therefore builds with it off so
+ * the suite exercises what actually ships — which makes this seven-pane flow a
+ * six-pane one and this spec meaningless against that bundle.
+ *
+ * So it declares its requirement instead of failing confusingly, and
+ * `npm run test:e2e:otp` builds with the flag on and runs it. Both
+ * configurations are covered; neither is silently skipped.
+ */
+test.skip(
+  process.env.E2E_OTP_ENABLED !== "true",
+  "needs an OTP-enabled build — run: npm run test:e2e:otp"
+);
+
 const APP_ORIGIN = "http://127.0.0.1:4300";
 const API_ORIGIN = "https://api.dental.example";
 
