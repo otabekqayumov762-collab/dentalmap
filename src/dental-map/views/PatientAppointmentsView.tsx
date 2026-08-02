@@ -150,7 +150,7 @@ export function PatientAppointmentsView({
                       <strong className="block truncate font-semibold text-ink-900">
                         {appointment.doctor_name || "Shifokor"}
                       </strong>
-                      <small className="text-xs text-ink-400">Shifokor</small>
+                      <small className="text-xs text-ink-500">Shifokor</small>
                     </div>
                   </div>
                   <Badge tone={statusTone(appointment.status)} className="shrink-0">

@@ -22,6 +22,7 @@ export {
   errorTextClass,
   hintClass,
   labelClass,
+  sectionTitleClass,
   type FieldProps,
   type TextareaFieldProps
 } from "./Field";

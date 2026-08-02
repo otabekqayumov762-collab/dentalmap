@@ -24,20 +24,26 @@ import { cn } from "./cn";
    Focus carries THREE cues at once (border + ring + elevation); a single pale
    ring is invisible against surface-50 on a phone in daylight. */
 export const controlHeight = "h-12";
+
+/* Focus is ONE recipe with three cues — border, ring, elevation — expressed
+   through whichever pseudo-class the control's interaction model needs:
+   `focus:` for a real input, `focus-within:` when the input is nested behind a
+   prefix or an icon, `focus-visible:` for a button that opens a sheet. Same
+   colours, same weight, so they read as one system rather than three. */
 export const controlBase =
-  "w-full rounded-control bg-control px-4 text-ink-900 placeholder:text-ink-400 " +
-  "transition-all duration-150 focus:bg-surface-0 focus:outline-none focus:ring-2";
+  "w-full rounded-control bg-control px-4 text-ink-900 placeholder:text-ink-500 " +
+  "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500/40";
 export const controlIdle =
-  "border border-control-border focus:border-brand-500 focus:ring-brand-500/40 focus:shadow-card";
+  "border border-control-border focus:border-brand-500 focus:shadow-card";
 export const controlDanger = "border border-danger focus:border-danger focus:ring-danger/30";
 
 /** Wrapper variant for controls whose real <input> is nested (a prefix, an icon,
  *  a pair of time inputs) — same three cues, driven by focus-within. */
 export const controlShellBase =
   "flex w-full items-center rounded-control bg-control transition-all duration-150 " +
-  "focus-within:ring-2";
+  "focus-within:ring-2 focus-within:ring-brand-500/40";
 export const controlShellIdle =
-  "border border-control-border focus-within:border-brand-500 focus-within:ring-brand-500/40 focus-within:shadow-card";
+  "border border-control-border focus-within:border-brand-500 focus-within:shadow-card";
 export const controlShellDanger =
   "border border-danger focus-within:border-danger focus-within:ring-danger/30";
 
@@ -45,15 +51,24 @@ export const controlShellDanger =
  *  ride focus-visible instead of focus/focus-within. */
 export const controlTriggerBase =
   "flex w-full items-center justify-between gap-2 rounded-control bg-control px-4 text-left " +
-  "transition-all duration-150 focus:outline-none focus-visible:ring-2";
+  "transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40";
+/* border-control-border, not surface-200: a sheet trigger IS a control, and two
+   border standards 12px apart in the same card is what made the form look
+   assembled from parts rather than designed. */
 export const controlTriggerIdle =
-  "border border-surface-200 hover:border-brand-300 focus-visible:border-brand-400 " +
-  "focus-visible:ring-brand-500/40 focus-visible:shadow-card";
+  "border border-control-border hover:border-brand-400 focus-visible:border-brand-500 " +
+  "focus-visible:shadow-card";
 export const controlTriggerDanger =
   "border border-danger focus-visible:border-danger focus-visible:ring-danger/30";
 
+/* Type scale for form chrome. Three steps, and they have to be distinguishable
+   by SIZE, not only weight: a section title and a field label were both 14px
+   separated by font-weight alone, so a pane read as one flat list of equals.
+   Hint and placeholder move off ink-400, which measures 2.69:1 on the control
+   fill and 2.99:1 on a card — both under 4.5:1 for the small text they are. */
+export const sectionTitleClass = "text-base font-black tracking-tight text-ink-900";
 export const labelClass = "mb-1.5 block text-sm font-semibold text-ink-700";
-export const hintClass = "mt-1.5 block text-xs font-medium text-ink-400";
+export const hintClass = "mt-1.5 block text-xs font-medium text-ink-500";
 export const errorTextClass = "mt-1.5 block text-xs font-semibold text-danger";
 
 export function ControlLabel({ children }: { children: ReactNode }) {
@@ -63,7 +78,7 @@ export function ControlLabel({ children }: { children: ReactNode }) {
 /** Trailing "— ixtiyoriy" marker so an optional field reads as optional inside
  *  the label instead of needing a separate hint line. */
 export function OptionalMark() {
-  return <span className="font-medium text-ink-400"> — ixtiyoriy</span>;
+  return <span className="font-medium text-ink-500"> — ixtiyoriy</span>;
 }
 
 /**
@@ -178,7 +193,7 @@ export function Field({
         // Inside a suffix shell the border/background belong to the shell, so the
         // input keeps only its own typography and spacing.
         hasSuffix
-          ? "min-w-0 flex-1 bg-transparent px-4 text-ink-900 outline-none placeholder:text-ink-400"
+          ? "min-w-0 flex-1 bg-transparent px-4 text-ink-900 outline-none placeholder:text-ink-500"
           : cn(controlBase, controlHeight, invalid ? controlDanger : controlIdle),
         numeric && "tabular-nums",
         isPassword && "pr-11",

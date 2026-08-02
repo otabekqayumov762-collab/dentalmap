@@ -86,7 +86,7 @@ export function LocationPickerField({
           aria-describedby={message ? errorId : undefined}
           placeholder="https:// Google yoki Yandex Maps linki"
           onChange={(event) => setValue(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink-900 outline-none placeholder:font-normal placeholder:text-ink-400"
+          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink-900 outline-none placeholder:font-normal placeholder:text-ink-500"
         />
       </div>
       {message && (

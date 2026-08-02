@@ -18,7 +18,9 @@ export type RegionDistrictSelection = { region: string | null; district: string 
 
 const rowBase =
   "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-[0.95rem] transition-colors";
-const rowIdle = "border-surface-200 bg-surface-0 text-ink-700 hover:border-brand-300";
+// bg-control, not bg-surface-0: the sheet itself is surface-0, so a row drawn
+// on it measured 1.00:1 and the list read as unmarked text with no rows at all.
+const rowIdle = "border-control-border bg-control text-ink-700 hover:border-brand-400";
 const rowActive = "border-brand-500 bg-brand-50 font-semibold text-brand-700";
 
 /**

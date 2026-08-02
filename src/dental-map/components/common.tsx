@@ -75,7 +75,7 @@ export function DistrictFilter({
             </em>
           </span>
         </span>
-        <small className="shrink-0 text-xs font-medium text-ink-400">{districts.length - 1} ta</small>
+        <small className="shrink-0 text-xs font-medium text-ink-500">{districts.length - 1} ta</small>
       </div>
       <div className="-mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1 pb-1" role="list">
         {districts.map((item) => (

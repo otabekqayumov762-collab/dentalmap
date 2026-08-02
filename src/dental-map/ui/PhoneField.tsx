@@ -119,7 +119,7 @@ export function PhoneField({
           aria-invalid={invalid || undefined}
           aria-describedby={errorText ? errorId : undefined}
           disabled={disabled}
-          className="min-w-0 flex-1 bg-transparent pr-4 text-ink-900 outline-none placeholder:text-ink-400"
+          className="min-w-0 flex-1 bg-transparent pr-4 text-ink-900 outline-none placeholder:text-ink-500"
           value={formatNational(digits)}
           onChange={(event) => update(event.target.value)}
           placeholder="90 123 45 67"

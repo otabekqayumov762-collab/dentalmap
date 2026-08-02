@@ -215,7 +215,7 @@ export function ReceiptView({ paymentId, onBack }: { paymentId: string; onBack: 
           PDF sifatida saqlash
         </Button>
       ) : (
-        <p className="text-center text-xs text-ink-400">Yuklab olish havolasi hozircha mavjud emas.</p>
+        <p className="text-center text-xs text-ink-500">Yuklab olish havolasi hozircha mavjud emas.</p>
       )}
       <button type="button" className={cn(inlineActionClass, "self-center")} onClick={onBack}>
         Ortga

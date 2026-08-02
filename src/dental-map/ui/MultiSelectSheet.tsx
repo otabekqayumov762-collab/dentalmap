@@ -115,7 +115,7 @@ export function MultiSelectSheet({
                 onClick={() => onToggle(option.value)}
                 className={cn(
                   "flex items-center justify-between gap-3 rounded-card border px-4 py-3 text-left text-[0.95rem] transition-colors",
-                  active ? "border-brand-500 bg-brand-50 font-semibold text-brand-700" : "border-surface-200 bg-surface-0 text-ink-700"
+                  active ? "border-brand-500 bg-brand-50 font-semibold text-brand-700" : "border-control-border bg-control text-ink-700"
                 )}
               >
                 <span className="min-w-0">{option.label}</span>

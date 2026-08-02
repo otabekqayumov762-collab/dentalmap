@@ -34,7 +34,7 @@ export function TelegramGate() {
             Telegramda ochish
           </button>
         )}
-        <small className="text-xs text-ink-400">Telegram &rarr; botni oching &rarr; “Ochish” tugmasini bosing</small>
+        <small className="text-xs text-ink-500">Telegram &rarr; botni oching &rarr; “Ochish” tugmasini bosing</small>
       </section>
     </main>
   );

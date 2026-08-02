@@ -192,7 +192,7 @@ export function DoctorAppointmentRequests({
                     <div className="min-w-0">
                       <strong className="block truncate font-semibold text-ink-900">{appointment.full_name}</strong>
                       {(appointment.age || appointment.gender) && (
-                        <small className="block truncate text-xs text-ink-400">
+                        <small className="block truncate text-xs text-ink-500">
                           {[appointment.age ? `${appointment.age} yosh` : null, appointment.gender]
                             .filter(Boolean)
                             .join(" · ")}

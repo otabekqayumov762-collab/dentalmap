@@ -71,7 +71,7 @@ export function DoctorDetailView({
             <MapPin size={17} className="shrink-0 text-brand-500" />
             <strong className="font-medium">{doctor.district}</strong>
           </span>
-          <small className="pl-7 text-xs text-ink-400">{doctor.address || "Manzil kiritilmagan"}</small>
+          <small className="pl-7 text-xs text-ink-500">{doctor.address || "Manzil kiritilmagan"}</small>
         </span>
         <span className="flex items-center gap-2.5 text-ink-700">
           <Phone size={17} className="shrink-0 text-brand-500" />
@@ -97,7 +97,7 @@ export function DoctorDetailView({
       <Card as="section" className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between gap-2">
           <strong className="text-ink-900">Sharhlar</strong>
-          <small className="text-xs text-ink-400">
+          <small className="text-xs text-ink-500">
             {reviews.length ? `${reviews.length} ta tasdiqlangan sharh` : "Hali sharh yo'q"}
           </small>
         </div>
@@ -137,7 +137,7 @@ export function DoctorDetailView({
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <strong className="text-sm text-ink-900">{review.author}</strong>
-                    <small className="text-xs text-ink-400">{review.date}</small>
+                    <small className="text-xs text-ink-500">{review.date}</small>
                   </div>
                   {(review.clinic || review.clinicDistrict) && (
                     <span className="mt-1 inline-flex max-w-full items-center gap-1 text-xs font-medium text-ink-500">

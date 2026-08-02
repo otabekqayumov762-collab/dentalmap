@@ -10,7 +10,7 @@ export type Tone = "brand" | "success" | "warning" | "danger" | "neutral";
 export function SectionHeader({ Icon, title, subtitle }: { Icon: LucideIcon; title: string; subtitle?: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
         <Icon size={18} />
       </span>
       <div className="min-w-0">

@@ -290,7 +290,7 @@ export function DoctorPaymentView({
           </Button>
         )}
 
-        <p className="flex items-center gap-1.5 text-xs text-ink-400">
+        <p className="flex items-center gap-1.5 text-xs text-ink-500">
           <ShieldCheck size={13} className="shrink-0 text-brand-500" />
           To&apos;lov Payme&apos;ning xavfsiz sahifasida amalga oshiriladi.
         </p>
@@ -306,7 +306,7 @@ export function DoctorPaymentView({
       {showCardTransfer && (
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-surface-200" />
-        <span className="text-xs font-medium text-ink-400">yoki karta orqali</span>
+        <span className="text-xs font-medium text-ink-500">yoki karta orqali</span>
         <span className="h-px flex-1 bg-surface-200" />
       </div>
       )}

@@ -219,7 +219,7 @@ export function OtpStep({
           {resendLabel}
         </button>
         {resendBlocked && (
-          <small className="text-xs font-medium text-ink-400">
+          <small className="text-xs font-medium text-ink-500">
             Yangi kodni {clock(resendRemaining)} dan keyin so&apos;rash mumkin.
           </small>
         )}

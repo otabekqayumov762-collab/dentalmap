@@ -165,7 +165,7 @@ export function DoctorPaymentsCard({ onOpenReceipt }: { onOpenReceipt: (paymentI
                     Chekni ochish
                   </Button>
                 ) : (
-                  <small className="text-xs text-ink-400">Chek mavjud emas</small>
+                  <small className="text-xs text-ink-500">Chek mavjud emas</small>
                 )}
               </li>
             );

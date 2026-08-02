@@ -35,7 +35,7 @@ export function RegisterRoleToggle({
         onOptionPointerDown={onRolePrefetch}
         ariaLabel="Rol tanlash"
       />
-      <p className="mt-2 text-center text-xs font-medium text-ink-400">{roleSummary[role]}</p>
+      <p className="mt-2 text-center text-xs font-medium text-ink-500">{roleSummary[role]}</p>
     </div>
   );
 }

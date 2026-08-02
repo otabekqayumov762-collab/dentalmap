@@ -223,7 +223,7 @@ export function AppointmentView({
         <div className="min-w-0">
           <strong className="block truncate text-ink-900">{doctor.name}</strong>
           <span className="block text-sm text-ink-500">{doctor.specialty}</span>
-          <small className="block truncate text-xs text-ink-400">
+          <small className="block truncate text-xs text-ink-500">
             {doctor.clinic}, {doctor.district}
           </small>
         </div>
@@ -235,7 +235,7 @@ export function AppointmentView({
           <Loader2 size={18} className="shrink-0 animate-spin text-brand-500" />
           <span>
             <strong className="block text-sm text-ink-700">Bo&apos;sh vaqtlar yuklanmoqda</strong>
-            <small className="block text-xs text-ink-400">Shifokorning jadvali tekshirilmoqda…</small>
+            <small className="block text-xs text-ink-500">Shifokorning jadvali tekshirilmoqda…</small>
           </span>
         </Card>
       ) : slotsStatus === "error" ? (
@@ -333,7 +333,7 @@ export function AppointmentView({
           <Clock size={18} className="shrink-0 text-ink-400" />
           <span>
             <strong className="block text-sm text-ink-700">Bo&apos;sh vaqt yo&apos;q</strong>
-            <small className="block text-xs text-ink-400">Shifokor hozircha bo&apos;sh vaqt kiritmagan.</small>
+            <small className="block text-xs text-ink-500">Shifokor hozircha bo&apos;sh vaqt kiritmagan.</small>
           </span>
         </Card>
       )}

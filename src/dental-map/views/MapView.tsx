@@ -474,9 +474,9 @@ export function MapView({
             value={mapQuery}
             onChange={(event) => setMapQuery(event.target.value)}
             placeholder="Manzil yoki joyni qidirish"
-            className="w-full bg-transparent text-[0.95rem] text-ink-900 placeholder:text-ink-400 focus:outline-none"
+            className="w-full bg-transparent text-[0.95rem] text-ink-900 placeholder:text-ink-500 focus:outline-none"
           />
-          {searching && <span className="shrink-0 text-xs text-ink-400">...</span>}
+          {searching && <span className="shrink-0 text-xs text-ink-500">...</span>}
         </form>
       </div>
 

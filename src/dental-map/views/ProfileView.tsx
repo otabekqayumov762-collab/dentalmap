@@ -293,7 +293,7 @@ export function ProfileView({
 
             <div className="flex items-center justify-end gap-3 border-t border-surface-100 pt-3">
               {!isSaved && !saveError && (
-                <span className="mr-auto text-xs text-ink-400">O&apos;zgarishlarni saqlang.</span>
+                <span className="mr-auto text-xs text-ink-500">O&apos;zgarishlarni saqlang.</span>
               )}
               <Button type="submit" size="sm" disabled={isSaved || saving}>
                 {isSaved ? <CheckCircle2 size={18} /> : <Save size={18} />}
