@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { applyTheme, getStoredPreference, resolveIsDark } from "../lib/theme";
-import type { TelegramUser, TelegramWebApp } from "../types";
+import type { TelegramSafeAreaInset, TelegramUser, TelegramWebApp } from "../types";
+
+const INSET_SIDES = ["top", "right", "bottom", "left"] as const;
+
+/** The two rectangles Bot API 8.0 exposes, and the CSS variable prefix each one
+ *  publishes under. See the --tg-inset-* block in app/styles/base-shell.css. */
+const INSET_SOURCES = [
+  { property: "safeAreaInset", prefix: "--tg-safe-area-inset", event: "safeAreaChanged" },
+  { property: "contentSafeAreaInset", prefix: "--tg-content-safe-area-inset", event: "contentSafeAreaChanged" }
+] as const;
 
 /**
  * Detects the Telegram WebApp host, wires up the theme and viewport, and exposes
@@ -19,6 +28,7 @@ export function useTelegram() {
     let retryTimer: number | undefined;
     let cleanupTheme: (() => void) | undefined;
     let cleanupViewport: (() => void) | undefined;
+    let cleanupInsets: (() => void) | undefined;
     const startedAt = Date.now();
 
     const setup = (tg: TelegramWebApp | null) => {
@@ -59,6 +69,53 @@ export function useTelegram() {
       }
     };
 
+    /**
+     * Publishes Telegram's two inset rectangles as CSS variables so the layout
+     * can reserve the strip Telegram's own controls sit on. Without this,
+     * requestFullscreen() puts the app header underneath the Close pill and the
+     * "..." menu — the app paints there, but the taps never reach it.
+     *
+     * A side is only written when the client actually reports a usable number.
+     * Anything else (a pre-8.0 client with no field at all, null, NaN, a
+     * negative) leaves the 0px stylesheet default in place, where the env()
+     * half of --tg-inset-* stays in charge. Writing an invalid value instead
+     * would kill the whole calc() and break the layout on exactly the old
+     * devices this fallback exists for.
+     */
+    const setupInsets = (tg: TelegramWebApp) => {
+      const root = document.documentElement;
+
+      const publish = (prefix: string, inset: TelegramSafeAreaInset | undefined) => {
+        for (const side of INSET_SIDES) {
+          const value = inset?.[side];
+          const property = `${prefix}-${side}`;
+          if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+            root.style.setProperty(property, `${Math.round(value)}px`);
+          } else {
+            root.style.removeProperty(property);
+          }
+        }
+      };
+
+      // Each source re-reads its field on every event: the SDK mutates the
+      // object in place and the event carries no payload.
+      const handlers = INSET_SOURCES.map((source) => {
+        const apply = () => publish(source.prefix, tg[source.property]);
+        apply();
+        tg.onEvent?.(source.event, apply);
+        return { source, apply };
+      });
+
+      cleanupInsets = () => {
+        for (const { source, apply } of handlers) {
+          tg.offEvent?.(source.event, apply);
+          for (const side of INSET_SIDES) {
+            root.style.removeProperty(`${source.prefix}-${side}`);
+          }
+        }
+      };
+    };
+
     const setupHost = (tg: TelegramWebApp) => {
       // Telegram Desktop and mobile clients expose the usable WebApp height.
       // `100vh/100svh` can include host chrome, which made the auth form grow
@@ -75,6 +132,8 @@ export function useTelegram() {
         tg.offEvent?.("viewportChanged", applyTelegramViewport);
         document.documentElement.style.removeProperty("--tg-viewport-height");
       };
+
+      setupInsets(tg);
 
       // Initial theme: saved preference → Telegram colorScheme → system.
       applyTheme(resolveIsDark(tg), tg);
@@ -108,6 +167,7 @@ export function useTelegram() {
       }
       cleanupTheme?.();
       cleanupViewport?.();
+      cleanupInsets?.();
     };
   }, []);
 

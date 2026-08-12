@@ -88,7 +88,9 @@ export function Sheet({ open, onClose, title, children, className, initialFocusR
   return (
     // Sized to the TELEGRAM viewport, not the layout viewport: `vh` includes the
     // Telegram host chrome on iOS, which pushed a tall sheet under the header.
-    <div className="fixed inset-x-0 top-0 z-50 flex h-[var(--tg-viewport-height,100svh)] items-end justify-center pt-8">
+    // The top pad also clears Telegram's own fullscreen controls, so a sheet
+    // tall enough to reach the top keeps its close button tappable.
+    <div className="fixed inset-x-0 top-0 z-50 flex h-[var(--tg-viewport-height,100svh)] items-end justify-center pt-[calc(2rem+var(--tg-inset-top))]">
       {/* Dismiss lives on the backdrop, not the wrapper, so a drag that starts in
           the panel and ends over the backdrop no longer closes the sheet.
           `touch-none` stops a backdrop pan from scrolling the page behind it. */}
@@ -107,7 +109,10 @@ export function Sheet({ open, onClose, title, children, className, initialFocusR
         className={cn(
           // `max-h-full` = 100% of the wrapper's content box, so the wrapper's
           // pt-8 is what leaves the breathing room at the top.
-          "relative z-10 flex max-h-full w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-t-sheet bg-surface-0 p-5 pb-7 shadow-float animate-[sheet-in_0.22s_ease-out] no-scrollbar",
+          // A bottom sheet is full-bleed to the viewport bottom, so its last row
+          // lands under the Android gesture bar / home indicator without the
+          // inset in the bottom pad.
+          "relative z-10 flex max-h-full w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-t-sheet bg-surface-0 p-5 pb-[calc(1.75rem+var(--tg-inset-bottom))] shadow-float animate-[sheet-in_0.22s_ease-out] no-scrollbar",
           className
         )}
       >

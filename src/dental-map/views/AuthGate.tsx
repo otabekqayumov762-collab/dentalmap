@@ -93,14 +93,17 @@ export function AuthGate({
 
   return (
     <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
-      <section className="relative flex h-full w-full min-w-0 max-w-[640px] flex-col gap-8 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] no-scrollbar">
+      <section className="relative flex h-full w-full min-w-0 max-w-[640px] flex-col gap-8 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[calc(2.5rem+var(--tg-inset-bottom))] pt-[calc(1.5rem+var(--tg-inset-top))] no-scrollbar">
         <button
           type="button"
           aria-label={isDarkTheme ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
           aria-pressed={isDarkTheme}
           onClick={toggleTheme}
           className={cn(
-            "absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
+            // Absolutely positioned, so the section's padding-top does NOT move
+            // it: without the inset in `top` the theme toggle stays parked under
+            // Telegram's fullscreen controls even once the wordmark clears them.
+            "absolute right-5 top-[calc(1.25rem+var(--tg-inset-top))] inline-flex h-11 w-11 items-center justify-center rounded-control border transition-colors",
             isDarkTheme
               ? "border-surface-200 bg-surface-0 text-brand-600 dark:border-white/10 dark:bg-surface-50 dark:text-ink-700"
               : "border-surface-200 bg-surface-0 text-ink-500 hover:bg-surface-100"

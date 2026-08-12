@@ -13,6 +13,53 @@
   --amber: #f59e0b;
   --shadow: 0 14px 36px rgba(32, 55, 76, 0.14);
   --tg-viewport-height: 100svh;
+
+  /* Telegram insets. requestFullscreen() hands the app the whole screen — which
+     also means the strip where Telegram keeps drawing its OWN controls (the
+     Close pill, the collapse chevron, the "..." menu) is now ours to paint into,
+     and the app header ended up underneath them.
+
+     Two different rectangles are involved and both come from Bot API 8.0:
+       safeAreaInset         — the device notch / home indicator
+       contentSafeAreaInset  — the strip Telegram's own chrome covers
+     useTelegram.ts writes the eight raw values below and keeps them in sync via
+     the safeAreaChanged / contentSafeAreaChanged events.
+
+     Consumers must use --tg-inset-*, never the raw values. It stays valid on a
+     client with no Bot API 8.0: the raw values keep their 0px default, so the
+     max() collapses to the plain env() notch — exactly what the app used before.
+     0px defaults (not empty) are deliberate: an empty var() would make the whole
+     calc() invalid and drop the declaration on precisely those old devices. */
+  --tg-safe-area-inset-top: 0px;
+  --tg-safe-area-inset-right: 0px;
+  --tg-safe-area-inset-bottom: 0px;
+  --tg-safe-area-inset-left: 0px;
+  --tg-content-safe-area-inset-top: 0px;
+  --tg-content-safe-area-inset-right: 0px;
+  --tg-content-safe-area-inset-bottom: 0px;
+  --tg-content-safe-area-inset-left: 0px;
+
+  /* max() rather than a straight sum of the two sources: Telegram reports the
+     device inset as 0 on hosts where the WebView already knows better (and vice
+     versa), and taking the larger of the two can never clip. Both zero — a
+     desktop client, or any client that reports nothing — resolves to 0px, so no
+     layout gains a band of dead space. */
+  --tg-inset-top: max(
+    env(safe-area-inset-top, 0px),
+    calc(var(--tg-safe-area-inset-top) + var(--tg-content-safe-area-inset-top))
+  );
+  --tg-inset-right: max(
+    env(safe-area-inset-right, 0px),
+    calc(var(--tg-safe-area-inset-right) + var(--tg-content-safe-area-inset-right))
+  );
+  --tg-inset-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    calc(var(--tg-safe-area-inset-bottom) + var(--tg-content-safe-area-inset-bottom))
+  );
+  --tg-inset-left: max(
+    env(safe-area-inset-left, 0px),
+    calc(var(--tg-safe-area-inset-left) + var(--tg-content-safe-area-inset-left))
+  );
   --tg-bg: #f8fbfc;
   --tg-text: #142033;
   --tg-hint: #667085;

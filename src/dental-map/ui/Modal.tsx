@@ -26,7 +26,10 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   return (
     // Centred inside the TELEGRAM viewport, not the layout viewport — otherwise
     // the dialog sits visually low by half the host-chrome height.
-    <div className="fixed inset-x-0 top-0 z-50 flex h-[var(--tg-viewport-height,100svh)] items-center justify-center p-4">
+    // The asymmetric pads are the Telegram fullscreen insets: a panel tall
+    // enough to fill the viewport would otherwise put its title under Telegram's
+    // own controls and its buttons under the gesture bar.
+    <div className="fixed inset-x-0 top-0 z-50 flex h-[var(--tg-viewport-height,100svh)] items-center justify-center px-4 pb-[calc(1rem+var(--tg-inset-bottom))] pt-[calc(1rem+var(--tg-inset-top))]">
       {/* Dismiss on the backdrop, not the wrapper, so a pointer-up over the
           backdrop after selecting text inside the panel no longer closes it. */}
       <div

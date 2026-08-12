@@ -69,42 +69,65 @@ async function blockTelegramBridge(page) {
   await page.route("**/telegram-web-app.js", stub);
 }
 
-async function installTelegramHost(page, userId = 777001) {
+/**
+ * `insets` is opt-in: without it the stub has no safeAreaInset /
+ * contentSafeAreaInset field at all, which is what a pre-Bot-API-8.0 client
+ * looks like — so every other spec keeps measuring the same layout it did
+ * before those fields existed.
+ */
+async function installTelegramHost(page, userId = 777001, insets = null) {
   await blockTelegramBridge(page);
-  await page.addInitScript((id) => {
-    const noop = () => undefined;
-    window.__e2eOpenedLinks = [];
-    window.Telegram = {
-      WebApp: {
-        initData: `query_id=e2e&user=${id}&auth_date=1780000000&hash=signed-e2e`,
-        initDataUnsafe: { user: { id, first_name: "E2E" } },
-        colorScheme: "light",
-        viewportHeight: 800,
-        viewportStableHeight: 800,
-        ready: noop,
-        expand: noop,
-        close: noop,
-        disableVerticalSwipes: noop,
-        onEvent: noop,
-        offEvent: noop,
-        openLink: (url) => window.__e2eOpenedLinks.push(url),
-        BackButton: { show: noop, hide: noop, onClick: noop, offClick: noop },
-        MainButton: {
-          text: "",
-          setText: noop,
-          show: noop,
-          hide: noop,
-          enable: noop,
-          disable: noop,
-          showProgress: noop,
-          hideProgress: noop,
-          onClick: noop,
-          offClick: noop
-        },
-        HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop }
-      }
-    };
-  }, userId);
+  await page.addInitScript(
+    ({ id, safeArea, contentSafeArea }) => {
+      const noop = () => undefined;
+      window.__e2eOpenedLinks = [];
+      const listeners = {};
+      // Lets a spec move Telegram's chrome the way the real client does.
+      window.__e2eTelegramEmit = (event) => {
+        for (const listener of listeners[event] || []) {
+          listener();
+        }
+      };
+      window.Telegram = {
+        WebApp: {
+          initData: `query_id=e2e&user=${id}&auth_date=1780000000&hash=signed-e2e`,
+          initDataUnsafe: { user: { id, first_name: "E2E" } },
+          colorScheme: "light",
+          viewportHeight: 800,
+          viewportStableHeight: 800,
+          ...(safeArea ? { safeAreaInset: safeArea } : {}),
+          ...(contentSafeArea ? { contentSafeAreaInset: contentSafeArea } : {}),
+          ready: noop,
+          expand: noop,
+          requestFullscreen: noop,
+          close: noop,
+          disableVerticalSwipes: noop,
+          onEvent: (event, listener) => {
+            (listeners[event] = listeners[event] || []).push(listener);
+          },
+          offEvent: (event, listener) => {
+            listeners[event] = (listeners[event] || []).filter((item) => item !== listener);
+          },
+          openLink: (url) => window.__e2eOpenedLinks.push(url),
+          BackButton: { show: noop, hide: noop, onClick: noop, offClick: noop },
+          MainButton: {
+            text: "",
+            setText: noop,
+            show: noop,
+            hide: noop,
+            enable: noop,
+            disable: noop,
+            showProgress: noop,
+            hideProgress: noop,
+            onClick: noop,
+            offClick: noop
+          },
+          HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop }
+        }
+      };
+    },
+    { id: userId, safeArea: insets?.safeArea ?? null, contentSafeArea: insets?.contentSafeArea ?? null }
+  );
 }
 
 // The doctor signup wizard confirms the phone before it can reach its final
@@ -513,6 +536,50 @@ test("doctor payment fails closed on an untrusted checkout host and opens an exa
   expect(await page.evaluate(() => window.__e2eOpenedLinks)).toEqual([
     "https://checkout.paycom.uz/pay/e2e-safe"
   ]);
+});
+
+test("Telegram fullscreen chrome never covers the app's own controls", async ({ page }) => {
+  // requestFullscreen() hands the app the strip Telegram keeps drawing its Close
+  // pill and "..." menu on. contentSafeAreaInset is how the client says where
+  // that strip is; without honouring it the controls underneath are visible but
+  // untappable — the reported bug.
+  await installTelegramHost(page, 777001, {
+    safeArea: { top: 0, right: 0, bottom: 34, left: 0 },
+    contentSafeArea: { top: 56, right: 0, bottom: 0, left: 0 }
+  });
+  // Auth is irrelevant here; failing every call lands on the login screen, which
+  // is one of the surfaces that has to reserve the strip.
+  await page.route(`${API_ORIGIN}/**`, (route) => route.abort());
+
+  await page.goto("/");
+  const themeToggle = page.getByRole("button", { name: /rejimga o'tish/ });
+  await expect(themeToggle).toBeVisible();
+
+  const topOf = async () => Math.round((await themeToggle.boundingBox()).y);
+  expect(await topOf()).toBeGreaterThanOrEqual(56);
+
+  // The strip moves with Telegram's own UI, so the layout has to follow it.
+  await page.evaluate(() => {
+    window.Telegram.WebApp.contentSafeAreaInset = { top: 120, right: 0, bottom: 0, left: 0 };
+    window.__e2eTelegramEmit("contentSafeAreaChanged");
+  });
+  expect(await topOf()).toBeGreaterThanOrEqual(120);
+
+  // A client with no Bot API 8.0 reports neither rectangle. It must fall back to
+  // the plain env() notch — never to an invalid length that would drop the whole
+  // declaration and break the layout on exactly those older devices.
+  await page.evaluate(() => {
+    delete window.Telegram.WebApp.contentSafeAreaInset;
+    delete window.Telegram.WebApp.safeAreaInset;
+    window.__e2eTelegramEmit("contentSafeAreaChanged");
+    window.__e2eTelegramEmit("safeAreaChanged");
+  });
+  expect(await topOf()).toBe(20);
+  expect(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--tg-inset-top").trim()
+    )
+  ).not.toBe("");
 });
 
 test("privacy notice is a directly accessible production route", async ({ page }) => {

@@ -43,6 +43,16 @@ export type TelegramThemeParams = {
   secondary_bg_color?: string;
 };
 
+/** One inset rectangle. Bot API 8.0+ reports the numbers in CSS pixels; every
+ *  side is optional because an older client sends a partial object rather than
+ *  none at all on some builds. */
+export type TelegramSafeAreaInset = {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+};
+
 export type TelegramWebApp = {
   initData: string;
   initDataUnsafe?: { user?: TelegramUser };
@@ -50,6 +60,14 @@ export type TelegramWebApp = {
   themeParams?: TelegramThemeParams;
   viewportHeight?: number;
   viewportStableHeight?: number;
+  /** Bot API 8.0+: the DEVICE inset (notch, home indicator). Absent on older
+   *  clients, where env(safe-area-inset-*) is the only source. */
+  safeAreaInset?: TelegramSafeAreaInset;
+  /** Bot API 8.0+: the strip TELEGRAM itself draws over — in fullscreen that is
+   *  the Close pill, the collapse chevron and the "..." menu. A different
+   *  rectangle from safeAreaInset, and the one fullscreen makes ours to paint
+   *  into. Absent on older clients. */
+  contentSafeAreaInset?: TelegramSafeAreaInset;
   ready: () => void;
   expand: () => void;
   /** Bot API 8.0+; absent on older clients. */

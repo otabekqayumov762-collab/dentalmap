@@ -862,7 +862,7 @@ function DentalMapAppInner() {
   if (isDoctorAccount && activeDoctorProfile?.is_subscription_active === false) {
     return (
       <main className="grid h-[var(--tg-viewport-height)] min-h-0 justify-items-center overflow-hidden bg-surface-100">
-        <section className="h-full w-full min-w-0 max-w-[640px] overflow-y-auto overscroll-contain px-5 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-[calc(2rem+env(safe-area-inset-top))] no-scrollbar">
+        <section className="h-full w-full min-w-0 max-w-[640px] overflow-y-auto overscroll-contain px-5 pb-[calc(3rem+var(--tg-inset-bottom))] pt-[calc(2rem+var(--tg-inset-top))] no-scrollbar">
           <DoctorPaymentView
             paid={false}
             onPaid={() => void refreshPrivateData()}
@@ -883,16 +883,26 @@ function DentalMapAppInner() {
           ref={scrollRef}
           className={cn(
             "h-full w-full overflow-y-auto overscroll-contain no-scrollbar px-5",
+            // No top inset here on purpose. The only two views that hide the
+            // header are the map, which reserves the strip inside its own
+            // overlays, and the appointment-success screen, whose content is
+            // vertically centred with nothing at the top edge — padding that one
+            // down would only push its "Asosiy menuga qaytish" button further
+            // into the clip of its own `overflow-hidden`.
             isAppointmentSuccess
               ? "pb-0 overflow-hidden"
               : showBottomNav
-                ? "pb-[calc(158px+env(safe-area-inset-bottom))]"
-                : "pb-8"
+                ? "pb-[calc(158px+var(--tg-inset-bottom))]"
+                : "pb-[calc(2rem+var(--tg-inset-bottom))]"
           )}
         >
           {showAppHeader && (
             <>
-              <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 py-4 shadow-[0_8px_18px_rgba(32,55,76,0.08)] dark:shadow-none">
+              {/* pt, not py: in Telegram fullscreen the top of this sticky header
+                  is the strip Telegram draws its Close / collapse / "..."
+                  controls on, so the row reserves it instead of painting under
+                  it. --tg-inset-top is 0 outside fullscreen — no dead band. */}
+              <section className="sticky top-0 z-40 -mx-5 grid gap-3 border-b border-surface-200 bg-surface-0 px-5 pb-4 pt-[calc(1rem+var(--tg-inset-top))] shadow-[0_8px_18px_rgba(32,55,76,0.08)] dark:shadow-none">
                 <div className="flex items-center justify-between gap-3">
                   <button className="flex items-center gap-2.5" type="button" onClick={() => navigate(homeView)}>
                     <span className="inline-flex">
@@ -1266,7 +1276,7 @@ function DentalMapAppInner() {
 
         {viewLoading && (
           <div
-            className="absolute left-1/2 top-[86px] z-[70] inline-flex h-10 -translate-x-1/2 items-center gap-2 rounded-pill border border-surface-200 bg-surface-0/95 px-3.5 text-sm font-bold text-accent-700 shadow-float backdrop-blur"
+            className="absolute left-1/2 top-[calc(86px+var(--tg-inset-top))] z-[70] inline-flex h-10 -translate-x-1/2 items-center gap-2 rounded-pill border border-surface-200 bg-surface-0/95 px-3.5 text-sm font-bold text-accent-700 shadow-float backdrop-blur"
             role="status"
             aria-live="polite"
           >
@@ -1277,7 +1287,7 @@ function DentalMapAppInner() {
 
         {showBottomNav && (
           <nav
-            className="absolute inset-x-5 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 grid gap-1 rounded-card border border-surface-200/90 bg-surface-0/96 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-0/90 dark:shadow-none"
+            className="absolute inset-x-5 bottom-[calc(12px+var(--tg-inset-bottom))] z-30 grid gap-1 rounded-card border border-surface-200/90 bg-surface-0/96 p-1.5 shadow-[0_-10px_24px_rgba(32,55,76,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-0/90 dark:shadow-none"
             style={{ gridTemplateColumns: `repeat(${navTabs.length}, minmax(0, 1fr))` }}
             aria-label="Pastki navigatsiya"
           >

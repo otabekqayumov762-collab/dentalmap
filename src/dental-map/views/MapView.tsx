@@ -436,7 +436,9 @@ export function MapView({
     >
       <MapCanvas ref={canvasRef} userPosition={userLoc} clinics={mapClinics} onSelect={handleSelect} />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2.5 px-4 pt-4">
+      {/* The map is the one view with no app header, so its own back button and
+          search row are what land under Telegram's fullscreen controls. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2.5 px-4 pt-[calc(1rem+var(--tg-inset-top))]">
         <button
           type="button"
           aria-label="Ortga qaytish"
@@ -473,7 +475,7 @@ export function MapView({
       </div>
 
       <div
-        className="absolute inset-x-0 top-[4.75rem] z-20 flex gap-2 overflow-x-auto no-scrollbar px-4 pb-1"
+        className="absolute inset-x-0 top-[calc(4.75rem+var(--tg-inset-top))] z-20 flex gap-2 overflow-x-auto no-scrollbar px-4 pb-1"
         aria-label="Hududlar"
       >
         {districts.map((item) => (
@@ -505,7 +507,7 @@ export function MapView({
         )}
 
         <section
-          className="w-full rounded-t-sheet bg-surface-0 px-4 pb-6 pt-3 shadow-float"
+          className="w-full rounded-t-sheet bg-surface-0 px-4 pb-[calc(1.5rem+var(--tg-inset-bottom))] pt-3 shadow-float"
           aria-label="Yaqin klinikalar"
         >
           <span className="mx-auto mb-3 block h-1.5 w-10 rounded-pill bg-surface-200" aria-hidden="true" />
