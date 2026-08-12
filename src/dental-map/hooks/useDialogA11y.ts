@@ -15,7 +15,10 @@ const FOCUSABLE_SELECTOR = [
 export function useDialogA11y(
   open: boolean,
   onClose: () => void,
-  dialogRef: RefObject<HTMLElement | null>
+  dialogRef: RefObject<HTMLElement | null>,
+  /** Where focus should land on open, when the first focusable element is the
+   *  wrong answer — a listbox sheet wants the list, not the close button. */
+  initialFocusRef?: RefObject<HTMLElement | null>
 ) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -29,7 +32,7 @@ export function useDialogA11y(
     const previousOverflow = document.body.style.overflow;
     const frame = window.requestAnimationFrame(() => {
       const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-      (firstFocusable ?? dialogRef.current)?.focus();
+      (initialFocusRef?.current ?? firstFocusable ?? dialogRef.current)?.focus();
     });
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -73,5 +76,5 @@ export function useDialogA11y(
         previouslyFocused.focus();
       }
     };
-  }, [dialogRef, open]);
+  }, [dialogRef, initialFocusRef, open]);
 }

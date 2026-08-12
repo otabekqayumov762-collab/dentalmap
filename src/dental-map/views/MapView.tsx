@@ -19,6 +19,7 @@ import {
 } from "react";
 import { districts } from "../catalog";
 import { geocodePlace } from "../lib/geocode";
+import { escapeHtml } from "../lib/html";
 import { requestUserLocation } from "../lib/location";
 import { openExternal } from "../lib/url";
 import { isYandexEnabled, loadYandex } from "../lib/yandex";
@@ -47,15 +48,6 @@ type MapCanvasProps = {
   clinics: MapClinicMarker[];
   onSelect: (clinic: Clinic) => void;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 /* ── Yandex canvas (preferred for Uzbekistan; needs NEXT_PUBLIC_YANDEX_MAPS_API_KEY) ── */
 

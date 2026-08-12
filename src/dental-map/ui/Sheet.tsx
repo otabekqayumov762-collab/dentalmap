@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useId, useRef, type PointerEvent, type ReactNode } from "react";
+import { useId, useRef, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { useDialogA11y } from "../hooks/useDialogA11y";
 import { cn } from "./cn";
 
@@ -11,17 +11,20 @@ export type SheetProps = {
   title?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Overrides "focus the first focusable element" on open — a sheet whose
+   *  content is a listbox wants the list focused, not the close button. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
 };
 
 /** Bottom sheet — slides up, closes on backdrop tap, Escape, the X button, or a
  *  downward drag on the grab handle. */
-export function Sheet({ open, onClose, title, children, className }: SheetProps) {
+export function Sheet({ open, onClose, title, children, className, initialFocusRef }: SheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<number | null>(null);
   const dragDelta = useRef(0);
   const rafId = useRef<number | null>(null);
   const titleId = useId();
-  useDialogA11y(open, onClose, sheetRef);
+  useDialogA11y(open, onClose, sheetRef, initialFocusRef);
 
   if (!open) {
     return null;

@@ -35,7 +35,12 @@ export { SegmentedToggle, type SegmentedOption, type SegmentedToggleProps } from
 // the shell, and only the (lazily loaded) doctor wizard needs the OTP boxes.
 // OtpStep imports it by path so the code stays off the first-paint chunk.
 export { PhoneField, type PhoneFieldProps } from "./PhoneField";
-export { Select, type SelectOption, type SelectProps } from "./Select";
+export {
+  SingleSelectSheet,
+  type SingleSelectOption,
+  type SingleSelectSheetProps
+} from "./SingleSelectSheet";
+export { SheetTriggerField, type SheetTriggerFieldProps } from "./SheetTriggerField";
 export { OptionGrid, type Option, type OptionGridProps } from "./OptionGrid";
 export { MultiSelectSheet, type MultiSelectSheetProps } from "./MultiSelectSheet";
 export { RegionDistrictSheet, RegionDistrictField, type RegionDistrictSelection } from "./RegionDistrictSheet";

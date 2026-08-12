@@ -6,7 +6,7 @@ import { districts, specialtyOptions } from "../../catalog";
 import { isOfflineMode } from "../../api/dentalMapApi";
 import { PhotoUploadField } from "../../components/PhotoUploadField";
 import type { ApiDoctor, ApiUser, Specialty } from "../../types";
-import { Button, Card, Field, PhoneField, Select, TextareaField } from "../../ui";
+import { Button, Card, Field, PhoneField, SingleSelectSheet, TextareaField } from "../../ui";
 import { GroupLabel, SectionHeader } from "./common";
 
 export type DoctorProfileFormProps = {
@@ -59,7 +59,7 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
             defaultValue={profile?.full_name || user?.full_name || ""}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
+            <SingleSelectSheet
               name="specialty"
               label="Mutaxassislik"
               value={specialty}
@@ -98,7 +98,7 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
         <Card className="flex flex-col gap-4">
           <Field name="clinic_name" label="Klinika nomi" defaultValue={profile?.clinic_name || ""} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
+            <SingleSelectSheet
               name="clinic_district"
               label="Tuman"
               value={clinicDistrict}

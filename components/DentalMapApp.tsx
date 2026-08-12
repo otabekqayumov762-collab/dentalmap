@@ -4,11 +4,12 @@ import { ArrowLeft, Bell, Loader2, Moon, Search, SlidersHorizontal, Stethoscope,
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBackendConfigured, isStaticPreviewHost, isOfflineMode } from "@/src/dental-map/api/dentalMapApi";
 import { districtToRegion, doctorTabs, shortcuts, tabs } from "@/src/dental-map/catalog";
+import { markAppMounted } from "@/src/dental-map/lib/boot";
 import { getAccessToken } from "@/src/dental-map/lib/tokenStore";
 import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender } from "@/src/dental-map/lib/gender";
 import { isTelegramPlaceholderUser } from "@/src/dental-map/lib/onboarding";
-import { cn, RegionDistrictField, Select, ToastProvider, useToast } from "@/src/dental-map/ui";
+import { cn, RegionDistrictField, SingleSelectSheet, ToastProvider, useToast } from "@/src/dental-map/ui";
 import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
@@ -1000,7 +1001,7 @@ function DentalMapAppInner() {
                       placeholder="Barcha hududlar"
                     />
                     <div className="grid grid-cols-2 gap-3">
-                      <Select
+                      <SingleSelectSheet
                         label="Jinsi"
                         value={genderFilter}
                         onChange={(next) => setGenderFilter(next as "" | "male" | "female")}
@@ -1010,7 +1011,7 @@ function DentalMapAppInner() {
                           { value: "female", label: "Ayol" }
                         ]}
                       />
-                      <Select
+                      <SingleSelectSheet
                         label="Klinika"
                         value={clinicFilter}
                         onChange={setClinicFilter}
@@ -1323,6 +1324,13 @@ function DentalMapAppInner() {
 }
 
 export default function DentalMapApp() {
+  // Proof of life for the boot watchdog in app/layout.tsx: this effect can only
+  // run if hydration actually completed. Without it the watchdog replaces the
+  // spinner with an error message after 8s — see src/dental-map/lib/boot.ts.
+  useEffect(() => {
+    markAppMounted();
+  }, []);
+
   return (
     <ToastProvider>
       <DentalMapAppInner />

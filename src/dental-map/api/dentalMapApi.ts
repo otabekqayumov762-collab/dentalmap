@@ -87,6 +87,62 @@ export function normalizeApiList<T>(payload: { results?: T[] } | T[]): T[] {
 let refreshInFlight: Promise<boolean> | null = null;
 let csrfInFlight: Promise<string> | null = null;
 
+/**
+ * What the user is told when an auth endpoint answers 429.
+ *
+ * A throttle is the one auth failure that cures itself, so it must not share
+ * wording with a dead network: "Xavfsiz sessiya tayyorlanmadi." reads as a
+ * broken app and invites the user to keep tapping, which spends the same bucket.
+ */
+export const THROTTLED_MESSAGE = "Server band. Bir daqiqadan so'ng qayta urinib ko'ring.";
+
+/** A 429 from an auth endpoint, distinguishable from every other failure so the
+ *  caller can decline to "recover" by spending the bucket it just emptied. */
+export class ThrottledError extends Error {
+  readonly retryAfterSeconds: number | null;
+
+  constructor(retryAfterSeconds: number | null = null) {
+    super(THROTTLED_MESSAGE);
+    this.name = "ThrottledError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/** Checked by name as well as by prototype: the error crosses async boundaries
+ *  and, once bundled, `instanceof` alone is a class-identity bet. */
+export function isThrottledError(error: unknown): error is ThrottledError {
+  if (error instanceof ThrottledError) {
+    return true;
+  }
+  return Boolean(error) && typeof error === "object" && (error as Error).name === "ThrottledError";
+}
+
+/** DRF sends `Retry-After: <whole seconds>`. A missing header, an HTTP-date or
+ *  a proxy that stripped it all read as "no idea", never as zero. */
+export function parseRetryAfterSeconds(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+  const seconds = Number(value.trim());
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+}
+
+/** Response shape both a real `Response` and the tests satisfy. */
+type RetryAfterCarrier = { headers?: { get?: (name: string) => string | null } };
+
+export function throttledErrorFrom(response: RetryAfterCarrier): ThrottledError {
+  return new ThrottledError(parseRetryAfterSeconds(response.headers?.get?.("Retry-After")));
+}
+
+/**
+ * The CSRF pre-flight gets ONE retry, and only when the server itself promises
+ * a wait no longer than this. Cold-start awaits this call, so sleeping out a
+ * full 60-second window would hold the boot spinner far past the point where the
+ * user gives up; a long wait is reported instead of waited out. The ceiling also
+ * caps the amplification: two requests, never a loop.
+ */
+export const CSRF_RETRY_CEILING_MS = 2000;
+
 /** Obtain Django's CSRF token before an HttpOnly-cookie auth mutation. Kept in
  * memory; the corresponding non-HttpOnly CSRF cookie is managed by the browser. */
 export async function getAuthCsrfToken(): Promise<string> {
@@ -94,12 +150,34 @@ export async function getAuthCsrfToken(): Promise<string> {
     return "";
   }
   if (!csrfInFlight) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
     csrfInFlight = (async () => {
-      const response = await fetch(getApiUrl("/api/auth/csrf/"), {
-        method: "GET",
-        cache: "no-store",
-        credentials: "include"
-      });
+      const request = () =>
+        fetch(getApiUrl("/api/auth/csrf/"), {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+          // Bounded for the same reason as the refresh below: session restore
+          // awaits this, so a socket that hangs would hold the boot spinner forever.
+          signal: controller.signal
+        });
+      let response = await request();
+      if (response.status === 429) {
+        const retryAfterSeconds = parseRetryAfterSeconds(response.headers?.get?.("Retry-After"));
+        const waitMs = retryAfterSeconds === null ? null : retryAfterSeconds * 1000;
+        if (waitMs !== null && waitMs <= CSRF_RETRY_CEILING_MS) {
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+          response = await request();
+        }
+      }
+      if (response.status === 429) {
+        // This is where the Mini App used to die: the cold-start pre-flight is
+        // on the same throttle bucket as the mutations it protects, and a plain
+        // throw here was indistinguishable from an outage. Raised as itself so
+        // the cold-start handler stops retrying into an empty bucket.
+        throw throttledErrorFrom(response);
+      }
       if (!response.ok) {
         throw new Error("Xavfsiz sessiya tayyorlanmadi.");
       }
@@ -109,6 +187,7 @@ export async function getAuthCsrfToken(): Promise<string> {
       }
       return payload.csrf_token;
     })().finally(() => {
+      clearTimeout(timeout);
       csrfInFlight = null;
     });
   }
@@ -139,6 +218,29 @@ export function parseApiError(payload: unknown, fallback = "Xatolik yuz berdi.")
   return values.length ? values.join(" ") : fallback;
 }
 
+/**
+ * Does this refresh response mean the session itself is over?
+ *
+ * Only the server refusing the refresh credential does. Everything else is
+ * transient and must NOT end the session:
+ *   - 429: the backend auth throttle is keyed on the client's public IP, and
+ *     Uzbek carriers (Ucell/Beeline/UzMobile) put thousands of subscribers
+ *     behind one CGNAT address — so a handful of strangers opening the app
+ *     used to log everybody on that carrier out and dump them on the auth wall.
+ *   - 5xx / network errors: a blip, not a verdict on the token.
+ */
+export function endsSessionOnRefresh(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+/**
+ * A refresh that never settles is worse than one that fails: the cookie-mode
+ * session restore in useDentalData awaits this before it will render anything,
+ * so a hung socket leaves the user on the boot spinner with no message at all.
+ * Bound it the same way the Telegram auth call is bounded.
+ */
+export const REFRESH_TIMEOUT_MS = 8000;
+
 export async function refreshAccessToken(): Promise<boolean> {
   const refresh = getRefreshToken();
   const cookieMode = usesRefreshCookie();
@@ -147,6 +249,8 @@ export async function refreshAccessToken(): Promise<boolean> {
   }
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
       try {
         const csrfToken = cookieMode ? await getAuthCsrfToken() : "";
         const headers = new Headers();
@@ -160,10 +264,13 @@ export async function refreshAccessToken(): Promise<boolean> {
           cache: "no-store",
           credentials: authFetchCredentials(),
           headers,
+          signal: controller.signal,
           body: cookieMode ? undefined : JSON.stringify({ refresh })
         });
         if (!response.ok) {
-          storeAuthTokens({});
+          if (endsSessionOnRefresh(response.status)) {
+            storeAuthTokens({});
+          }
           return false;
         }
         const data = (await response.json()) as { access?: string; refresh?: string };
@@ -180,9 +287,11 @@ export async function refreshAccessToken(): Promise<boolean> {
         });
         return true;
       } catch {
-        storeAuthTokens({});
+        // Network failure, abort, or the CSRF pre-flight throwing (it is on the
+        // same throttled scope). Keep the tokens: the next attempt may succeed.
         return false;
       } finally {
+        clearTimeout(timeout);
         refreshInFlight = null;
       }
     })();

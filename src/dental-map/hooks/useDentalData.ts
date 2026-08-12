@@ -16,7 +16,10 @@ import {
   isOfflineMode,
   parseApiError,
   getAuthCsrfToken,
-  refreshAccessToken
+  isThrottledError,
+  refreshAccessToken,
+  throttledErrorFrom,
+  THROTTLED_MESSAGE
 } from "../api/dentalMapApi";
 import { authFetchCredentials, usesRefreshCookie } from "../lib/authMode";
 import { fallbackClinics, fallbackDoctors, fallbackReviews } from "../catalog";
@@ -346,6 +349,11 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         })();
 
         if (!response.ok) {
+          if (response.status === 429) {
+            // Same DRF throttle bucket as the CSRF pre-flight two lines up, so
+            // the same rule applies: report it as a throttle, do not "recover".
+            throw throttledErrorFrom(response);
+          }
           if ([400, 401, 403].includes(response.status)) {
             // A rejected Telegram signature is an authentication failure, not a
             // transient outage. Never resurrect an unrelated stored session.
@@ -377,12 +385,21 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         setAuthStatus("authenticated");
         setAuthMessage("Telegram sessiya tayyor.");
         void refreshPrivateData(payload.tokens?.access || "");
-      } catch {
+      } catch (error) {
         // Transient Telegram auth failures (network/timeout/5xx) may use the
         // previous tab session. Explicit signature/auth rejection fails closed.
+        //
+        // A throttle is transient too, but its recovery is the opposite one:
+        // refreshAccessToken() begins with its own /api/auth/csrf/, which lands
+        // in the very bucket that just refused us. That turned a 60-second limit
+        // into a self-sustaining lockout — one user was thrown out three times
+        // in ninety seconds, each retry buying the next refusal. Reading the
+        // local token store is free, so that fallback still runs; the network
+        // one does not.
+        const throttled = isThrottledError(error);
         let restoredToken =
           allowStoredFallback && telegramUser ? restoreAuthTokens(telegramUser.id) : "";
-        if (!restoredToken && allowStoredFallback && usesRefreshCookie()) {
+        if (!restoredToken && !throttled && allowStoredFallback && usesRefreshCookie()) {
           const restored = await refreshAccessToken();
           restoredToken = restored ? getAccessToken() : "";
         }
@@ -393,7 +410,11 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
           return;
         }
         setAuthStatus("error");
-        setAuthMessage("Telegram orqali kirish vaqtincha ishlamadi. Ilovani qayta ochib urinib ko'ring.");
+        setAuthMessage(
+          throttled
+            ? THROTTLED_MESSAGE
+            : "Telegram orqali kirish vaqtincha ishlamadi. Ilovani qayta ochib urinib ko'ring."
+        );
         telegramApp.HapticFeedback?.notificationOccurred("error");
       }
     }

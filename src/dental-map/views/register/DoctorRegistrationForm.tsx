@@ -16,7 +16,7 @@ import {
   OptionalMark,
   PhoneField,
   RegionDistrictField,
-  Select,
+  SingleSelectSheet,
   TextareaField,
   cn,
   errorTextClass,
@@ -195,7 +195,7 @@ export function DoctorRegistrationForm({
 
   // Wait for the list to SETTLE empty before treating it as blocked. Without
   // this the flag is true during every cold fetch, so entering this pane mid-load
-  // showed "loading…", a red "the list is empty, retry" alert and the Select's
+  // showed "loading…", a red "the list is empty, retry" alert and the picker's
   // own neutral empty note all at once — three answers, one of them wrong.
   const taxonomySettledEmpty = useSettledEmpty(specialtyChoices.length === 0);
   const servicesSettledEmpty = useSettledEmpty(serviceChoices.length === 0);
@@ -596,7 +596,7 @@ export function DoctorRegistrationForm({
             )}
           </div>
         )}
-        <Select
+        <SingleSelectSheet
           label="Asosiy yo'nalish"
           name="specialty"
           value={doctorSpecialty}
@@ -749,7 +749,7 @@ export function DoctorRegistrationForm({
       )}
 
       {/* No third message here: the pane's own status banner covers loading and
-          errors, and the Select explains a genuinely empty list in place. A red
+          errors, and the picker explains a genuinely empty list in place. A red
           alert on top of those told the doctor to retry something that is not
           theirs to fix. */}
     </form>

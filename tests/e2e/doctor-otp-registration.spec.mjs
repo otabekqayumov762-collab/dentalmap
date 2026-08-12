@@ -157,7 +157,19 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
 
   // Pane 6 — professional.
   await expect(page.getByRole("heading", { name: "Mutaxassislik", level: 2 })).toBeVisible();
-  await page.getByLabel("Asosiy yo'nalish").selectOption("Ortodont");
+  // Specialty is a sheet picker, not a native <select> — Android drew that
+  // dropdown itself, in a different visual language from the rest of the form.
+  // Driven from the keyboard on purpose: a native select is keyboard-operable
+  // for free, and a replacement that is not would be a downgrade.
+  const specialty = page.getByRole("combobox", { name: "Asosiy yo'nalish" });
+  await expect(specialty).toHaveAttribute("aria-expanded", "false");
+  await specialty.press("Enter");
+  await expect(specialty).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("listbox").press("Enter");
+  await expect(specialty).toHaveAttribute("aria-expanded", "false");
+  await expect(specialty).toContainText("Ortodont");
+  // The hidden input is what the form actually submits.
+  await expect(page.locator('input[name="specialty"]')).toHaveValue("Ortodont");
   await page.getByRole("textbox", { name: "Ish staji" }).fill("8");
   await advance.click();
 

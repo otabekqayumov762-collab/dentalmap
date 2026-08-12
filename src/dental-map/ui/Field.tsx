@@ -86,8 +86,12 @@ export const labelClass = "mb-1.5 block text-sm font-semibold text-ink-700";
 export const hintClass = "mt-1.5 block text-xs font-medium text-ink-500";
 export const errorTextClass = "mt-1.5 block text-xs font-semibold text-danger";
 
-export function ControlLabel({ children }: { children: ReactNode }) {
-  return <span className={labelClass}>{children}</span>;
+export function ControlLabel({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <span id={id} className={labelClass}>
+      {children}
+    </span>
+  );
 }
 
 /** Trailing "— ixtiyoriy" marker so an optional field reads as optional inside

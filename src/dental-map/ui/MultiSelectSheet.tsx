@@ -1,19 +1,11 @@
 "use client";
 
-import { Check, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "./cn";
-import {
-  ControlLabel,
-  controlHeight,
-  controlTriggerBase,
-  controlTriggerDanger,
-  controlTriggerIdle,
-  errorTextClass,
-  hintClass
-} from "./Field";
 import type { Option } from "./OptionGrid";
 import { Sheet } from "./Sheet";
+import { SheetTriggerField } from "./SheetTriggerField";
 import { useSettledEmpty } from "./useSettledEmpty";
 
 export type MultiSelectSheetProps = {
@@ -64,41 +56,23 @@ export function MultiSelectSheet({
         : `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2}`;
 
   return (
-    <div className="block">
-      {label && <ControlLabel>{label}</ControlLabel>}
-      {name && <input type="hidden" name={name} value={value.join(",")} />}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={disabled || isEmpty}
-        // No aria-invalid: it is not supported on the implicit button role.
-        // The danger border plus the role="alert" message below carry the state.
-        className={cn(
-          controlTriggerBase,
-          controlHeight,
-          invalid ? controlTriggerDanger : controlTriggerIdle,
-          "disabled:cursor-not-allowed disabled:opacity-60"
-        )}
-      >
-        <span className={cn("truncate", summary ? "text-ink-900" : "text-ink-400")}>{summary || placeholder}</span>
-        <ChevronRight
-          size={18}
-          className={cn("shrink-0 text-ink-400 motion-safe:transition-transform", open && "rotate-90")}
-        />
-      </button>
-      {errorText ? (
-        <small className={errorTextClass} role="alert">
-          {errorText}
-        </small>
-      ) : (
-        isEmpty &&
-        emptyHint && (
-          <small className={hintClass} role="status">
-            {emptyHint}
-          </small>
-        )
-      )}
-
+    // No listboxId, so the trigger keeps the plain button role: a toggle list
+    // that stays open is not a combobox, and aria-invalid is unsupported there.
+    // The danger border plus the role="alert" message below carry that state.
+    <SheetTriggerField
+      label={label}
+      name={name}
+      formValue={value.join(",")}
+      summary={summary}
+      placeholder={placeholder}
+      open={open}
+      onOpen={() => setOpen(true)}
+      disabled={disabled || isEmpty}
+      invalid={invalid}
+      errorText={errorText}
+      emptyHint={emptyHint}
+      showEmptyHint={isEmpty}
+    >
       <Sheet open={open} onClose={() => setOpen(false)} title={title || label}>
         {/* Fraction of the TELEGRAM viewport: 55vh of the layout viewport left this
             nested scroller taller than the sheet that contains it on a short
@@ -139,6 +113,6 @@ export function MultiSelectSheet({
           Tayyor{value.length ? ` (${value.length})` : ""}
         </button>
       </Sheet>
-    </div>
+    </SheetTriggerField>
   );
 }

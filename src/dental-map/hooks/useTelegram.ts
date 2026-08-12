@@ -33,20 +33,33 @@ export function useTelegram() {
         return;
       }
 
-      tg.ready();
-      tg.expand();
-      // True fullscreen (Bot API 8.0+): expand() only removes the collapsed
-      // state — Telegram still keeps its own header bar above the app, which on
-      // a phone costs ~90px of the little vertical space there is. Optional
-      // chaining and the try/catch because older clients have neither method,
-      // and a client that refuses fullscreen must not take the app down with it.
+      // Every SDK call below is version-gated, and Telegram's SDK signals an
+      // unsupported method by THROWING Error('WebAppMethodUnsupported') — which
+      // optional chaining does not catch, it only guards a *missing* method.
+      // A throw escaping this effect would skip setInitialized(true) and hand the
+      // whole app to Next's error page, so the entire host handshake sits inside
+      // one guard and `initialized` is set in `finally`: a hostile SDK can cost us
+      // fullscreen or theme sync, never the app itself. We do not pin the SDK
+      // version, so "it only console.warns today" is not a guarantee we control.
       try {
+        tg.ready();
+        tg.expand();
+        // True fullscreen (Bot API 8.0+): expand() only removes the collapsed
+        // state — Telegram still keeps its own header bar above the app, which on
+        // a phone costs ~90px of the little vertical space there is.
         tg.requestFullscreen?.();
+        tg.disableVerticalSwipes?.();
+        setupHost(tg);
       } catch {
-        // Not supported here; expand() already gave us full height.
+        // Older or stricter client. Fall back to the plain browser theme so the
+        // app still renders in the right colour scheme.
+        applyTheme(resolveIsDark(null));
+      } finally {
+        setInitialized(true);
       }
-      tg.disableVerticalSwipes?.();
+    };
 
+    const setupHost = (tg: TelegramWebApp) => {
       // Telegram Desktop and mobile clients expose the usable WebApp height.
       // `100vh/100svh` can include host chrome, which made the auth form grow
       // behind Telegram's header and forced the whole document to scroll.
@@ -75,7 +88,6 @@ export function useTelegram() {
       cleanupTheme = () => tg.offEvent?.("themeChanged", applyTelegramTheme);
 
       setTelegramUser(tg.initDataUnsafe?.user ?? null);
-      setInitialized(true);
     };
 
     const detect = () => {

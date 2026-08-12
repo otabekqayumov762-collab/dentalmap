@@ -72,7 +72,10 @@ function createContentSecurityPolicy() {
       }
     : { script: [], connect: [], img: [], font: [] };
 
-  const scriptSources = ["'self'", "https://telegram.org", ...yandex.script, ...collectInlineScriptHashes(outDir)];
+  // telegram.org is deliberately absent: the Telegram WebApp SDK is vendored
+  // into public/telegram-web-app.js and served from 'self', so the app no longer
+  // depends on that origin being reachable (see app/layout.tsx).
+  const scriptSources = ["'self'", ...yandex.script, ...collectInlineScriptHashes(outDir)];
   const connectSources = [
     "'self'",
     apiOrigin,

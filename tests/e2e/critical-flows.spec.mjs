@@ -56,9 +56,17 @@ function json(route, payload, status = 200, extraHeaders = {}) {
 async function blockTelegramBridge(page) {
   // The real Telegram bridge derives state from the embedding URL and would
   // replace this deterministic host stub when the test runs top-level.
-  await page.route("https://telegram.org/js/telegram-web-app.js", (route) =>
-    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* E2E Telegram host stub */" })
-  );
+  //
+  // Both spellings, because the SDK is now served same-origin from /public: it
+  // used to be fetched from telegram.org on the hydration critical path, where a
+  // network that hangs rather than refuses left React unmounted and the user on
+  // the boot spinner forever. Blocking only the old absolute URL let the real
+  // bridge load and quietly overwrite the stub, so the cookie-restore test found
+  // itself on the Telegram path instead and ended up at the login wall.
+  const stub = (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* E2E Telegram host stub */" });
+  await page.route("https://telegram.org/js/telegram-web-app.js", stub);
+  await page.route("**/telegram-web-app.js", stub);
 }
 
 async function installTelegramHost(page, userId = 777001) {

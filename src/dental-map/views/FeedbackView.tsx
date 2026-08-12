@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { feedbackTopics } from "../catalog";
+import { createUuid } from "../lib/secure";
 import { Button, Chip, TextareaField } from "../ui";
 
 export function FeedbackView({
@@ -13,10 +14,16 @@ export function FeedbackView({
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const idempotencyKeyRef = useRef(crypto.randomUUID());
+  // Lazily, and through createUuid. Passing a bare randomUUID call to useRef
+  // evaluated it on every render (only the first result is ever kept) and crashed
+  // this whole view on any WebView older than Chrome 92, or in a non-secure context.
+  const idempotencyKeyRef = useRef<string>("");
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = createUuid();
+  }
 
   function resetSubmissionIdentity() {
-    idempotencyKeyRef.current = crypto.randomUUID();
+    idempotencyKeyRef.current = createUuid();
   }
 
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {

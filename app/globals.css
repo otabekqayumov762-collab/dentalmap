@@ -174,12 +174,18 @@
   --color-surface-100: #101a21;
   --color-surface-200: #2a3a45;
 
-  /* Darker than every card in this theme, so a control reads as a recessed well
-     instead of blending into whatever surface it was dropped on. */
   /* Same value in dark on purpose — see the light-theme note. */
   --color-on-brand: #031c21;
 
-  --color-control: #121c23;
+  /* The fill sits WITH the card, not below it: this is surface-50, the value the
+     controls resolved to before they got their own token, so dark mode reads the
+     way it did in "Add full dark mode". #121c23 was darker than every card in
+     the theme and punched each input into the pane as a near-black well.
+     Visibility rides entirely on the border, which is the correct lever: at
+     3.48:1 on a surface-50 pane and 3.85:1 on a surface-0 sheet it clears the
+     3:1 WCAG 1.4.11 floor for a control boundary on its own, so the fill does
+     not have to fight the card to prove the control is there. */
+  --color-control: #1f2b34;
   --color-control-border: #6d7f8b;
 
 }

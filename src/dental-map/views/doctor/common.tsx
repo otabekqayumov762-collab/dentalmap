@@ -1,8 +1,7 @@
-import { ChevronDown, type LucideIcon } from "lucide-react";
-import type { ReactNode, SelectHTMLAttributes } from "react";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { appointmentStatusLabel } from "../../api/dentalMapApi";
 import type { ApiAppointment } from "../../types";
-import { cn } from "../../ui";
 
 export type Tone = "brand" | "success" | "warning" | "danger" | "neutral";
 
@@ -25,33 +24,6 @@ export function SectionHeader({ Icon, title, subtitle }: { Icon: LucideIcon; tit
 export function GroupLabel({ children }: { children: ReactNode }) {
   return (
     <span className="mb-2 ml-1 block text-xs font-semibold uppercase tracking-wide text-ink-400">{children}</span>
-  );
-}
-
-/** Labelled native <select> that matches the Select primitive but stays uncontrolled for FormData. */
-export function NativeSelect({
-  label,
-  className,
-  children,
-  ...rest
-}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
-      <div className="relative">
-        <select
-          className={cn(
-            "w-full appearance-none rounded-card border border-surface-200 bg-surface-50 px-4 py-3 pr-10 text-ink-900",
-            "transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40",
-            className
-          )}
-          {...rest}
-        >
-          {children}
-        </select>
-        <ChevronDown size={18} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
-      </div>
-    </label>
   );
 }
 
