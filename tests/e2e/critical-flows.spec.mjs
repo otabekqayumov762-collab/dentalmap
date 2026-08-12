@@ -329,9 +329,9 @@ test("Telegram placeholder onboarding requires privacy consent and creates one r
   await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("StrongPass123!");
   await nextStep.click();
 
-  // Gender and age are optional; step straight past them.
-  await nextStep.click();
-
+  // Three panes, not four: the district question left signup entirely. It is
+  // optional on the backend and only fed "nearby clinics", so it lengthened
+  // registration without unlocking anything — it lives in the profile now.
   await page.locator('input[name="privacy_acknowledged"]').check();
   await page.getByRole("button", { name: "Profil yaratish" }).click();
 
@@ -413,6 +413,13 @@ test("the patient wizard refuses to advance past an incomplete step", async ({ p
   await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("Boshqacha123!");
   await nextStep.click();
   await expect(page.getByLabel("Parolni tasdiqlash", { exact: true })).toBeVisible();
+
+  // Matching passwords open the last pane, where the privacy box is the only
+  // thing standing between the user and a submit.
+  await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("StrongPass123!");
+  await nextStep.click();
+  await page.getByRole("button", { name: "Profil yaratish" }).click();
+  await expect(page.getByRole("button", { name: "Profil yaratish" })).toBeVisible();
 
   // Nothing was ever submitted while the wizard was incomplete.
   expect(registerCalls).toBe(0);

@@ -35,6 +35,16 @@ export function useTelegram() {
 
       tg.ready();
       tg.expand();
+      // True fullscreen (Bot API 8.0+): expand() only removes the collapsed
+      // state — Telegram still keeps its own header bar above the app, which on
+      // a phone costs ~90px of the little vertical space there is. Optional
+      // chaining and the try/catch because older clients have neither method,
+      // and a client that refuses fullscreen must not take the app down with it.
+      try {
+        tg.requestFullscreen?.();
+      } catch {
+        // Not supported here; expand() already gave us full height.
+      }
       tg.disableVerticalSwipes?.();
 
       // Telegram Desktop and mobile clients expose the usable WebApp height.

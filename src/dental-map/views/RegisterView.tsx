@@ -53,8 +53,6 @@ export function RegisterView({
   );
   const [photoFileName, setPhotoFileName] = useState("");
   const [userGender, setUserGender] = useState("");
-  const [userRegion, setUserRegion] = useState<string | null>(null);
-  const [userDistrict, setUserDistrict] = useState("");
   const [doctorSpecialty, setDoctorSpecialty] = useState("");
   const [doctorGender, setDoctorGender] = useState("");
   const [doctorRegion, setDoctorRegion] = useState<string | null>(null);
@@ -92,13 +90,9 @@ export function RegisterView({
             onPatientStepChange(next);
           }}
           userGender={userGender}
-          userRegion={userRegion}
-          userDistrict={userDistrict}
           userRegistered={userRegistered}
           submitting={submitting}
           onGenderChange={setUserGender}
-          onRegionChange={setUserRegion}
-          onDistrictChange={setUserDistrict}
           onSubmit={onUserSubmit}
         />
       ) : (

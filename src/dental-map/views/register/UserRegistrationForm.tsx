@@ -7,7 +7,6 @@ import {
   Field,
   OptionGrid,
   PhoneField,
-  RegionDistrictField,
   cn,
   labelClass,
   useToast
@@ -31,8 +30,7 @@ import { StepHeader } from "./StepHeader";
 const USER_STEPS = [
   { id: "identity", title: "Shaxsiy ma'lumotlar", intro: "Ism va telefon raqamingizni kiriting." },
   { id: "password", title: "Parol yarating", intro: "Hisobingizga kirish uchun parol o'ylab toping." },
-  { id: "profile", title: "Jinsi va yoshi", intro: "Bu shifokor tanlashda yordam beradi." },
-  { id: "location", title: "Manzil", intro: "Yaqin atrofdagi klinikalarni ko'rsatamiz." }
+  { id: "profile", title: "Yakuniy", intro: "Bu ma'lumotlar shifokor tanlashda yordam beradi." }
 ] as const;
 
 const TOTAL_USER_STEPS = USER_STEPS.length;
@@ -42,7 +40,6 @@ type UserField =
   | "phone"
   | "password"
   | "password_confirm"
-  | "district"
   | "privacy_acknowledged";
 
 function Pane({ hidden, intro, children }: { hidden: boolean; intro?: ReactNode; children: ReactNode }) {
@@ -58,24 +55,16 @@ function Pane({ hidden, intro, children }: { hidden: boolean; intro?: ReactNode;
 
 export function UserRegistrationForm({
   userGender,
-  userRegion,
-  userDistrict,
   userRegistered,
   submitting,
   onGenderChange,
-  onRegionChange,
-  onDistrictChange,
   onSubmit,
   onStepChange
 }: {
   userGender: string;
-  userRegion: string | null;
-  userDistrict: string;
   userRegistered: boolean;
   submitting: boolean;
   onGenderChange: (gender: string) => void;
-  onRegionChange: (region: string | null) => void;
-  onDistrictChange: (district: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   /** Mirrored to the shell so the auth chrome can collapse once a choice is made. */
   onStepChange?: (step: number) => void;
@@ -130,10 +119,9 @@ export function UserRegistrationForm({
       return null;
     }
 
-    // Pane 3 (gender, age) is entirely optional — gating it would block signup
-    // on data the backend does not require.
-
-    if (target === 4) {
+    // Gender and age are optional — gating them would block signup on data the
+    // backend does not require. The privacy acknowledgement is not optional.
+    if (target === 3) {
       if (value("privacy_acknowledged") !== "yes") {
         return { field: "privacy_acknowledged", message: "Maxfiylik qoidalarini o'qib tasdiqlang." };
       }
@@ -258,22 +246,10 @@ export function UserRegistrationForm({
           />
         </fieldset>
         <Field label="Yoshi" name="age" numeric placeholder="Yosh" />
-      </Pane>
-
-      <Pane hidden={step !== 4} intro={USER_STEPS[3].intro}>
-        <RegionDistrictField
-          label="Tuman"
-          name="district"
-          mode="select"
-          region={userRegion}
-          district={userDistrict || null}
-          onSelect={(selection) => {
-            onRegionChange(selection.region);
-            onDistrictChange(selection.district ?? "");
-            clear("district");
-          }}
-          placeholder="Tumanni tanlang"
-        />
+        {/* Tuman bu yerda so'ralmaydi: u ixtiyoriy (backend required=False) va
+            faqat "yaqin atrofdagi klinikalar" uchun kerak — ro'yxatdan o'tishni
+            uzaytiradigan, lekin hech narsani ochmaydigan savol edi. Profildan
+            istalgan vaqtda kiritiladi. */}
         <PrivacyAcknowledgement error={invalidField === "privacy_acknowledged"} />
       </Pane>
 

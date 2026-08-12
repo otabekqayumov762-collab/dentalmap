@@ -52,6 +52,10 @@ export type TelegramWebApp = {
   viewportStableHeight?: number;
   ready: () => void;
   expand: () => void;
+  /** Bot API 8.0+; absent on older clients. */
+  requestFullscreen?: () => void;
+  exitFullscreen?: () => void;
+  isFullscreen?: boolean;
   close: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;

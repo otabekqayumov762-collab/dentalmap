@@ -773,10 +773,6 @@ function DentalMapAppInner() {
   useTelegramButtons({
     webApp,
     activeView: telegramButtonView,
-    selectedDoctor,
-    consultationSent,
-    // Booking submits must also disable the MainButton (spinner + no re-taps).
-    submitting: isSubmitting || appointmentSubmitting,
     showBack: showPageBack || inDoctorWizard,
     onBack: () => {
       if (inDoctorWizard) {
@@ -784,10 +780,7 @@ function DentalMapAppInner() {
         return;
       }
       navigate(backTarget);
-    },
-    // Route through navigate() so the appointment view always enters via the
-    // fresh-booking reset (stale success screen fix) — never raw changeView.
-    changeView: navigate
+    }
   });
 
   // Telegram-only mode (off by default so the app stays browsable). Flip
