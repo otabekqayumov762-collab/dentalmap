@@ -6,8 +6,14 @@ export const metadata: Metadata = {
 };
 
 function safeApiBase() {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
+  // Same-origin mode: an empty base leaves a root-relative `/admin/superstat/`,
+  // which is where the admin panel lives when one host serves both.
+  if (configured === "same-origin") {
+    return "";
+  }
   try {
-    const url = new URL(process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8000");
+    const url = new URL(configured || "http://localhost:8000");
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
       return "http://localhost:8000";
     }

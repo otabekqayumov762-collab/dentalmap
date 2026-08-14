@@ -56,6 +56,15 @@ const RECEIPT_DOCUMENT_PATH_PREFIX = "/api/v1/billing/receipt-document/";
 function configuredApiOrigin() {
   const base =
     process.env.NEXT_PUBLIC_API_V1_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || "";
+  // `same-origin` (the token dentalMapApi.ts defines; duplicated here for the
+  // same reason the precedence above is duplicated — this module must not import
+  // anything). It is the ONE case where the app's own origin is the right
+  // allowlist: the document is served by our API on the very host that served
+  // this page. Before a window exists there is no origin to compare against, so
+  // it keeps failing closed.
+  if (base === "same-origin") {
+    return typeof window === "undefined" ? "" : window.location.origin;
+  }
   return base ? new URL(base).origin : "";
 }
 

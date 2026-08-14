@@ -15,9 +15,34 @@ import type {
   Specialty
 } from "../types";
 
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/[/]+$/, "") || "";
+/**
+ * Opt-in value for "the backend is served from the same origin as this bundle",
+ * which is how the app is actually deployed: Caddy serves the export and proxies
+ * `/api/` on one hostname. In this mode every request is a relative path, so the
+ * hostname is not compiled in and moving the app to a new domain needs no rebuild.
+ *
+ * It is a literal token and NOT an empty NEXT_PUBLIC_API_URL on purpose: empty
+ * already means "nobody configured a backend" and must stay a loud failure
+ * (`isBackendConfigured()` false, `getApiUrl` throws). Overloading it would turn
+ * a forgotten build arg into an app that looks healthy while requesting `/api/`
+ * from whatever host happens to serve it. `scripts/validate-env.mjs` keeps
+ * rejecting everything that is neither this exact word nor a valid absolute URL.
+ */
+export const SAME_ORIGIN_API_URL = "same-origin";
+
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
+
+/** True when the API shares the app's origin and paths are used as-is. */
+export const isSameOriginApi = rawApiUrl === SAME_ORIGIN_API_URL;
+
+const configuredApiUrl = isSameOriginApi ? "" : rawApiUrl.replace(/[/]+$/, "");
 
 function resolveApiBaseUrl() {
+  if (isSameOriginApi) {
+    // No base at all: the browser resolves the relative path against the page.
+    return "";
+  }
+
   if (typeof window !== "undefined" && configuredApiUrl) {
     try {
       const configured = new URL(configuredApiUrl);
@@ -37,7 +62,7 @@ function resolveApiBaseUrl() {
 export const API_BASE_URL = resolveApiBaseUrl();
 
 export function isBackendConfigured() {
-  return Boolean(API_BASE_URL);
+  return isSameOriginApi || Boolean(API_BASE_URL);
 }
 
 /** When true, the app creates/uses local accounts instead of calling the backend
@@ -55,11 +80,19 @@ export function isOfflineMode() {
 }
 
 export function getApiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Same-origin mode returns the path untouched — a relative request carries no
+  // hostname, so it follows the app wherever it is served from.
+  if (isSameOriginApi) {
+    return normalizedPath;
+  }
+
   if (!API_BASE_URL) {
     throw new Error("Ilova server manzili sozlanmagan.");
   }
 
-  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${API_BASE_URL}${normalizedPath}`;
 }
 
 export function isStaticPreviewHost() {

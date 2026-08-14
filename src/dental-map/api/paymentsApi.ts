@@ -1,6 +1,6 @@
 import { getAccessToken } from "../lib/tokenStore";
 import { authFetchCredentials } from "../lib/authMode";
-import { API_BASE_URL, normalizeApiList, parseApiError, refreshAccessToken } from "./dentalMapApi";
+import { API_BASE_URL, isSameOriginApi, normalizeApiList, parseApiError, refreshAccessToken } from "./dentalMapApi";
 
 /**
  * Thin client for the FastAPI billing API (base = app origin + `/api/v1`).
@@ -45,11 +45,16 @@ export type BillingSubscription = {
   display: string;
 };
 
-/** Absolute URL for a v1 billing endpoint. Throws if the backend is unset. */
+/** URL for a v1 billing endpoint — absolute, or relative in same-origin mode.
+ *  Throws if the backend is unset. */
 export function getApiV1Url(path: string) {
   const suffix = path.startsWith("/") ? path : `/${path}`;
   if (configuredV1Base) {
     return `${configuredV1Base}${suffix}`;
+  }
+  // Same-origin: the same `/api/v1` suffix, just without a host in front of it.
+  if (isSameOriginApi) {
+    return `${API_V1_PREFIX}${suffix}`;
   }
   if (!API_BASE_URL) {
     throw new Error("Ilova server manzili sozlanmagan.");

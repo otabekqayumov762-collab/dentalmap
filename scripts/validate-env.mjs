@@ -21,6 +21,12 @@ for (const file of [".env.local", ".env"]) {
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
 
+/** The one non-URL value NEXT_PUBLIC_API_URL accepts: the API is served from the
+ *  app's own origin, so nothing about the host is compiled into the bundle.
+ *  Anything else still has to be a valid absolute URL — a typo such as
+ *  "sameorigin" or "same-origin/" is not this token and fails below. */
+const SAME_ORIGIN_API_URL = "same-origin";
+
 function fail(message) {
   console.error(`Build configuration error: ${message}`);
   process.exit(1);
@@ -59,6 +65,8 @@ if (!rawApiUrl && process.env.GITHUB_PAGES === "true") {
   console.log("GITHUB_PAGES=true: backend API URL validation skipped for static preview build.");
 } else if (!rawApiUrl) {
   fail("NEXT_PUBLIC_API_URL is required for production/static builds.");
+} else if (rawApiUrl === SAME_ORIGIN_API_URL) {
+  console.log("Build API URL: same-origin (relative requests, no hostname in the bundle).");
 } else {
   const apiUrl = validatePublicUrl("NEXT_PUBLIC_API_URL", rawApiUrl);
   console.log(`Build API URL validated: ${apiUrl.origin}`);

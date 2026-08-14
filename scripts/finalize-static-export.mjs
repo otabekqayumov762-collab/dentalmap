@@ -13,7 +13,10 @@ if (!existsSync(outDir)) {
 
 function getApiOrigin() {
   const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
-  if (!rawApiUrl) {
+  // "same-origin" is not a URL: the API shares the app's host, which every
+  // directive here already covers with 'self'. Returning "" keeps this origin out
+  // of connect-src/img-src so the CSP itself names no hostname either.
+  if (!rawApiUrl || rawApiUrl === "same-origin") {
     return "";
   }
   return new URL(rawApiUrl).origin;

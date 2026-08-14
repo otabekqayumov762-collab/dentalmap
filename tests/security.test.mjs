@@ -331,6 +331,56 @@ test("receipt document links are restricted to the configured API v1 origin", ()
   }
 });
 
+test("same-origin builds allow the receipt document on the host that served the app", () => {
+  // With NEXT_PUBLIC_API_URL=same-origin there is no configured hostname to
+  // compare against, so the allowlist becomes the page's own origin — the exact
+  // host the API is proxied on. Getting this wrong fails CLOSED and leaves the
+  // doctor a "chek" button that opens nothing, which is why it is asserted.
+  const previousWindow = globalThis.window;
+  const previousV1 = process.env.NEXT_PUBLIC_API_V1_URL;
+  const previousApi = process.env.NEXT_PUBLIC_API_URL;
+  process.env.NEXT_PUBLIC_API_V1_URL = "";
+  process.env.NEXT_PUBLIC_API_URL = "same-origin";
+  const documentPath = "/api/v1/billing/receipt-document/abc.def.ghi/";
+
+  try {
+    globalThis.window = { location: { origin: "https://dental.example" } };
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.example${documentPath}`), true);
+    // Any other host, including the one it used to be pinned to.
+    assert.equal(isAllowedReceiptDocumentUrl(`https://api.dental.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.example.evil.example${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://user:secret@dental.example${documentPath}`), false);
+    // Right origin, wrong endpoint stays wrong.
+    assert.equal(isAllowedReceiptDocumentUrl("https://dental.example/api/v1/billing/payments/"), false);
+
+    // The app moves to a new hostname; the same bundle keeps working.
+    globalThis.window = { location: { origin: "https://dental.uz" } };
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.uz${documentPath}`), true);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.example${documentPath}`), false);
+
+    // An explicit v1 base still outranks the page origin.
+    process.env.NEXT_PUBLIC_API_V1_URL = "https://billing.dental.example/api/v1";
+    assert.equal(isAllowedReceiptDocumentUrl(`https://billing.dental.example${documentPath}`), true);
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.uz${documentPath}`), false);
+
+    // Without a window there is no origin to trust, so it must fail closed — and
+    // must resolve to an EMPTY origin, not to the string "null": `URL.origin` is
+    // literally "null" for a non-special scheme, so anything else here would make
+    // the guard accept `foo://...` (the same trap the empty-base case documents).
+    process.env.NEXT_PUBLIC_API_V1_URL = "";
+    delete globalThis.window;
+    assert.equal(isAllowedReceiptDocumentUrl(`https://dental.uz${documentPath}`), false);
+    assert.equal(isAllowedReceiptDocumentUrl(`foo://dental.uz${documentPath}`), false);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+    if (previousV1 === undefined) delete process.env.NEXT_PUBLIC_API_V1_URL;
+    else process.env.NEXT_PUBLIC_API_V1_URL = previousV1;
+    if (previousApi === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+    else process.env.NEXT_PUBLIC_API_URL = previousApi;
+  }
+});
+
 test("receipt documents open through Telegram's own browser, with a real fallback", () => {
   const previousWindow = globalThis.window;
   const previousV1 = process.env.NEXT_PUBLIC_API_V1_URL;
@@ -411,6 +461,16 @@ test("build environment validator rejects unsafe public redirects", () => {
     run({ NEXT_PUBLIC_AUTH_TOKEN_MODE: "legacy-session", ALLOW_LEGACY_SESSION_AUTH: "" }).status,
     0
   );
+
+  // "same-origin" is the one non-URL value NEXT_PUBLIC_API_URL accepts, and it
+  // has to be the WHOLE value: everything below still has to fail the build, or a
+  // typo would ship as a relative-looking absolute base like "sameorigin/api/...".
+  assert.equal(run({ NEXT_PUBLIC_API_URL: "same-origin" }).status, 0);
+  for (const typo of ["sameorigin", "same_origin", "Same-Origin", "same-origin/", "same origin"]) {
+    assert.notEqual(run({ NEXT_PUBLIC_API_URL: typo }).status, 0, `${typo} must fail the build`);
+  }
+  // The token belongs to NEXT_PUBLIC_API_URL alone; the v1 base is still a URL.
+  assert.notEqual(run({ NEXT_PUBLIC_API_V1_URL: "same-origin" }).status, 0);
 });
 
 test("static export keeps server configuration private and denies sensitive SPA fallbacks", () => {
@@ -442,6 +502,47 @@ test("static export keeps server configuration private and denies sensitive SPA 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("connect-src carries the API origin when it has one, and only 'self' when it does not", () => {
+  const cspFor = (apiUrl) => {
+    const root = mkdtempSync(join(tmpdir(), "dental-csp-origin-"));
+    const out = join(root, "out");
+    mkdirSync(out);
+    writeFileSync(join(out, "index.html"), "<!doctype html><script>window.__ok=true</script>");
+    try {
+      const run = spawnSync(process.execPath, [resolve("scripts/finalize-static-export.mjs"), out], {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          NEXT_PUBLIC_API_URL: apiUrl,
+          NEXT_PUBLIC_API_V1_URL: "",
+          NEXT_PUBLIC_MEDIA_URL: "",
+          NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ""
+        }
+      });
+      assert.equal(run.status, 0, run.stderr);
+      const nginx = readFileSync(join(root, "generated", "nginx.conf"), "utf8");
+      const directive = (name) => new RegExp(`[ "]${name} ([^;]+);`).exec(nginx)?.[1];
+      return { connect: directive("connect-src"), img: directive("img-src") };
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+
+  // Cross-origin API: the origin must still be listed, or every request is blocked.
+  const crossOrigin = cspFor("https://api.example.test");
+  assert.equal(crossOrigin.connect, "'self' https://api.example.test https://nominatim.openstreetmap.org");
+  assert.ok(crossOrigin.img.includes("https://api.example.test"));
+
+  // Same-origin API: 'self' already covers it, so the policy names no host at all
+  // and the deployed hostname can change without regenerating this file.
+  const sameOrigin = cspFor("same-origin");
+  assert.equal(sameOrigin.connect, "'self' https://nominatim.openstreetmap.org");
+  assert.equal(sameOrigin.connect.includes("same-origin"), false, "the token must never leak into the policy");
+  assert.equal(sameOrigin.img.includes("same-origin"), false);
+  assert.ok(sameOrigin.img.startsWith("'self' data: blob:"));
 });
 
 test("public bundle scanner rejects private deployment artifacts and server credential markers", () => {
