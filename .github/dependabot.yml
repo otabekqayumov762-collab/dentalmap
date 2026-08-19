@@ -1,0 +1,27 @@
+# NEXT_PUBLIC_* values are baked in at build time and the Docker base image is
+# pinned, so nothing here updates on its own. Two dev-only advisories
+# (brace-expansion, js-yaml) sat in the lockfile for exactly that reason — they
+# never reach the browser from a static export, but they also never got fixed.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Patch traffic arrives as one PR; a minor or major still comes on its own
+      # so a Next.js or React upgrade gets read rather than rubber-stamped.
+      npm-patches:
+        patterns: ["*"]
+        update-types: ["patch"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

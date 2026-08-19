@@ -5,12 +5,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Dental Map",
-  description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi.",
-  icons: {
-    icon: "/brand/dental-map-logo.png",
-    shortcut: "/brand/dental-map-logo.png",
-    apple: "/brand/dental-map-logo.png"
-  }
+  description: "Shifokor, klinika, qabul, xarita va yozuvlar uchun Dental Map mini ilovasi."
+  // No `icons` block on purpose. These three entries all pointed at
+  // /brand/dental-map-logo.png — a 640x640, 100 kB PNG that the UI never renders
+  // — so every cold load spent ~100 kB on a favicon, more than half the page's
+  // whole image budget. Next.js serves app/icon.svg (527 B) automatically from
+  // the file convention and emits the <link> tags itself; app/apple-icon.png
+  // covers the iOS home-screen icon at its real 180x180 size.
 };
 
 export const viewport: Viewport = {
