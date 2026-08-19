@@ -121,15 +121,34 @@ function createContentSecurityPolicy() {
   ].join("; ");
 }
 
+// One definition, two consumers: the nginx config production runs, and the JSON
+// the local preview server reads. `npm start` used to look for an `out/_headers`
+// file that nothing writes (scan-public-bundle.mjs actually treats it as a
+// private artifact that must NOT ship), so the preview served no CSP at all and
+// could not be used to check the headers before a deploy.
+function securityHeaderPairs(csp) {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "Strict-Transport-Security": "max-age=31536000",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+    "Content-Security-Policy": csp
+  };
+}
+
 function nginxSecurityHeaders(csp) {
-  return [
-    '    add_header X-Content-Type-Options "nosniff" always;',
-    '    add_header Strict-Transport-Security "max-age=31536000" always;',
-    '    add_header X-Permitted-Cross-Domain-Policies "none" always;',
-    '    add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
-    '    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;',
-    `    add_header Content-Security-Policy "${csp}" always;`
-  ].join("\n");
+  return Object.entries(securityHeaderPairs(csp))
+    .map(([name, value]) => `    add_header ${name} "${value}" always;`)
+    .join("\n");
+}
+
+function writeSecurityHeadersJson(csp) {
+  mkdirSync(generatedDir, { recursive: true });
+  writeFileSync(
+    join(generatedDir, "security-headers.json"),
+    `${JSON.stringify(securityHeaderPairs(csp), null, 2)}\n`
+  );
 }
 
 function writeNginxConfig(csp) {
@@ -173,6 +192,24 @@ ${securityHeaders}
         location ~ (^|/)\\. { return 404; }
         location ~* (^|/)(?:_headers|nginx\\.conf|dockerfile|docker-compose\\.ya?ml|package(?:-lock)?\\.json|tsconfig\\.json|next\\.config\\.(?:js|mjs|ts)|\\.git)(?:/|$) { return 404; }
 
+        # Everything under /_next/static/ carries a content hash in its filename,
+        # so a changed file is a changed URL and the body can never go stale.
+        # 30d was leaving repeat visitors to revalidate assets that are immutable
+        # by construction.
+        #
+        # The security headers are repeated here on purpose: nginx only inherits
+        # add_header from an outer block when the inner block declares none of its
+        # own, so setting Cache-Control here would otherwise drop the CSP, HSTS and
+        # nosniff headers from every script and stylesheet response. Same generated
+        # string as the server block, so there is still one source of truth.
+        location ^~ /_next/static/ {
+${securityHeaders}
+            add_header Cache-Control "public, max-age=31536000, immutable" always;
+            try_files $uri =404;
+        }
+
+        # Un-hashed assets (brand images, the vendored Telegram SDK, map tiles)
+        # keep a bounded TTL: their URLs stay the same when the content changes.
         location ~* \\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
             expires 30d;
             try_files $uri =404;
@@ -210,5 +247,6 @@ function precompressAssets(directory) {
 
 const csp = createContentSecurityPolicy();
 writeNginxConfig(csp);
+writeSecurityHeadersJson(csp);
 const precompressedCount = precompressAssets(outDir);
 console.log(`Private runtime config generated. Precompressed ${precompressedCount} asset(s).`);

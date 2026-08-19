@@ -22,7 +22,7 @@
  * letting it accumulate silently.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join, resolve } from "node:path";
 
@@ -35,8 +35,24 @@ const outDir = resolve(process.argv[2] ?? "out");
 const BUDGETS = {
   entryJsGzipKb: 150,
   entryCssGzipKb: 30,
-  entryCssKb: 140
+  entryCssKb: 140,
+  // Images were invisible to this guard, and that is how a 640x640, 100 kB PNG
+  // ended up wired in as the favicon/shortcut/apple icon: JS and CSS both
+  // reported "ok" while images were 56% of the page's 433 kB. Raw bytes, not
+  // gzip — PNG and WebP are already compressed.
+  //
+  // `imagesKb` covers every image the export ships outside /_next/ and outside
+  // the offline map-tile cache, so an oversized asset dropped into public/ trips
+  // this even before something references it.
+  imagesKb: 25,
+  // No single image should be large enough to dominate a mobile page load.
+  largestImageKb: 15
 };
+
+// The pre-rendered map tiles are a deliberate offline cache for the map view,
+// fetched on navigation rather than at first paint, so they are budgeted
+// separately from the shell's images.
+const TILE_DIR_SEGMENT = "map-tiles";
 
 function fail(message) {
   console.error(`Bundle budget failed: ${message}`);
@@ -96,17 +112,50 @@ if (entryJsGzip === 0) fail("index.html references no JS at all — the export l
 
 const entryCssGzip = entryCssBytes.reduce((total, buffer) => total + gzipSync(buffer).length, 0);
 
+// Walk the export for shipped images. /_next/static/media holds the leaflet
+// marker sprites, which the map chunk pulls in on navigation and which the JS
+// budget above already governs by proxy.
+const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|gif|webp|avif|svg|ico)$/i;
+
+function collectImages(directory, found = []) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === TILE_DIR_SEGMENT || entry.name === "_next") continue;
+      collectImages(path, found);
+      continue;
+    }
+    if (IMAGE_EXTENSIONS.test(entry.name)) {
+      found.push({ path, name: path.slice(outDir.length + 1), bytes: statSync(path).size });
+    }
+  }
+  return found;
+}
+
+const images = collectImages(outDir).sort((a, b) => b.bytes - a.bytes);
+const imagesTotal = images.reduce((total, image) => total + image.bytes, 0);
+const largestImage = images[0];
+
 const measured = [
   ["entry JS (gzip)", kb(entryJsGzip), BUDGETS.entryJsGzipKb],
   ["entry CSS (gzip)", kb(entryCssGzip), BUDGETS.entryCssGzipKb],
-  ["entry CSS (raw)", kb(entryCss), BUDGETS.entryCssKb]
+  ["entry CSS (raw)", kb(entryCss), BUDGETS.entryCssKb],
+  ["images (raw)", kb(imagesTotal), BUDGETS.imagesKb],
+  ["largest image", kb(largestImage?.bytes ?? 0), BUDGETS.largestImageKb]
 ];
+
+const CODE_ADVICE =
+  "Split the new code with next/dynamic (see src/dental-map/views/lazyViews.tsx) or raise the budget in this file with a reason.";
+const IMAGE_ADVICE = largestImage
+  ? `Resize or re-encode the asset (largest is ${largestImage.name} at ${kb(largestImage.bytes)} kB), or raise the budget in this file with a reason.`
+  : "Resize or re-encode the asset, or raise the budget in this file with a reason.";
 
 for (const [label, actual, budget] of measured) {
   const status = actual <= budget ? "ok" : "OVER";
   console.log(`  ${label.padEnd(18)} ${String(actual).padStart(6)} kB / ${budget} kB  ${status}`);
   if (actual > budget) {
-    fail(`${label} is ${actual} kB, over the ${budget} kB budget. Split the new code with next/dynamic (see src/dental-map/views/lazyViews.tsx) or raise the budget in this file with a reason.`);
+    const advice = label.startsWith("images") || label.startsWith("largest") ? IMAGE_ADVICE : CODE_ADVICE;
+    fail(`${label} is ${actual} kB, over the ${budget} kB budget. ${advice}`);
   }
 }
 
@@ -131,4 +180,4 @@ if (!hasLeafletChunk) {
 if (process.exitCode) {
   process.exit(1);
 }
-console.log("Bundle budget passed: first paint stays within the mobile budget and leaflet CSS is off the critical path.");
+console.log("Bundle budget passed: first paint and shipped images stay within the mobile budget, and leaflet CSS is off the critical path.");

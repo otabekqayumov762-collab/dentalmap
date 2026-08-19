@@ -728,7 +728,12 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     clearSensitiveStorage();
     setCurrentUser(null);
     setAppointments([]);
-    setDoctorReviews(fallbackReviews);
+    // Same gate the initial state uses: the demo catalog belongs to offline mode
+    // only. This was unconditional, so a real logout seeded state with fabricated
+    // demo reviews. Harmless today — they carry no appointmentId and the only
+    // consumer filters those out — but it is one field away from a signed-in
+    // patient being told they already reviewed an appointment they never did.
+    setDoctorReviews(isOfflineMode() ? fallbackReviews : []);
     setPublicDoctorReviews([]);
     setDoctorProfile(null);
     setDoctorSchedule([]);

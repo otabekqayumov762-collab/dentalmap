@@ -29,21 +29,29 @@ if (!existsSync(root)) {
 }
 
 function loadSecurityHeaders() {
-  const headersPath = join(root, "_headers");
+  // finalize-static-export.mjs writes this alongside nginx.conf, from the same
+  // header definition, so `npm start` answers with the CSP production sends and
+  // the headers can be checked before a deploy.
+  //
+  // It lives in generated/ rather than out/ deliberately: scan-public-bundle.mjs
+  // fails the build if deployment configuration ends up inside the published
+  // export. The previous code read `out/_headers`, which nothing ever writes for
+  // exactly that reason — so every preview response went out bare.
+  const headersPath = resolve("generated", "security-headers.json");
   if (!existsSync(headersPath)) {
+    console.warn(
+      `No ${headersPath} — serving without security headers. Run \`npm run build\` to generate it.`
+    );
     return {};
   }
 
-  const headers = {};
-  for (const rawLine of readFileSync(headersPath, "utf8").split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line === "/*" || !line.includes(":")) {
-      continue;
-    }
-    const separatorIndex = line.indexOf(":");
-    headers[line.slice(0, separatorIndex).trim()] = line.slice(separatorIndex + 1).trim();
+  try {
+    const parsed = JSON.parse(readFileSync(headersPath, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    console.warn(`Could not read ${headersPath}: ${error.message}`);
+    return {};
   }
-  return headers;
 }
 
 const securityHeaders = loadSecurityHeaders();
@@ -95,16 +103,29 @@ const server = createServer((request, response) => {
     return;
   }
 
+  // Serve the .gz files finalize-static-export.mjs already produced, the way
+  // production does (`gzip_static on` in the generated nginx.conf). Without this
+  // the preview server sent everything uncompressed: the entry CSS measured
+  // 126.8 kB instead of 22.7 kB and a whole page load read 985 kB instead of
+  // 433 kB, so anyone profiling `npm start` saw a payload 2.1x the real one.
+  const acceptsGzip = /\bgzip\b/.test(request.headers["accept-encoding"] || "");
+  const precompressedPath = `${filePath}.gz`;
+  const useGzip = acceptsGzip && existsSync(precompressedPath);
+
   response.writeHead(200, {
     ...securityHeaders,
     "Cache-Control": extname(filePath) === ".html" ? "no-cache" : "public, max-age=31536000, immutable",
-    "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream"
+    "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream",
+    // Both branches vary on the header, so a shared cache can never hand a
+    // gzipped body to a client that did not ask for one.
+    "Vary": "Accept-Encoding",
+    ...(useGzip ? { "Content-Encoding": "gzip" } : {})
   });
   if (request.method === "HEAD") {
     response.end();
     return;
   }
-  createReadStream(filePath).pipe(response);
+  createReadStream(useGzip ? precompressedPath : filePath).pipe(response);
 });
 
 server.listen(port, host, () => {
