@@ -7,7 +7,6 @@ import {
   Clock3,
   Hourglass,
   Loader2,
-  MessageSquareText,
   Pencil,
   RefreshCw,
   ShieldAlert,
@@ -371,27 +370,18 @@ export function OtpStep({
           the number is the commonest reason a code never arrives, and a screen
           that only ever says "wrong code" sends people hunting in the wrong
           place. */}
-      <div className="flex items-start gap-3 rounded-card border border-brand-200 bg-brand-50 p-4">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-100 text-brand-700">
-          <MessageSquareText size={19} aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-relaxed text-ink-600">{sentText}</p>
-          <p className="mt-1 text-base font-black tracking-tight tabular-nums text-ink-900">
-            {maskPhone(phone)}
-          </p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={onEditPhone}
-        disabled={busy}
-        className={cn(inlineActionClass, "-mt-2 self-start")}
-      >
-        <Pencil size={15} aria-hidden="true" />
-        O&apos;zgartirish
-      </button>
+      <p className="text-sm leading-relaxed text-ink-500">
+        {sentText}{" "}
+        <span className="font-black tabular-nums text-ink-900">{maskPhone(phone)}</span>{" "}
+        <button
+          type="button"
+          onClick={onEditPhone}
+          disabled={busy}
+          className={cn(inlineActionClass, "inline align-baseline")}
+        >
+          O&apos;zgartirish
+        </button>
+      </p>
 
       {/* Keyed on the rejection count: a refused code replays the shake and
           hands focus back to the first box. */}
