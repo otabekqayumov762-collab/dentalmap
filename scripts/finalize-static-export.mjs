@@ -173,12 +173,29 @@ ${securityHeaders}
         location ~ (^|/)\\. { return 404; }
         location ~* (^|/)(?:_headers|nginx\\.conf|dockerfile|docker-compose\\.ya?ml|package(?:-lock)?\\.json|tsconfig\\.json|next\\.config\\.(?:js|mjs|ts)|\\.git)(?:/|$) { return 404; }
 
+        # Content-hashed by the build, so a change ships a new filename. Safe to
+        # keep for a month.
         location ~* \\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
             expires 30d;
             try_files $uri =404;
         }
 
+        # HTML must revalidate on every open, and this is not a nicety.
+        #
+        # index.html names the hashed chunks. A deploy replaces the whole
+        # directory, so the previous build's chunks are DELETED. Serving this
+        # file from cache therefore hands the browser a document pointing at
+        # files that now 404, and the app never boots -- a blank screen, right
+        # after every deploy, for anyone whose copy was still cached. Measured:
+        # the previous chunk returned 404 while the current one returned 200,
+        # and a phone was still being shown the pre-deploy wizard.
+        #
+        # Without an explicit Cache-Control, nginx sends none, and browsers fall
+        # back to heuristic caching off Last-Modified -- so the staleness window
+        # grows the longer a build survives. no-cache still allows a 304 on the
+        # ETag, so the cost is one conditional request, not a re-download.
         location / {
+            add_header Cache-Control "no-cache" always;
             try_files $uri $uri/ /index.html;
         }
     }
