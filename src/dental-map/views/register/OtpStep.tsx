@@ -28,6 +28,11 @@ export type OtpStepProps = {
   phone: string;
   /** Metadata from the issue that brought the user here (or from a resend). */
   issue: OtpIssue | null;
+  /** The "a code went out" sentence. Overridable because the password-reset
+   *  endpoint answers a number with no account exactly as it answers one with
+   *  an account — so that flow must not state an SMS was sent. Registration
+   *  knows one was, and keeps the plain wording. */
+  sentText?: string;
   /** A token is already held in memory: the pane is done. */
   verified: boolean;
   /** The outer registration POST is in flight. */
@@ -52,6 +57,7 @@ export function OtpStep({
   active,
   phone,
   issue,
+  sentText = "Raqamingizga 6 xonali kod yubordik.",
   verified,
   formSubmitting,
   onRequestOtp,
@@ -79,10 +85,19 @@ export function OtpStep({
   const codeExpired = Boolean(issuedAt) && codeRemaining === 0;
 
   // One interval for both clocks, and only while this pane is on screen.
+  //
+  // The first tick is taken immediately rather than waiting a second, because
+  // `now` was seeded when this component mounted -- which is when the wizard
+  // rendered step 1, not when the user arrived here. Every second spent typing
+  // a name and a phone made `now` staler, so the first frame showed a countdown
+  // ABOVE the maximum the server issued: "Kod amal qiladi: 2:26" against an
+  // expires_in of 120. It corrected itself a second later, which is exactly
+  // long enough to be seen and not long enough to be believed.
   useEffect(() => {
     if (!active || !issuedAt || verified) {
       return;
     }
+    setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [active, issuedAt, verified]);
@@ -162,7 +177,7 @@ export function OtpStep({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm font-medium leading-relaxed text-ink-500">
-        Raqamingizga 6 xonali kod yubordik. Kod {expiresIn ? clock(expiresIn) : "2:00"} davomida amal qiladi.
+        {sentText} Kod {expiresIn ? clock(expiresIn) : "2:00"} davomida amal qiladi.
       </p>
 
       <OtpCodeInput

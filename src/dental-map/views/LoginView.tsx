@@ -1,7 +1,7 @@
 import { LogIn } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import type { ViewId } from "../types";
-import { Button, Field, PhoneField, useToast } from "../ui";
+import { Button, Field, PhoneField, cn, inlineActionClass, useToast } from "../ui";
 
 // Draft key so the phone input survives a Telegram mini-app reload. Passwords
 // are never persisted in browser storage.
@@ -17,7 +17,9 @@ function readLoginDraft(): { phone: string } {
   }
 }
 
-function writeLoginDraft(phone: string) {
+/** Also called by the password-reset flow, so a finished reset drops the user
+ *  back on this form with the number already filled in. */
+export function writeLoginDraft(phone: string) {
   try {
     if (phone) {
       window.sessionStorage.setItem(loginDraftKey, JSON.stringify({ phone }));
@@ -31,10 +33,15 @@ function writeLoginDraft(phone: string) {
 
 export function LoginView({
   onLogin,
-  onNavigate
+  onNavigate,
+  onForgotPassword
 }: {
   onLogin: (login: string, password: string) => Promise<string>;
   onNavigate: (view: ViewId) => void;
+  /** Opens the reset flow. Optional because the two in-app fallbacks that
+   *  render this form sit behind the auth wall, where there is no wizard to
+   *  hand the user off to — and a dead link is worse than none. */
+  onForgotPassword?: () => void;
 }) {
   const { toast } = useToast();
   const [phone, setPhone] = useState("");
@@ -107,6 +114,18 @@ export function LoginView({
           <LogIn size={18} />
           {submitting ? "Kirilmoqda..." : "Kirish"}
         </Button>
+
+        {/* Inside the card and under the button: this is the answer to a
+            failed sign-in, and the only place it is looked for. */}
+        {onForgotPassword && (
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className={cn(inlineActionClass, "self-center")}
+          >
+            Parolni unutdingizmi?
+          </button>
+        )}
       </form>
 
       <p className="text-center text-sm text-ink-500">

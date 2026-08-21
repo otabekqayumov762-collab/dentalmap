@@ -66,8 +66,9 @@ type UseDentalDataArgs = {
   telegramInitialized: boolean;
 };
 
-/** The only purpose these endpoints accept — they are NOT a generic OTP service
- *  (no login-by-code, no password reset). Widening it is a separate decision. */
+/** The only purpose the REGISTRATION otp endpoints accept. Password reset has
+ *  its own three endpoints and its own ticket salt on the backend; sharing this
+ *  one would let a signup ticket change somebody's password. */
 const OTP_PURPOSE = "register-doctor";
 
 /** What one issued code is worth to the UI: the two clocks it has to run.
@@ -89,6 +90,76 @@ type OtpRequestPayload = {
 };
 
 type OtpVerifyPayload = { otp_token?: string; expires_in?: number };
+
+type ResetVerifyPayload = { reset_token?: string; expires_in?: number };
+
+/** Offline (static preview / local) mode has no backend to reset a password
+ *  against, and pretending otherwise would end with the user believing their
+ *  password changed. */
+const OFFLINE_RESET_MESSAGE = "Bu rejimda parolni tiklab bo'lmaydi.";
+
+/**
+ * Turn a 429 body into a sentence that answers "when?".
+ *
+ * Every ceiling (per-IP window, hourly phone bucket, resend cooldown) comes
+ * back with the same deliberately vague "Juda ko'p urinish. Keyinroq urinib
+ * ko'ring." — and "keyinroq" is not an answer: the user taps again straight
+ * away, is refused again, and concludes the app is broken. The body carries
+ * retry_after in seconds, so say it.
+ */
+function throttleMessage(payload: unknown): string | null {
+  const retryAfter =
+    payload && typeof payload === "object"
+      ? (payload as { retry_after?: unknown }).retry_after
+      : undefined;
+  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter < 1) {
+    return null;
+  }
+  const seconds = Math.ceil(retryAfter);
+  const wait = seconds < 60 ? `${seconds} soniya` : `${Math.ceil(seconds / 60)} daqiqa`;
+  return `Juda ko'p urinish. ${wait}dan keyin qayta urinib ko'ring.`;
+}
+
+/**
+ * One POST to an anonymous auth endpoint: CSRF header, cookie credentials, a
+ * hard timeout, and a rejected promise carrying the server's own message.
+ *
+ * The five OTP calls (two for registration, three for reset) are the same
+ * request with a different path and body, and the timeout/clearTimeout dance
+ * is easy to get subtly wrong once per copy.
+ */
+async function postAuthJson(
+  path: string,
+  body: Record<string, unknown>,
+  fallback = "Kod yuborilmadi. Qayta urinib ko'ring."
+): Promise<unknown> {
+  const controller = new AbortController();
+  const csrfToken = await getAuthCsrfToken();
+  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  const response = await (async () => {
+    try {
+      return await fetch(getApiUrl(path), {
+        method: "POST",
+        cache: "no-store",
+        credentials: authFetchCredentials(),
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : null)
+        },
+        signal: controller.signal,
+        body: JSON.stringify(body)
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  })();
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const throttled = response.status === 429 ? throttleMessage(payload) : null;
+    throw new Error(throttled ?? parseApiError(payload, fallback));
+  }
+  return payload;
+}
 
 /**
  * Central data layer for the mini app: public catalog, Telegram-backed auth,
@@ -965,30 +1036,10 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
       // the wizard here would make the GitHub Pages demo unusable.
       return { expiresIn: 120, resendAfter: 60, issuedAt: Date.now(), devCode: "000000" };
     }
-    const controller = new AbortController();
-    const csrfToken = await getAuthCsrfToken();
-    const timeout = window.setTimeout(() => controller.abort(), 30000);
-    const response = await (async () => {
-      try {
-        return await fetch(getApiUrl("/api/auth/otp/request/"), {
-          method: "POST",
-          cache: "no-store",
-          credentials: authFetchCredentials(),
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken ? { "X-CSRFToken": csrfToken } : null)
-          },
-          signal: controller.signal,
-          body: JSON.stringify({ phone, purpose: OTP_PURPOSE })
-        });
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    })();
-    const payload = (await response.json().catch(() => null)) as OtpRequestPayload | null;
-    if (!response.ok) {
-      throw new Error(parseApiError(payload, "Kod yuborilmadi. Qayta urinib ko'ring."));
-    }
+    const payload = (await postAuthJson("/api/auth/otp/request/", {
+      phone,
+      purpose: OTP_PURPOSE
+    })) as OtpRequestPayload | null;
     return {
       expiresIn: typeof payload?.expires_in === "number" ? payload.expires_in : 120,
       resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 60,
@@ -1004,35 +1055,72 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     if (isOfflineMode()) {
       return "offline-otp-token";
     }
-    const controller = new AbortController();
-    const csrfToken = await getAuthCsrfToken();
-    const timeout = window.setTimeout(() => controller.abort(), 30000);
-    const response = await (async () => {
-      try {
-        return await fetch(getApiUrl("/api/auth/otp/verify/"), {
-          method: "POST",
-          cache: "no-store",
-          credentials: authFetchCredentials(),
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken ? { "X-CSRFToken": csrfToken } : null)
-          },
-          signal: controller.signal,
-          body: JSON.stringify({ phone, code, purpose: OTP_PURPOSE })
-        });
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    })();
-    const payload = (await response.json().catch(() => null)) as OtpVerifyPayload | null;
-    if (!response.ok) {
-      throw new Error(parseApiError(payload, "Kodni tasdiqlab bo'lmadi. Qayta urinib ko'ring."));
-    }
+    const payload = (await postAuthJson(
+      "/api/auth/otp/verify/",
+      { phone, code, purpose: OTP_PURPOSE },
+      "Kodni tasdiqlab bo'lmadi. Qayta urinib ko'ring."
+    )) as OtpVerifyPayload | null;
     if (typeof payload?.otp_token !== "string" || !payload.otp_token) {
       throw new Error("Tasdiqlash serveri noto'g'ri javob qaytardi.");
     }
     return payload.otp_token;
   }, []);
+
+  /**
+   * Step 1 of a password reset: ask the backend to SMS a code.
+   *
+   * The answer is deliberately the same whether or not the phone has an
+   * account — including how long it takes — so there is nothing here to branch
+   * on and nothing to show the user beyond "check your phone".
+   */
+  const requestPasswordReset = useCallback(async (phone: string): Promise<OtpIssue> => {
+    if (isOfflineMode()) {
+      throw new Error(OFFLINE_RESET_MESSAGE);
+    }
+    const payload = (await postAuthJson("/api/auth/password/reset/request/", {
+      phone
+    })) as OtpRequestPayload | null;
+    return {
+      expiresIn: typeof payload?.expires_in === "number" ? payload.expires_in : 120,
+      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 60,
+      issuedAt: Date.now(),
+      devCode: typeof payload?.dev_code === "string" ? payload.dev_code : undefined
+    };
+  }, []);
+
+  /** Step 2: exchange the code for the short-lived signed ticket step 3 spends.
+   *  Returned, never stored — the caller keeps it in a ref so it stays out of
+   *  every browser storage. */
+  const verifyPasswordReset = useCallback(async (phone: string, code: string): Promise<string> => {
+    if (isOfflineMode()) {
+      throw new Error(OFFLINE_RESET_MESSAGE);
+    }
+    const payload = (await postAuthJson(
+      "/api/auth/password/reset/verify/",
+      { phone, code },
+      "Kodni tasdiqlab bo'lmadi. Qayta urinib ko'ring."
+    )) as ResetVerifyPayload | null;
+    if (typeof payload?.reset_token !== "string" || !payload.reset_token) {
+      throw new Error("Tasdiqlash serveri noto'g'ri javob qaytardi.");
+    }
+    return payload.reset_token;
+  }, []);
+
+  /** Step 3: spend the ticket on a new password. The backend ends every other
+   *  session at the same time, so nothing local is worth keeping either. */
+  const confirmPasswordReset = useCallback(
+    async (phone: string, resetToken: string, password: string): Promise<void> => {
+      if (isOfflineMode()) {
+        throw new Error(OFFLINE_RESET_MESSAGE);
+      }
+      await postAuthJson(
+        "/api/auth/password/reset/confirm/",
+        { phone, reset_token: resetToken, password },
+        "Parolni yangilab bo'lmadi. Qayta urinib ko'ring."
+      );
+    },
+    []
+  );
 
   const submitDoctorReview = useCallback(
     async (doctorId: string, rating: number, text: string, appointmentId?: string) => {
@@ -1420,6 +1508,9 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     registerDoctor,
     requestOtp,
     verifyOtp,
+    requestPasswordReset,
+    verifyPasswordReset,
+    confirmPasswordReset,
     submitDoctorReview,
     submitFeedback,
     submitDoctorProfileUpdate,

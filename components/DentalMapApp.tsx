@@ -81,6 +81,9 @@ function DentalMapAppInner() {
     registerDoctor,
     requestOtp,
     verifyOtp,
+    requestPasswordReset,
+    verifyPasswordReset,
+    confirmPasswordReset,
     submitDoctorReview,
     submitFeedback,
     submitDoctorProfileUpdate,
@@ -848,6 +851,9 @@ function DentalMapAppInner() {
         onOtpTokenChange={(token) => {
           doctorOtpTokenRef.current = token;
         }}
+        onRequestPasswordReset={requestPasswordReset}
+        onVerifyPasswordReset={verifyPasswordReset}
+        onConfirmPasswordReset={confirmPasswordReset}
         onUserSubmit={sendUserRegistration}
         onDoctorSubmit={sendDoctorRegistration}
       />

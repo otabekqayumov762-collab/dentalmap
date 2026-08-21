@@ -7,7 +7,14 @@ type Size = "sm" | "md" | "lg";
 const base =
   "inline-flex items-center justify-center gap-2 font-semibold rounded-pill transition-all duration-150 " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 focus-visible:ring-offset-2 " +
-  "disabled:opacity-55 disabled:pointer-events-none motion-safe:active:scale-[0.98]";
+  // Disabled has to read as disabled on BOTH grounds. Opacity alone does that
+  // on white -- 55% of a saturated fill over a pale page is visibly washed out
+  // -- but over dark ink the same 55% of the teal->blue gradient still looks
+  // like a live button, and the OTP pane sits there with "Tasdiqlash" inviting
+  // a tap that does nothing. Desaturating carries the state in a way that does
+  // not depend on what is behind it. This dulls the DISABLED state, never the
+  // brand: an enabled button keeps the gradient at full strength.
+  "disabled:opacity-55 disabled:saturate-[0.35] disabled:pointer-events-none motion-safe:active:scale-[0.98]";
 
 const variants: Record<Variant, string> = {
   primary: "bg-brand-500 text-white hover:bg-brand-600 shadow-card",

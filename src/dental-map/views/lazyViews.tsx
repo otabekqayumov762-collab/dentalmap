@@ -117,6 +117,16 @@ export const DoctorRegistrationForm = dynamic(
   { ssr: false, loading: ViewFallback }
 );
 
+// Password reset carries the same OTP boxes as the wizard, and the ui barrel
+// keeps OtpCodeInput off the first-paint chunk on purpose. Reaching this flow
+// takes two deliberate taps ("Kirish" then "Parolni unutdingizmi?"), so a
+// static import would put the code-entry UI in front of every cold start to
+// serve the rare user who has forgotten their password.
+export const PasswordResetView = dynamic(
+  () => import("./PasswordResetView").then((m) => m.PasswordResetView),
+  { ssr: false, loading: ViewFallback }
+);
+
 /** Warm the wizard chunk before it is rendered. Safe to call repeatedly: the
  *  module registry dedupes, so extra taps cost nothing. */
 export function prefetchDoctorRegistrationForm() {

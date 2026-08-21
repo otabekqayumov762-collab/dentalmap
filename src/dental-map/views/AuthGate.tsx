@@ -6,11 +6,16 @@ import { BrandLogo } from "../components/common";
 import type { OtpIssue } from "../hooks/useDentalData";
 import { isDarkActive, setPreference } from "../lib/theme";
 import type { RegisterRole, Service, Specialty } from "../types";
-import { SegmentedToggle, cn, type SegmentedOption } from "../ui";
+import { SegmentedToggle, cn, useToast, type SegmentedOption } from "../ui";
+// Code-split with the doctor wizard, for the same reason: both carry the OTP
+// boxes, and neither is on the path a cold start takes.
+import { PasswordResetView } from "./lazyViews";
 import { LoginView } from "./LoginView";
 import { RegisterView } from "./RegisterView";
 
-export type AuthMode = "login" | "register";
+/** "reset" is a third screen, not a third tab: it is reached from the login
+ *  form and leaves back to it, so it never appears in the toggle. */
+export type AuthMode = "login" | "register" | "reset";
 
 // No icons here on purpose: "Ro'yxatdan o'tish" already fills half the pill at
 // 375px, and an icon in front of it forces the label to truncate.
@@ -43,6 +48,9 @@ export type AuthGateProps = {
   onRequestOtp: (phone: string) => Promise<OtpIssue>;
   onVerifyOtp: (phone: string, code: string) => Promise<string>;
   onOtpTokenChange: (token: string | null) => void;
+  onRequestPasswordReset: (phone: string) => Promise<OtpIssue>;
+  onVerifyPasswordReset: (phone: string, code: string) => Promise<string>;
+  onConfirmPasswordReset: (phone: string, resetToken: string, password: string) => Promise<void>;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -73,12 +81,25 @@ export function AuthGate({
   onRequestOtp,
   onVerifyOtp,
   onOtpTokenChange,
+  onRequestPasswordReset,
+  onVerifyPasswordReset,
+  onConfirmPasswordReset,
   onUserSubmit,
   onDoctorSubmit
 }: AuthGateProps) {
   // Login is a single screen with nothing to step through, so only the
   // registration wizard can be "in progress".
   const inWizard = mode === "register" && registerStep > 1;
+  // The reset flow owns the whole screen for the same reason the wizard does:
+  // the header and the Kirish/Ro'yxatdan o'tish toggle are choosers, and the
+  // user has already chosen. Its own "Kirish" button is the way back.
+  // Only the Kirish/Ro'yxatdan o'tish toggle is hidden: it is a chooser, and
+  // the user has chosen. The wordmark stays, because the reset flow has no
+  // other context of its own — and because the theme button is anchored to the
+  // top of this section, so a StepHeader promoted into that band would have its
+  // progress segments running under a 44px button.
+  const inReset = mode === "reset";
+  const { toast } = useToast();
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   useEffect(() => {
@@ -125,9 +146,11 @@ export function AuthGate({
             </h1>
           </div>
           <p className="text-sm font-medium leading-relaxed text-ink-500">
-            {registrationOnly
-              ? "Telegram profilingizni yakunlang va foydalanish turini tanlang"
-              : "Telefon raqam orqali kiring yoki yangi profil yarating"}
+            {inReset
+              ? "Raqamingizni tasdiqlang va yangi parol o'rnating"
+              : registrationOnly
+                ? "Telegram profilingizni yakunlang va foydalanish turini tanlang"
+                : "Telefon raqam orqali kiring yoki yangi profil yarating"}
           </p>
         </header>
         )}
@@ -143,7 +166,7 @@ export function AuthGate({
           </button>
         )}
 
-        {!inWizard && !registrationOnly && (
+        {!inWizard && !inReset && !registrationOnly && (
           <SegmentedToggle
             value={mode}
             options={modeOptions}
@@ -152,8 +175,24 @@ export function AuthGate({
           />
         )}
 
-        {!registrationOnly && mode === "login" ? (
-          <LoginView onLogin={onLogin} onNavigate={() => onModeChange("register")} />
+        {!registrationOnly && inReset ? (
+          <PasswordResetView
+            onRequestCode={onRequestPasswordReset}
+            onVerifyCode={onVerifyPasswordReset}
+            onConfirm={onConfirmPasswordReset}
+            onDone={(message) => {
+              onModeChange("login");
+              if (message) {
+                toast.success(message);
+              }
+            }}
+          />
+        ) : !registrationOnly && mode === "login" ? (
+          <LoginView
+            onLogin={onLogin}
+            onNavigate={() => onModeChange("register")}
+            onForgotPassword={() => onModeChange("reset")}
+          />
         ) : (
           <RegisterView
             role={role}
