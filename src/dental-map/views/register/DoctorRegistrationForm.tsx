@@ -483,8 +483,7 @@ export function DoctorRegistrationForm({
             className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
           />
           <span className="text-sm font-medium leading-relaxed text-ink-500">
-            Telefon raqamimni tasdiqlash uchun SMS kod yuborilishiga roziman. Kod eSKIZ xizmati orqali
-            yuboriladi.
+            Telefon raqamimni tasdiqlash uchun SMS kod yuborilishiga roziman.
           </span>
         </label>
         )}

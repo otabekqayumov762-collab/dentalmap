@@ -923,7 +923,7 @@ function DentalMapAppInner() {
                     <span className="inline-flex">
                       <BrandLogo />
                     </span>
-                    <strong className="text-xl font-extrabold tracking-tight text-ink-900">
+                    <strong className="whitespace-nowrap text-xl font-extrabold tracking-tight text-ink-900">
                       DENTAL <span className="text-brand-500">MAP</span>
                     </strong>
                   </button>

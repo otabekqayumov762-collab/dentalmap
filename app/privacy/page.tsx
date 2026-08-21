@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           <p className="text-sm leading-relaxed">
             Ma&apos;lumotlar akkauntni yuritish, qabulni tashkil etish, shifokor bilan bog&apos;lash,
             to&apos;lovni tasdiqlash, firibgarlikdan himoya va yordam ko&apos;rsatish uchun ishlatiladi.
-            Zarur qismi tanlangan shifokor/klinika, Payme va infratuzilma provayderlariga berilishi
+            Zarur qismi tanlangan shifokor/klinika, Payme, SMS kodlarni yetkazuvchi eSKIZ va infratuzilma provayderlariga berilishi
             mumkin; reklama uchun sotilmaydi.
           </p>
         </section>

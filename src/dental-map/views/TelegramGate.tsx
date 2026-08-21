@@ -17,7 +17,7 @@ export function TelegramGate() {
           <BrandLogo />
         </span>
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-xl font-extrabold tracking-tight text-ink-900">
+          <h1 className="whitespace-nowrap text-xl font-extrabold tracking-tight text-ink-900">
             DENTAL <span className="text-brand-500">MAP</span>
           </h1>
           <p className="text-sm leading-relaxed text-ink-500">

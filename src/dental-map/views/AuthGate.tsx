@@ -141,7 +141,7 @@ export function AuthGate({
         <header className="mx-auto mt-4 flex w-full max-w-sm flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3">
             <BrandLogo className="h-11 w-11" />
-            <h1 className="text-2xl font-black tracking-tight text-ink-900">
+            <h1 className="whitespace-nowrap text-2xl font-black tracking-tight text-ink-900">
               DENTAL <span className="text-brand-500">MAP</span>
             </h1>
           </div>
