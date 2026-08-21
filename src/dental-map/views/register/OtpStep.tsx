@@ -53,7 +53,6 @@ const SUCCESS_HOLD_MS = 900;
 
 /** Segments in the code-life meter. Twelve fits 360px with gap-1 and still
  *  moves visibly: at a 90s TTL one segment is 7.5 seconds. */
-const METER_SEGMENTS = 12;
 
 /** Both sentences the throttle path can produce start this way — the vague one
  *  the backend sends and the one useDentalData rewrites with the real wait. */
@@ -325,9 +324,6 @@ export function OtpStep({
   // Hidden once the code is dead: a bar still counting down beside "the code
   // expired" is the screen arguing with itself.
   const showMeter = Boolean(issuedAt) && !codeBlocked;
-  const litSegments =
-    expiresIn > 0 ? Math.ceil((codeRemaining / expiresIn) * METER_SEGMENTS) : 0;
-  const codeRunningOut = !codeExpired && expiresIn > 0 && codeRemaining <= expiresIn / 4;
 
   if (verified) {
     return (
@@ -458,21 +454,6 @@ export function OtpStep({
             >
               {clock(codeRemaining)}
             </span>
-          </div>
-          <div className="flex items-center gap-1" aria-hidden="true">
-            {Array.from({ length: METER_SEGMENTS }, (_, index) => (
-              <span
-                key={index}
-                className={cn(
-                  "h-1 flex-1 rounded-pill transition-colors duration-500",
-                  index < litSegments
-                    ? codeRunningOut
-                      ? "bg-warning"
-                      : "bg-brand-500"
-                    : "bg-surface-200"
-                )}
-              />
-            ))}
           </div>
         </div>
       )}
