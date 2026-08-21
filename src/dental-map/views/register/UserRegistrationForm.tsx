@@ -189,11 +189,19 @@ export function UserRegistrationForm({
     return null;
   }
 
+  /** Verified means done with this pane, so move on rather than parking the
+   *  user in front of a filled-in code with a button still to press. Password
+   *  reset already worked this way; the two wizards did not, and the extra tap
+   *  read as the code not having registered. OtpStep holds its confirmation
+   *  beat before calling this, so the jump is not mid-keystroke. */
   function storeToken(token: string | null) {
     otpTokenRef.current = token;
     verifiedPhoneRef.current = token ? phoneValue : "";
     setOtpVerified(Boolean(token));
     onOtpTokenChange(token);
+    if (token) {
+      goToStep(OTP_STEP + 1);
+    }
   }
 
   /** The identity pane's CTA: validate, then buy the code before advancing. */
@@ -443,7 +451,7 @@ export function UserRegistrationForm({
             onClick={goBack}
           >
             <ArrowLeft size={18} />
-            Ortga
+            Orqaga
           </Button>
         )}
         {isLastStep ? (

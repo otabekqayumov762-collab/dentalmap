@@ -133,13 +133,16 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   await expect(page.getByText("Kod noto'g'ri.")).toBeVisible();
   await expect(advance).toBeDisabled();
 
+  // A correct code carries the user forward on its own. There is no tap here on
+  // purpose: leaving somebody in front of a filled-in code with a button still
+  // to press read as the code not having registered.
   await boxes.first().fill("123456");
-  await expect(page.getByText("Telefon raqam tasdiqlandi")).toBeVisible();
-  expect(verifyBody).toEqual({ phone: "+998 90 123 45 67", code: "123456", purpose: "register-doctor" });
-  await advance.click();
 
-  // Pane 3 — password.
+  // Pane 3 — password, arrived at without a click. Waiting on the pane before
+  // reading verifyBody is deliberate: the verify POST is in flight, and
+  // asserting on it the instant the last digit lands is a race the test loses.
   await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
+  expect(verifyBody).toEqual({ phone: "+998 90 123 45 67", code: "123456", purpose: "register-doctor" });
   await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
   await page.getByLabel("Parolni takrorlang", { exact: true }).fill("Mismatch1!");
   await advance.click();

@@ -113,13 +113,16 @@ test("patient OTP wizard walks 4 panes and posts the ticket", async ({ page }) =
   await expect(page.getByText("Kod noto'g'ri.")).toBeVisible();
   await expect(advance).toBeDisabled();
 
+  // A correct code carries the user forward on its own. No tap here on purpose:
+  // leaving somebody in front of a filled-in code with a button still to press
+  // read as the code not having registered.
   await boxes.first().fill("123456");
-  await expect(page.getByText("Telefon raqam tasdiqlandi")).toBeVisible();
-  expect(verifyBody).toEqual({ phone: "+998 90 123 45 67", code: "123456", purpose: "register-doctor" });
-  await advance.click();
 
-  // Pane 3 — password.
+  // Pane 3 — password, arrived at without a click. Waiting on the pane before
+  // reading verifyBody is deliberate: the verify POST is in flight, and
+  // asserting on it the instant the last digit lands is a race the test loses.
   await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
+  expect(verifyBody).toEqual({ phone: "+998 90 123 45 67", code: "123456", purpose: "register-doctor" });
   await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
   await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("StrongPass123!");
   await advance.click();
@@ -194,9 +197,12 @@ test("editing the phone after verifying it drops the ticket", async ({ page }) =
   await advance.click();
 
   await page.getByLabel(/-raqam$/).first().fill("123456");
-  await expect(page.getByText("Telefon raqam tasdiqlandi")).toBeVisible();
+  // Verifying now advances by itself, so the code pane is behind us.
+  await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
 
-  // Back to the identity pane and change the number.
+  // Back to the code pane, then out to identity to change the number.
+  await page.getByRole("button", { name: "Orqaga" }).click();
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
   await page.getByRole("button", { name: "Raqamni o'zgartirish" }).click();
   await expect(page.getByRole("heading", { name: "Shaxsiy ma'lumotlar", level: 2 })).toBeVisible();
   await phone.fill("909999999");
@@ -326,8 +332,8 @@ test("a Telegram-identified patient is shown the pane, and the code goes to a re
 
   await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
   await page.getByLabel(/-raqam$/).first().fill("123456");
-  await expect(page.getByText("Telefon raqam tasdiqlandi")).toBeVisible();
-  await advance.click();
+  // Verification carries the wizard forward on its own.
+  await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
 
   await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
   await page.getByLabel("Parolni tasdiqlash", { exact: true }).fill("StrongPass123!");
