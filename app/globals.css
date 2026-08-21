@@ -222,6 +222,28 @@
   }
 }
 
+/* A refused OTP code. Small amplitude on purpose: the message is what says
+   what went wrong, the shake only says "look here". The global reduced-motion
+   rule collapses it to 0.01ms like every other animation. */
+@keyframes otp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 @keyframes sheet-in {
   from {
     transform: translateY(100%);
