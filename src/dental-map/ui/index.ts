@@ -32,8 +32,9 @@ export {
 } from "./Field";
 export { SegmentedToggle, type SegmentedOption, type SegmentedToggleProps } from "./SegmentedToggle";
 // OtpCodeInput is deliberately NOT re-exported here: this barrel is imported by
-// the shell, and only the (lazily loaded) doctor wizard needs the OTP boxes.
-// OtpStep imports it by path so the code stays off the first-paint chunk.
+// the shell, and the OTP boxes belong to OtpStep, which BOTH wizards reach
+// through a lazy boundary. OtpStep imports it by path so the code stays off the
+// first-paint chunk.
 export { PhoneField, type PhoneFieldProps } from "./PhoneField";
 export {
   SingleSelectSheet,

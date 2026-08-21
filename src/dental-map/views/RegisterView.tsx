@@ -3,8 +3,9 @@ import { isOfflineMode } from "../api/dentalMapApi";
 import type { OtpIssue } from "../hooks/useDentalData";
 import type { RegisterRole, Service, Specialty } from "../types";
 // The doctor wizard is code-split (see lazyViews.tsx): the patient form is the
-// default path and the one the e2e drives, and it must not pay for the OTP
-// boxes, the map picker and the region sheet it never renders.
+// default path and the one the e2e drives, and it must not pay for the map
+// picker and the region sheet it never renders. The OTP pane is no longer on
+// that list — patients verify their phone too, so those boxes are theirs now.
 import { DoctorRegistrationForm, prefetchDoctorRegistrationForm } from "./lazyViews";
 import { RegisterRoleToggle } from "./register/RegisterRoleToggle";
 import { UserRegistrationForm } from "./register/UserRegistrationForm";
@@ -93,6 +94,9 @@ export function RegisterView({
           userRegistered={userRegistered}
           submitting={submitting}
           onGenderChange={setUserGender}
+          onRequestOtp={onRequestOtp}
+          onVerifyOtp={onVerifyOtp}
+          onOtpTokenChange={onOtpTokenChange}
           onSubmit={onUserSubmit}
         />
       ) : (

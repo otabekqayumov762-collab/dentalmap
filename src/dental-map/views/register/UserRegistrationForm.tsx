@@ -1,17 +1,38 @@
+"use client";
+
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { genderOptions } from "../../catalog";
 import { PrivacyAcknowledgement } from "../../components/PrivacyAcknowledgement";
+import type { OtpIssue } from "../../hooks/useDentalData";
+import { otpEnabled } from "../../lib/otp";
 import {
   Button,
   Field,
   OptionGrid,
   PhoneField,
   cn,
+  errorTextClass,
   labelClass,
   useToast
 } from "../../ui";
 import { StepHeader } from "./StepHeader";
+
+/**
+ * The code-entry pane, kept OFF the first-paint chunk.
+ *
+ * This form is statically imported by the shell, so a plain import would put
+ * the six OTP boxes in front of every cold start — the exact cost the ui barrel
+ * refuses to re-export OtpCodeInput to avoid, and 2 kB gzip against a 150 kB
+ * budget that has 0.5 kB left. Rendering it inside an always-mounted (hidden)
+ * pane means the chunk starts loading when the wizard mounts, long before the
+ * patient has typed a phone number, so nothing is ever waited on.
+ */
+const OtpStep = dynamic(() => import("./OtpStep").then((m) => m.OtpStep), {
+  ssr: false,
+  loading: () => null
+});
 
 /**
  * The patient wizard, built on the same bones as the doctor one.
@@ -25,19 +46,24 @@ import { StepHeader } from "./StepHeader";
  *
  * Four panes, not the doctor's seven: a patient supplies far less, and padding
  * the flow with near-empty screens would make signup feel longer than it is.
- * No SMS step here — see the note on the phone pane.
+ * The SMS pane is the one they share — see the note on it below.
  */
 const USER_STEPS = [
   { id: "identity", title: "Shaxsiy ma'lumotlar", intro: "Ism va telefon raqamingizni kiriting." },
+  { id: "otp", title: "Kodni tasdiqlang", intro: "" },
   { id: "password", title: "Parol yarating", intro: "Hisobingizga kirish uchun parol o'ylab toping." },
   { id: "profile", title: "Yakuniy", intro: "Bu ma'lumotlar shifokor tanlashda yordam beradi." }
 ] as const;
 
 const TOTAL_USER_STEPS = USER_STEPS.length;
+const IDENTITY_STEP = 1;
+const OTP_STEP = 2;
 
 type UserField =
   | "full_name"
   | "phone"
+  | "sms_consent"
+  | "otp_token"
   | "password"
   | "password_confirm"
   | "privacy_acknowledged";
@@ -58,6 +84,9 @@ export function UserRegistrationForm({
   userRegistered,
   submitting,
   onGenderChange,
+  onRequestOtp,
+  onVerifyOtp,
+  onOtpTokenChange,
   onSubmit,
   onStepChange
 }: {
@@ -65,22 +94,40 @@ export function UserRegistrationForm({
   userRegistered: boolean;
   submitting: boolean;
   onGenderChange: (gender: string) => void;
+  onRequestOtp: (phone: string) => Promise<OtpIssue>;
+  onVerifyOtp: (phone: string, code: string) => Promise<string>;
+  onOtpTokenChange: (token: string | null) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   /** Mirrored to the shell so the auth chrome can collapse once a choice is made. */
   onStepChange?: (step: number) => void;
 }) {
   const { toast } = useToast();
   const [invalidField, setInvalidField] = useState<UserField | null>(null);
+  const [invalidMessage, setInvalidMessage] = useState("");
   const [step, setStep] = useState(1);
+  const [phoneValue, setPhoneValue] = useState("");
+  const [otpIssue, setOtpIssue] = useState<OtpIssue | null>(null);
+  // The identity pane owns its own in-flight flag: a 429 or a 503 from the SMS
+  // provider must keep the user on the pane, not advance and not block the form.
+  const [requestingOtp, setRequestingOtp] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  // MEMORY ONLY, exactly as in the doctor wizard: the signed ticket never
+  // touches sessionStorage, localStorage, the URL or a DOM value attribute. A
+  // reload loses it and the patient restarts at the identity pane.
+  const otpTokenRef = useRef<string | null>(null);
+  // The phone the live token belongs to; editing the number invalidates it.
+  const verifiedPhoneRef = useRef("");
 
   function goToStep(next: number) {
-    setStep(next);
-    onStepChange?.(next);
+    const clamped = Math.min(Math.max(next, 1), TOTAL_USER_STEPS);
+    setStep(clamped);
+    onStepChange?.(clamped);
   }
   const formRef = useRef<HTMLFormElement | null>(null);
 
   function fail(field: UserField, message: string) {
     setInvalidField(field);
+    setInvalidMessage(message);
     toast.error(message);
   }
 
@@ -106,10 +153,23 @@ export function UserRegistrationForm({
       if (value("phone").replace(/\D/g, "").length < 12) {
         return { field: "phone", message: "Telefon raqamni to'liq kiriting." };
       }
+      // Only when a code will actually be sent. With OTP off the pane is
+      // skipped, so demanding consent for an SMS that never happens would block
+      // the flow on a promise nobody is making.
+      if (otpEnabled && value("sms_consent") !== "yes") {
+        return { field: "sms_consent", message: "SMS kod yuborilishiga rozilik bering." };
+      }
       return null;
     }
 
     if (target === 2) {
+      if (otpEnabled && !otpTokenRef.current) {
+        return { field: "otp_token", message: "Avval telefon raqamni kod orqali tasdiqlang." };
+      }
+      return null;
+    }
+
+    if (target === 3) {
       if (value("password").length < 8) {
         return { field: "password", message: "Parol kamida 8 ta belgidan iborat bo'lishi kerak." };
       }
@@ -121,7 +181,7 @@ export function UserRegistrationForm({
 
     // Gender and age are optional — gating them would block signup on data the
     // backend does not require. The privacy acknowledgement is not optional.
-    if (target === 3) {
+    if (target === 4) {
       if (value("privacy_acknowledged") !== "yes") {
         return { field: "privacy_acknowledged", message: "Maxfiylik qoidalarini o'qib tasdiqlang." };
       }
@@ -129,19 +189,74 @@ export function UserRegistrationForm({
     return null;
   }
 
+  function storeToken(token: string | null) {
+    otpTokenRef.current = token;
+    verifiedPhoneRef.current = token ? phoneValue : "";
+    setOtpVerified(Boolean(token));
+    onOtpTokenChange(token);
+  }
+
+  /** The identity pane's CTA: validate, then buy the code before advancing. */
+  async function advanceFromIdentity() {
+    const result = validateStep(IDENTITY_STEP);
+    if (result) {
+      fail(result.field, result.message);
+      return;
+    }
+    const form = formRef.current;
+    if (!form) {
+      return;
+    }
+    setInvalidField(null);
+    if (!otpEnabled) {
+      // No provider configured: skip straight past the pane instead of asking
+      // for a code nothing will ever send.
+      goToStep(OTP_STEP + 1);
+      return;
+    }
+    const phone = String(new FormData(form).get("phone") || "").trim();
+    // Coming back to edit an unrelated field must not burn one of the three
+    // codes per hour the backend allows for this number.
+    if (otpTokenRef.current && verifiedPhoneRef.current === phone) {
+      goToStep(OTP_STEP);
+      return;
+    }
+    setRequestingOtp(true);
+    try {
+      const issue = await onRequestOtp(phone);
+      setOtpIssue(issue);
+      goToStep(OTP_STEP);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Kod yuborilmadi. Qayta urinib ko'ring.";
+      fail("phone", message);
+    } finally {
+      setRequestingOtp(false);
+    }
+  }
+
   function advance() {
+    if (step === IDENTITY_STEP) {
+      void advanceFromIdentity();
+      return;
+    }
     const result = validateStep(step);
     if (result) {
       fail(result.field, result.message);
       return;
     }
     setInvalidField(null);
-    goToStep(Math.min(step + 1, TOTAL_USER_STEPS));
+    goToStep(step + 1);
   }
 
   function goBack() {
     setInvalidField(null);
-    goToStep(Math.max(step - 1, 1));
+    // Hop over the skipped pane in both directions, or Back would land on a
+    // step the patient was never shown and cannot complete.
+    if (!otpEnabled && step === OTP_STEP + 1) {
+      goToStep(IDENTITY_STEP);
+      return;
+    }
+    goToStep(step - 1);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -179,6 +294,12 @@ export function UserRegistrationForm({
   }
 
   const isLastStep = step === TOTAL_USER_STEPS;
+  const busy = submitting || requestingOtp;
+  const advanceDisabled =
+    busy ||
+    // The OTP pane advances only once a ticket is in memory; its own CTA is the
+    // verify button, so a dead "Davom etish" here would be a trap.
+    (otpEnabled && step === OTP_STEP && !otpVerified);
 
   return (
     <form
@@ -188,7 +309,14 @@ export function UserRegistrationForm({
       className="flex flex-col gap-6"
       onSubmit={handleSubmit}
     >
-      <StepHeader step={step} total={TOTAL_USER_STEPS} title={USER_STEPS[step - 1].title} />
+      <StepHeader
+        // Count only the panes the patient is actually shown. With OTP off the
+        // raw index would read "1/4" then jump to "3/4", telling them they
+        // skipped something they were never offered.
+        step={otpEnabled || step < OTP_STEP ? step : step - 1}
+        total={otpEnabled ? TOTAL_USER_STEPS : TOTAL_USER_STEPS - 1}
+        title={USER_STEPS[step - 1].title}
+      />
 
       <Pane hidden={step !== 1} intro={USER_STEPS[0].intro}>
         <Field
@@ -199,20 +327,71 @@ export function UserRegistrationForm({
           error={invalidField === "full_name"}
           onChange={() => clear("full_name")}
         />
-        {/* No SMS verification on this path on purpose: patients are the
-            high-volume role and every code costs money, while a patient who
-            mistypes their number simply cannot be called back — they are not
-            listed publicly and take no payments. Doctors are verified instead. */}
+        {/* The SMS pane is shared with the doctor wizard now: the phone is the
+            login identifier and the only channel a reminder can reach, so a
+            patient who mistypes it loses the account and every booking on it. */}
         <PhoneField
           label="Telefon raqam"
           name="phone"
           required
           error={invalidField === "phone"}
-          onValueChange={() => clear("phone")}
+          errorText={invalidField === "phone" ? invalidMessage : undefined}
+          onValueChange={(next) => {
+            setPhoneValue(next);
+            clear("phone");
+            // A changed number invalidates the ticket bound to the old one.
+            if (otpTokenRef.current && next !== verifiedPhoneRef.current) {
+              storeToken(null);
+              setOtpIssue(null);
+            }
+          }}
+        />
+        {/* Hidden, not just un-validated: a consent box for an SMS that will
+            never be sent is a question with no meaning behind it. */}
+        {otpEnabled && (
+          <label
+            className={cn(
+              "flex items-start gap-3 rounded-control border bg-control px-3.5 py-3",
+              invalidField === "sms_consent" ? "border-danger" : "border-control-border"
+            )}
+          >
+            <input
+              type="checkbox"
+              name="sms_consent"
+              value="yes"
+              aria-invalid={invalidField === "sms_consent" || undefined}
+              onChange={() => clear("sms_consent")}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+            />
+            <span className="text-sm font-medium leading-relaxed text-ink-500">
+              Telefon raqamimni tasdiqlash uchun SMS kod yuborilishiga roziman. Kod eSKIZ xizmati orqali
+              yuboriladi.
+            </span>
+          </label>
+        )}
+        {invalidField === "sms_consent" && (
+          <small className={errorTextClass} role="alert">
+            {invalidMessage}
+          </small>
+        )}
+      </Pane>
+
+      <Pane hidden={step !== 2}>
+        <OtpStep
+          active={step === 2}
+          phone={phoneValue}
+          issue={otpIssue}
+          verified={otpVerified}
+          formSubmitting={submitting}
+          onRequestOtp={onRequestOtp}
+          onVerifyOtp={onVerifyOtp}
+          onIssue={setOtpIssue}
+          onVerified={storeToken}
+          onEditPhone={() => goToStep(IDENTITY_STEP)}
         />
       </Pane>
 
-      <Pane hidden={step !== 2} intro={USER_STEPS[1].intro}>
+      <Pane hidden={step !== 3} intro={USER_STEPS[2].intro}>
         <Field
           label="Parol"
           name="password"
@@ -235,7 +414,7 @@ export function UserRegistrationForm({
         />
       </Pane>
 
-      <Pane hidden={step !== 3} intro={USER_STEPS[2].intro}>
+      <Pane hidden={step !== 4} intro={USER_STEPS[3].intro}>
         <fieldset className="m-0 border-0 p-0">
           <legend className={labelClass}>Jinsi</legend>
           <OptionGrid
@@ -255,7 +434,14 @@ export function UserRegistrationForm({
 
       <div className="flex items-center gap-3">
         {step > 1 && (
-          <Button type="button" variant="secondary" size="lg" className="shrink-0" onClick={goBack}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="shrink-0"
+            disabled={busy}
+            onClick={goBack}
+          >
             <ArrowLeft size={18} />
             Ortga
           </Button>
@@ -266,9 +452,18 @@ export function UserRegistrationForm({
             {submitting ? "Yuborilmoqda…" : "Profil yaratish"}
           </Button>
         ) : (
-          <Button type="button" variant="gradient" size="lg" className="flex-1" onClick={advance}>
-            Davom etish
-            <ArrowRight size={18} />
+          <Button
+            id="user-register-advance"
+            type="button"
+            variant="gradient"
+            size="lg"
+            className="flex-1"
+            disabled={advanceDisabled}
+            onClick={advance}
+          >
+            {requestingOtp ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : null}
+            {requestingOtp ? "Kod yuborilmoqda…" : "Davom etish"}
+            {!requestingOtp && <ArrowRight size={18} />}
           </Button>
         )}
       </div>

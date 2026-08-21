@@ -7,6 +7,7 @@ import { isOfflineMode } from "../../api/dentalMapApi";
 import { PhotoUploadField } from "../../components/PhotoUploadField";
 import { PrivacyAcknowledgement } from "../../components/PrivacyAcknowledgement";
 import type { OtpIssue } from "../../hooks/useDentalData";
+import { otpEnabled } from "../../lib/otp";
 import type { Service, Specialty } from "../../types";
 import {
   Button,
@@ -53,16 +54,6 @@ const DOCTOR_STEPS = [
 export const TOTAL_DOCTOR_STEPS = DOCTOR_STEPS.length;
 const IDENTITY_STEP = 1;
 const OTP_STEP = 2;
-
-/**
- * Phone verification can be switched off for the window between shipping this
- * flow and having an SMS provider configured. Default ON: the secure state is
- * what you get by doing nothing, and disabling it takes an explicit
- * NEXT_PUBLIC_OTP_ENABLED=false at build time, matched by OTP_ROLLOUT_PENDING on
- * the backend. With it off the OTP pane is skipped entirely rather than shown
- * and waved through — a code entry that accepts anything is worse than none.
- */
-export const otpEnabled = process.env.NEXT_PUBLIC_OTP_ENABLED !== "false";
 
 type DoctorField =
   | "full_name"

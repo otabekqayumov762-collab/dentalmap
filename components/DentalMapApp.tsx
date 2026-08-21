@@ -122,10 +122,12 @@ function DentalMapAppInner() {
   // auth chrome knows whether a choice has already been made.
   const [patientStep, setPatientStep] = useState(1);
   // The signed phone-verification ticket, held in MEMORY ONLY for the length of
-  // the signup. It is appended to the FormData in sendDoctorRegistration and
-  // nowhere else — never a storage key, never a DOM value, never the URL. A
-  // reload loses it and the wizard restarts at the identity pane by design.
-  const doctorOtpTokenRef = useRef<string | null>(null);
+  // the signup. Both wizards feed this one ref — only one of them is mounted at
+  // a time and switching roles clears it — and it is appended to the FormData in
+  // the two registration senders and nowhere else: never a storage key, never a
+  // DOM value, never the URL. A reload loses it and the wizard restarts at the
+  // identity pane by design.
+  const otpTokenRef = useRef<string | null>(null);
   // Synchronous guard: blocks the rapid re-tap storm before React re-renders.
   const submittingRef = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -417,7 +419,7 @@ function DentalMapAppInner() {
     setSelectedSlot("");
     setRegisterRole("user");
     setDoctorStep(1);
-    doctorOtpTokenRef.current = null;
+    otpTokenRef.current = null;
     setAuthMode("login");
     landedRef.current = false;
     ratingPromptShownRef.current = false;
@@ -427,12 +429,13 @@ function DentalMapAppInner() {
 
   function handleRoleChange(role: RegisterRole) {
     setRegisterRole(role);
-    // Reset the doctor wizard when leaving the doctor path so it re-enters at
-    // step 1 — and drop the verification ticket with it, so a ticket minted for
-    // one attempt can never ride along into a later, different one.
+    // Switching roles unmounts the wizard that was on screen, so the ticket it
+    // verified must go with it — both directions now that patients verify too,
+    // or a ticket minted for one attempt could ride along into a later,
+    // different one.
+    otpTokenRef.current = null;
     if (role !== "doctor") {
       setDoctorStep(1);
-      doctorOtpTokenRef.current = null;
     }
   }
 
@@ -560,6 +563,12 @@ function DentalMapAppInner() {
     if (!age) {
       formData.delete("age");
     }
+    // The phone-verification ticket travels with the single atomic register POST;
+    // the raw code and the SMS consent checkbox are client-only and must not.
+    if (otpTokenRef.current) {
+      formData.set("otp_token", otpTokenRef.current);
+    }
+    formData.delete("sms_consent");
 
     if (submittingRef.current) {
       return;
@@ -632,8 +641,8 @@ function DentalMapAppInner() {
     formData.delete("password_confirm");
     // The phone-verification ticket travels with the single atomic register POST;
     // the raw code and the SMS consent checkbox are client-only and must not.
-    if (doctorOtpTokenRef.current) {
-      formData.set("otp_token", doctorOtpTokenRef.current);
+    if (otpTokenRef.current) {
+      formData.set("otp_token", otpTokenRef.current);
     }
     formData.delete("otp_code");
     formData.delete("sms_consent");
@@ -849,7 +858,7 @@ function DentalMapAppInner() {
         onRequestOtp={requestOtp}
         onVerifyOtp={verifyOtp}
         onOtpTokenChange={(token) => {
-          doctorOtpTokenRef.current = token;
+          otpTokenRef.current = token;
         }}
         onRequestPasswordReset={requestPasswordReset}
         onVerifyPasswordReset={verifyPasswordReset}
@@ -1205,7 +1214,7 @@ function DentalMapAppInner() {
               onRequestOtp={requestOtp}
               onVerifyOtp={verifyOtp}
               onOtpTokenChange={(token) => {
-                doctorOtpTokenRef.current = token;
+                otpTokenRef.current = token;
               }}
               onUserSubmit={sendUserRegistration}
               onDoctorSubmit={sendDoctorRegistration}
