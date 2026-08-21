@@ -14,10 +14,14 @@ import {
   storeAuthTokens
 } from "../src/dental-map/lib/tokenStore.ts";
 import {
+  isLiveLocationLink,
+  isResolvableMapLink,
   isSafeHttpUrl,
   isSafeMapUrl,
   isSafeTelegramUrl,
-  mapUrlHasCoordinates
+  mapLinkValidationError,
+  mapUrlHasCoordinates,
+  mapUrlProblem
 } from "../src/dental-map/lib/url.ts";
 import {
   isTelegramPlaceholderUser,
@@ -40,6 +44,90 @@ test("map URLs require canonical HTTPS Google/Yandex map endpoints", () => {
   assert.equal(isSafeMapUrl("https://maps.app.goo.gl.evil.example/example"), false);
   assert.equal(isSafeMapUrl("http://google.com/maps"), false);
   assert.equal(isSafeMapUrl("javascript:alert(1)"), false);
+});
+
+// Every URL below was copied from a live map client or verified with curl. The
+// host is what makes a link safe; a host that already IS the maps subdomain does
+// not file its pages under /maps, and demanding it there refused real links.
+test("a maps host makes any path a map link, a root domain still needs /maps", () => {
+  const accepted = [
+    // The link the complaint was about: real, 200, and refused before this.
+    "https://maps.yandex.com/location-sharing?token=lst_Egj7yFmTPQnsLhoM7vnaqK",
+    "https://maps.yandex.uz/org/magicdental/192512106119/",
+    "https://maps.google.com/place/Smile+Dent/@41.311081,69.240562,17z",
+    "https://yandex.com/maps/org/magicdental/192512106119/",
+    "https://yandex.uz/maps/-/CDwvbW-N",
+    "https://maps.yandex.com/?ll=69.240562%2C41.311081&z=17",
+    "https://www.google.com/maps/place/Smile+Dent/@41.311081,69.240562,17z",
+    "https://maps.app.goo.gl/aBcDeFgH1234"
+  ];
+  for (const url of accepted) {
+    assert.equal(mapUrlProblem(url), "", url);
+  }
+
+  // Loosening the path must not loosen the host, the scheme, or the redirector.
+  assert.equal(mapUrlProblem("https://yandex.uz/search/?text=dentist"), "path");
+  assert.equal(mapUrlProblem("https://www.google.com/search?q=dentist"), "path");
+  assert.equal(mapUrlProblem("https://maps.google.com/url?q=https://evil.example"), "redirector");
+  assert.equal(mapUrlProblem("https://www.google.com/url?q=https://evil.example"), "redirector");
+  assert.equal(mapUrlProblem("https://maps.yandex.com.evil.example/anything"), "host");
+  assert.equal(mapUrlProblem("https://evil.example/maps/org/1"), "host");
+  assert.equal(mapUrlProblem("http://maps.yandex.com/location-sharing?token=x"), "insecure");
+  // userinfo trick: the real host is evil.example, and it is caught as
+  // credentials rather than being read as the maps host.
+  assert.equal(mapUrlProblem("https://maps.yandex.com@evil.example/maps"), "credentials");
+  assert.equal(mapUrlProblem("https://user:pass@maps.yandex.com/location-sharing"), "credentials");
+  assert.equal(mapUrlProblem("https://127.0.0.1/maps"), "host");
+  assert.equal(mapUrlProblem("https://169.254.169.254/maps"), "host");
+  assert.equal(mapUrlProblem("javascript:alert(1)"), "invalid");
+});
+
+test("a link the server can resolve is accepted without coordinates in the URL", () => {
+  for (const url of [
+    "https://maps.app.goo.gl/aBcDeFgH1234",
+    "https://yandex.uz/maps/-/CDwvbW-N",
+    "https://maps.yandex.uz/-/CDwvbW-N",
+    "https://yandex.com/maps/org/magicdental/192512106119/",
+    "https://maps.yandex.uz/org/magicdental/192512106119/"
+  ]) {
+    assert.equal(isResolvableMapLink(url), true, url);
+    assert.equal(mapLinkValidationError(url), "", url);
+  }
+  // A plain map view is not resolvable — nothing on it names one place.
+  assert.equal(isResolvableMapLink("https://yandex.uz/maps/10335/tashkent/"), false);
+  assert.equal(isResolvableMapLink("https://evil.example/maps/org/1"), false);
+});
+
+// Verified against the live page: it serves only the viewer's region centre,
+// and the position itself comes from an endpoint that needs a session.
+test("a real-time location share is refused for what it actually is", () => {
+  const live = "https://maps.yandex.com/location-sharing?token=lst_Egj7yFmTPQnsLhoM7vnaqK";
+  assert.equal(mapUrlProblem(live), "");
+  assert.equal(isLiveLocationLink(live), true);
+  assert.equal(isLiveLocationLink("https://yandex.uz/maps/location-sharing?token=lst_x"), true);
+  assert.equal(isLiveLocationLink("https://yandex.uz/maps/org/magicdental/1/"), false);
+  assert.match(mapLinkValidationError(live), /real vaqtdagi joylashuv/);
+});
+
+test("each refusal names its own problem", () => {
+  const message = (url) => mapLinkValidationError(url);
+  const cases = [
+    ["https://evil.example/maps", /Google Maps yoki Yandex Maps havolasi emas/],
+    ["https://www.google.com/search?q=dentist", /xarita sahifasiga emas/],
+    ["https://maps.google.com/url?q=https://evil.example", /yo'naltiruvchi havolasi/],
+    ["http://maps.yandex.com/location-sharing?token=x", /https:\/\/ bilan boshlanishi/],
+    ["https://user:pass@maps.yandex.com/maps", /login yoki parol/],
+    ["not a url", /To'liq manzilni/],
+    ["https://yandex.uz/maps/10335/tashkent/", /aniq nuqta yo'q/]
+  ];
+  const seen = new Set();
+  for (const [url, pattern] of cases) {
+    const text = message(url);
+    assert.match(text, pattern, url);
+    // Distinct reasons must not collapse onto one sentence again.
+    assert.equal(seen.has(text), false, text);
+    seen.add(text);
+  }
 });
 
 test("map coordinate validation mirrors backend-supported coordinate formats", () => {

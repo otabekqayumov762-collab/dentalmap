@@ -41,26 +41,78 @@ export function isSafeHttpUrl(value?: string | null) {
   return Boolean(parseSafeHttpUrl(value));
 }
 
-/** New clinic links must be HTTPS and point to an explicit Google/Yandex host. */
-export function isSafeMapUrl(value?: string | null) {
-  const url = parseSafeHttpUrl(value);
-  if (!url || url.protocol !== "https:") {
-    return false;
+/** Google's own redirector. It answers on maps.google.com as well as on the
+ *  root domain, so the refusal is host-wide: a clinic link is shown to patients
+ *  as a "open the route" button, and /url?q= would bounce them onto any site
+ *  while still reading as google.com in the address bar. */
+function isGoogleRedirector(pathname: string) {
+  return pathname === "/url";
+}
+
+function isMapPath(pathname: string) {
+  return pathname === "/maps" || pathname.startsWith("/maps/");
+}
+
+export type MapUrlProblem =
+  | ""
+  | "invalid"
+  | "insecure"
+  | "credentials"
+  | "host"
+  | "path"
+  | "redirector";
+
+/** Why a clinic link is unusable, or "" when it is fine.
+ *
+ *  The host is what is actually checked; the path only narrows hosts that serve
+ *  more than maps. A host that already IS the maps subdomain does not file its
+ *  pages under /maps -- maps.yandex.com/location-sharing and
+ *  maps.google.com/place/... are ordinary map links -- so demanding /maps there
+ *  refused real links for no gain. On the root domain (google.com, yandex.uz)
+ *  /maps still has to be there, because those hosts also serve /url and /search.
+ */
+export function mapUrlProblem(value?: string | null): MapUrlProblem {
+  const raw = (value ?? "").trim();
+  if (!raw) {
+    return "invalid";
+  }
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return "invalid";
+  }
+  if (url.username || url.password) {
+    return "credentials";
+  }
+  if (url.protocol === "http:") {
+    return "insecure";
+  }
+  if (url.protocol !== "https:") {
+    return "invalid";
   }
 
   const hostname = url.hostname.toLowerCase();
-  const mapPath = url.pathname === "/maps" || url.pathname.startsWith("/maps/");
   if (matchesHost(hostname, "maps.app.goo.gl")) {
-    return true;
+    return "";
   }
   if (matchesHost(hostname, "google.com")) {
-    // Block generic Google redirect endpoints such as /url?q=... while keeping
-    // canonical www.google.com/maps and maps.google.com share links.
-    return mapPath || (hostname === "maps.google.com" && url.pathname === "/");
+    if (isGoogleRedirector(url.pathname)) {
+      return "redirector";
+    }
+    return hostname === "maps.google.com" || isMapPath(url.pathname) ? "" : "path";
   }
 
   const yandexRoot = YANDEX_HOSTS.find((allowedHost) => matchesHost(hostname, allowedHost));
-  return Boolean(yandexRoot && (mapPath || (hostname === `maps.${yandexRoot}` && url.pathname === "/")));
+  if (!yandexRoot) {
+    return "host";
+  }
+  return hostname === `maps.${yandexRoot}` || isMapPath(url.pathname) ? "" : "path";
+}
+
+/** New clinic links must be HTTPS and point to an explicit Google/Yandex host. */
+export function isSafeMapUrl(value?: string | null) {
+  return mapUrlProblem(value) === "";
 }
 
 function validCoordinatePair(latitudeValue: string, longitudeValue: string) {
@@ -81,7 +133,6 @@ function matchCoordinatePair(value: string) {
   return Boolean(match && validCoordinatePair(match[1], match[2]));
 }
 
-/** Mirrors the backend coordinate extraction contract for Google/Yandex links. */
 /** Hosts that answer with a redirect rather than a point — Google's own "Share"
  *  button produces one. The server resolves these; refusing them here would
  *  reject the exact link the instruction asks people to send. */
@@ -96,6 +147,53 @@ export function isShortMapLink(value?: string | null) {
   return SHORT_LINK_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
 }
 
+/** The part of a Yandex URL that names the map page, with the /maps prefix
+ *  taken off. maps.yandex.uz/org/x and yandex.uz/maps/org/x are the same page
+ *  reached two ways, so both have to reduce to "/org/x" before anything can
+ *  reason about them. Returns null when the host is not Yandex at all. */
+function yandexMapPath(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  const root = YANDEX_HOSTS.find((allowedHost) => matchesHost(hostname, allowedHost));
+  if (!root) {
+    return null;
+  }
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/maps") {
+    return "/";
+  }
+  if (path.startsWith("/maps/")) {
+    return path.slice(5);
+  }
+  return hostname === `maps.${root}` ? path : null;
+}
+
+/** Yandex's "real-time location" share. It is a genuine map link, which is why
+ *  it must be named rather than lumped in with "not a maps link" — but it points
+ *  at a moving phone, not at a place. Its page carries no clinic point (only the
+ *  viewer's region centre), and a point read off it would be somewhere else
+ *  tomorrow, so it can never become a clinic pin. */
+export function isLiveLocationLink(value?: string | null) {
+  const url = parseSafeHttpUrl(value);
+  return Boolean(url && yandexMapPath(url) === "/location-sharing");
+}
+
+/** Links with no point in the URL that the server can still resolve to one:
+ *  the shorteners above, Yandex's own /maps/-/ share codes (the redirect lands
+ *  on a ?ll= URL) and Yandex organisation pages (the page states the point).
+ *  Refusing these at the form would reject the links people actually copy. */
+export function isResolvableMapLink(value?: string | null) {
+  if (isShortMapLink(value)) {
+    return true;
+  }
+  const url = parseSafeHttpUrl(value);
+  if (!url || url.protocol !== "https:") {
+    return false;
+  }
+  const path = yandexMapPath(url);
+  return Boolean(path && (path.startsWith("/-/") || path.startsWith("/org/")));
+}
+
+/** Mirrors the backend coordinate extraction contract for Google/Yandex links. */
 export function mapUrlHasCoordinates(value?: string | null) {
   if (!value) {
     return false;
@@ -132,6 +230,46 @@ export function mapUrlHasCoordinates(value?: string | null) {
   }
 
   return matchCoordinatePair(decoded);
+}
+
+export const MAP_COORDINATE_REQUIRED_MESSAGE =
+  "Bu xarita havolasida aniq nuqta yo'q. Xaritada klinikaning o'zini bosing (yoki uning sahifasini oching) va shundan keyin chiqqan havolani nusxalang.";
+
+/** One message per reason. A refusal that names the wrong problem is still a
+ *  refusal the person cannot act on — "Yandex yoki Google Maps linkini kiriting"
+ *  was shown to someone who had pasted exactly that. */
+const MAP_LINK_MESSAGES = {
+  invalid: "Havola to'liq emas. To'liq manzilni, https:// qismi bilan birga joylashtiring.",
+  insecure: "Havola https:// bilan boshlanishi kerak. Manzil boshidagi http:// ni https:// ga almashtiring.",
+  credentials: "Havolada login yoki parol bor. Xaritadan olingan toza havolani joylashtiring.",
+  host: "Bu Google Maps yoki Yandex Maps havolasi emas. Klinikani shu ikki xaritaning birida toping va o'sha yerdagi havolani joylashtiring.",
+  path: "Bu havola Google/Yandex saytiga olib boradi, lekin xarita sahifasiga emas. Klinikani xaritada oching va manzil qatoridagi havolani nusxalang.",
+  redirector:
+    "Bu Google'ning yo'naltiruvchi havolasi — u boshqa saytga olib o'tadi. Uni brauzerda oching va ochilgan xarita sahifasining havolasini nusxalang."
+} as const;
+
+const LIVE_LOCATION_MESSAGE =
+  "Bu — real vaqtdagi joylashuv («Joylashuvni ulashish») havolasi: u telefon bilan birga harakatlanadi va klinikaning doimiy manzilini bildirmaydi. Xaritada klinikani toping va uning sahifasidagi havolani joylashtiring.";
+
+export function mapLinkValidationError(value: string) {
+  const problem = mapUrlProblem(value);
+  if (problem) {
+    return MAP_LINK_MESSAGES[problem];
+  }
+  // Named on its own: it is a valid map link, so "not a maps link" would send
+  // the doctor looking for a fault that is not there.
+  if (isLiveLocationLink(value)) {
+    return LIVE_LOCATION_MESSAGE;
+  }
+  // These carry no coordinates YET — the server follows them. Rejecting them
+  // here told the doctor to fix something that was already correct.
+  if (isResolvableMapLink(value)) {
+    return "";
+  }
+  if (!mapUrlHasCoordinates(value)) {
+    return MAP_COORDINATE_REQUIRED_MESSAGE;
+  }
+  return "";
 }
 
 export function isSafeTelegramUrl(value?: string | null) {

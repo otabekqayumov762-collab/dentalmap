@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
+import { reduceToasts, type ToastItem, type ToastVariant } from "./toastQueue";
 import {
   createContext,
   useCallback,
@@ -15,9 +16,7 @@ import {
 import { createPortal } from "react-dom";
 import { cn } from "./cn";
 
-export type ToastVariant = "error" | "success" | "info";
-
-type ToastItem = { id: number; variant: ToastVariant; message: string };
+export type { ToastVariant };
 
 export type ToastApi = {
   error: (message: string) => void;
@@ -52,10 +51,33 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (!message) {
         return;
       }
-      const id = ++idRef.current;
-      setToasts((current) => [...current, { id, variant, message }]);
-      const timer = setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
-      timers.current.set(id, timer);
+      setToasts((current) => {
+        const { toasts: next, refreshedId, droppedIds } = reduceToasts(current, {
+          id: idRef.current + 1,
+          variant,
+          message,
+          repeats: 0
+        });
+
+        for (const id of droppedIds) {
+          const timer = timers.current.get(id);
+          if (timer) {
+            clearTimeout(timer);
+            timers.current.delete(id);
+          }
+        }
+
+        const armed = refreshedId ?? idRef.current + 1;
+        if (refreshedId === null) {
+          idRef.current += 1;
+        }
+        const existing = timers.current.get(armed);
+        if (existing) {
+          clearTimeout(existing);
+        }
+        timers.current.set(armed, setTimeout(() => dismiss(armed), AUTO_DISMISS_MS));
+        return next;
+      });
     },
     [dismiss]
   );
@@ -105,11 +127,11 @@ function Toaster({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: n
       className="pointer-events-none fixed inset-x-0 top-[calc(var(--tg-inset-top)+12px)] z-[80] flex flex-col items-center gap-2 px-4"
       aria-live="assertive"
     >
-      {toasts.map(({ id, variant, message }) => {
+      {toasts.map(({ id, variant, message, repeats }) => {
         const { border, iconColor, Icon } = variantStyles[variant];
         return (
           <div
-            key={id}
+            key={`${id}:${repeats}`}
             role={variant === "error" ? "alert" : "status"}
             className={cn(
               "pointer-events-auto flex w-full max-w-md animate-[modal-in_0.15s_ease-out] items-center gap-3",
