@@ -35,7 +35,7 @@ function json(route, payload, status = 200) {
   });
 }
 
-test("password reset walks phone → code → new password and lands on sign-in", async ({ page }) => {
+test("a backend that mints no session still lands the user on sign-in", async ({ page }) => {
   const stub = (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });
   await page.route("https://telegram.org/js/telegram-web-app.js", stub);
@@ -151,10 +151,156 @@ test("password reset walks phone → code → new password and lands on sign-in"
   await page.getByLabel("Parolni takrorlang", { exact: true }).fill("StrongPass123!");
   await save.click();
 
-  // Landing: back on sign-in, told what happened, with the number already in.
+  // The stub answers without {user, tokens}, which is what an older backend
+  // does during a rolling deploy. The reset still succeeds; the user is sent
+  // to sign-in with the number filled rather than to a cabinet they are not
+  // signed in to.
   await expect(page.getByText("Parol yangilandi. Endi yangi parol bilan kiring.")).toBeVisible();
   await expect(page.getByLabel("Parol", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: /Telefon raqam/ })).toHaveValue("90 111 00 01");
+  expect(confirmBody).toEqual({
+    phone: "+998 90 111 00 01",
+    reset_token: "signed-reset-ticket",
+    password: "StrongPass123!"
+  });
+
+  // The ticket and the password never reach any browser storage.
+  const stored = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
+  expect(stored).not.toContain("signed-reset-ticket");
+  expect(stored).not.toContain("StrongPass123!");
+});
+
+test("a completed reset signs the user in and lands in the app", async ({ page }) => {
+  const stub = (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });
+  await page.route("https://telegram.org/js/telegram-web-app.js", stub);
+  await page.route("**/telegram-web-app.js", stub);
+
+  let requestBody = null;
+  let verifyBody = null;
+  let confirmBody = null;
+  let requests = 0;
+
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": APP_ORIGIN,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "authorization, content-type, x-csrftoken",
+          "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS"
+        }
+      });
+    }
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
+    if (path === "/api/auth/password/reset/request/") {
+      requests += 1;
+      requestBody = request.postDataJSON();
+      // The very first attempt hits a ceiling: every cap the backend has answers
+      // with this exact shape, and retry_after is the only thing in it a person
+      // can act on.
+      if (requests === 1) {
+        return json(route, { detail: "Juda ko'p urinish. Keyinroq urinib ko'ring.", retry_after: 90 }, 429);
+      }
+      return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+    }
+    if (path === "/api/auth/password/reset/verify/") {
+      verifyBody = request.postDataJSON();
+      if (verifyBody.code !== "123456") {
+        return json(route, { code: "Kod noto'g'ri.", attempts_left: 4 }, 400);
+      }
+      return json(route, { reset_token: "signed-reset-ticket", expires_in: 900 });
+    }
+    if (path === "/api/auth/password/reset/confirm/") {
+      confirmBody = request.postDataJSON();
+      // What the backend now answers: the same {user, tokens} shape a login
+      // returns, minted after every other session was revoked.
+      return json(route, {
+        changed: true,
+        user: { id: "patient-1", full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" },
+        tokens: { access: "reset-access" }
+      });
+    }
+    if (path === "/api/users/me/") {
+      return confirmBody
+        ? json(route, { id: "patient-1", full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" })
+        : json(route, { detail: "unauthorised" }, 401);
+    }
+    if (path === "/api/doctors/") return json(route, { results: [] });
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+
+  // The entry point: under the password field, on the sign-in form.
+  const forgot = page.getByRole("button", { name: "Parolni unutdingizmi?" });
+  await expect(forgot).toBeVisible();
+  await forgot.click();
+
+  // Step 1 — the number. The back button here is the way out of the flow.
+  await expect(page.getByRole("heading", { name: "Parolni tiklash", level: 2 })).toBeVisible();
+  await page.getByRole("button", { name: "Kirish", exact: true }).click();
+  await expect(page.getByLabel("Parol", { exact: true })).toBeVisible();
+  await forgot.click();
+
+  const phone = page.getByRole("textbox", { name: /Telefon raqam/ });
+  await phone.fill("901110001");
+  const sendCode = page.getByRole("button", { name: "Kod yuborish" });
+
+  // A 429 has to answer "when", in Uzbek. 90 seconds reads as 2 minutes.
+  await sendCode.click();
+  await expect(page.getByText("Juda ko'p urinish. 2 daqiqadan keyin qayta urinib ko'ring.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Parolni tiklash", level: 2 })).toBeVisible();
+
+  await sendCode.click();
+
+  // Step 2 — the code, on the registration wizard's own pane.
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  expect(requestBody).toEqual({ phone: "+998 90 111 00 01" });
+  await expect(page.getByText("+998 90 ••• •• 01")).toBeVisible();
+  // Never "kod yubordik": for a number with no account nothing was sent.
+  await expect(page.getByText(/Agar bu raqamda hisob bo'lsa, unga 6 xonali kod yuborildi\./)).toBeVisible();
+
+  // The cooldown is a running clock on a disabled button, not a silent refusal.
+  const resend = page.getByRole("button", { name: /Qayta yuborish/ });
+  await expect(resend).toBeDisabled();
+  await expect(page.getByText(/^Yangi kodni 0:\d\d dan keyin so'rash mumkin\.$/)).toBeVisible();
+  const firstTick = await resend.textContent();
+  await expect.poll(() => resend.textContent(), { timeout: 5000 }).not.toBe(firstTick);
+
+  const boxes = page.getByLabel(/-raqam$/);
+  await boxes.first().fill("000000");
+  await expect(page.getByText("Kod noto'g'ri.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+
+  await boxes.first().fill("123456");
+
+  // Step 3 — the new password.
+  await expect(page.getByRole("heading", { name: "Yangi parol", level: 2 })).toBeVisible();
+  expect(verifyBody).toEqual({ phone: "+998 90 111 00 01", code: "123456" });
+  const save = page.getByRole("button", { name: "Saqlash" });
+  await page.getByLabel("Yangi parol", { exact: true }).fill("Short1!");
+  await save.click();
+  await expect(page.getByText("Parol kamida 8 ta belgidan iborat bo'lishi kerak.")).toBeVisible();
+  expect(confirmBody).toBe(null);
+
+  await page.getByLabel("Yangi parol", { exact: true }).fill("StrongPass123!");
+  await page.getByLabel("Parolni takrorlang", { exact: true }).fill("Mismatch1!");
+  await save.click();
+  await expect(page.getByText("Parollar bir xil emas.")).toBeVisible();
+  expect(confirmBody).toBe(null);
+
+  await page.getByLabel("Parolni takrorlang", { exact: true }).fill("StrongPass123!");
+  await save.click();
+
+  // No second login: the session came back with the reset, so the user lands
+  // inside the app rather than on a form asking for the password they chose a
+  // moment ago.
+  await expect(page.getByRole("navigation", { name: "Pastki navigatsiya" })).toBeVisible();
+  await expect(page.getByLabel("Parol", { exact: true })).toHaveCount(0);
   expect(confirmBody).toEqual({
     phone: "+998 90 111 00 01",
     reset_token: "signed-reset-ticket",

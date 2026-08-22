@@ -35,7 +35,8 @@ type ResetField = "phone" | "password" | "password_confirm";
 export type PasswordResetViewProps = {
   onRequestCode: (phone: string) => Promise<OtpIssue>;
   onVerifyCode: (phone: string, code: string) => Promise<string>;
-  onConfirm: (phone: string, resetToken: string, password: string) => Promise<void>;
+  /** Resolves true when the reset signed the user in. */
+  onConfirm: (phone: string, resetToken: string, password: string) => Promise<boolean>;
   /** Back to the sign-in screen — after a successful reset, and from step 1. */
   onDone: (message: string) => void;
 };
@@ -106,16 +107,23 @@ export function PasswordResetView({
     }
     setBusy(true);
     try {
-      await onConfirm(phone, ticketRef.current, password);
+      const signedIn = await onConfirm(phone, ticketRef.current, password);
       // The server has just ended every session this account had, including any
       // the thief was holding. Nothing about the old password is worth keeping.
       ticketRef.current = "";
       setPassword("");
       setPasswordConfirm("");
-      // Sign-in is the useful place to land — a reset does not mint a session,
-      // and the backend has just invalidated the ones that existed. The number
-      // rides across in the login form's own draft so the only thing left to
-      // type is the password that was just chosen.
+      if (signedIn) {
+        // Straight into the cabinet. They proved the phone with an SMS code and
+        // chose this password a second ago; asking for it back is a form for its
+        // own sake, and a login screen right after "parol yangilandi" reads as
+        // though the reset had not worked.
+        onDone("Parol yangilandi.");
+        return;
+      }
+      // No session came back — an older backend during a rolling deploy. Land on
+      // sign-in with the number already filled, so the only thing left to type
+      // is the password that was just chosen.
       writeLoginDraft(phone);
       onDone("Parol yangilandi. Endi yangi parol bilan kiring.");
     } catch (cause) {

@@ -1106,20 +1106,44 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     return payload.reset_token;
   }, []);
 
-  /** Step 3: spend the ticket on a new password. The backend ends every other
-   *  session at the same time, so nothing local is worth keeping either. */
+  /** Step 3: spend the ticket on a new password, and come back signed in.
+   *
+   *  The backend ends every other session and mints one for this request, so
+   *  the response carries the same {user, tokens} shape a login does. Adopting
+   *  it here is what saves the second form: they have just proved control of
+   *  the phone with an SMS code and chosen the password themselves.
+   *
+   *  Returns true when the session was adopted. A backend that answers without
+   *  one -- an older build during a rolling deploy -- still succeeds, and the
+   *  caller falls back to sending them to the login screen rather than to a
+   *  cabinet they are not signed in to. */
   const confirmPasswordReset = useCallback(
-    async (phone: string, resetToken: string, password: string): Promise<void> => {
+    async (phone: string, resetToken: string, password: string): Promise<boolean> => {
       if (isOfflineMode()) {
         throw new Error(OFFLINE_RESET_MESSAGE);
       }
-      await postAuthJson(
+      const payload = (await postAuthJson(
         "/api/auth/password/reset/confirm/",
         { phone, reset_token: resetToken, password },
         "Parolni yangilab bo'lmadi. Qayta urinib ko'ring."
-      );
+      )) as AuthPayload | undefined;
+
+      if (
+        !payload?.user ||
+        typeof payload.user.id !== "string" ||
+        typeof payload.tokens?.access !== "string" ||
+        !payload.tokens.access
+      ) {
+        return false;
+      }
+      sessionRef.current += 1;
+      storeAuthTokens(payload);
+      setCurrentUser(payload.user);
+      setAuthStatus("authenticated");
+      void refreshPrivateData(payload.tokens.access);
+      return true;
     },
-    []
+    [refreshPrivateData]
   );
 
   const submitDoctorReview = useCallback(

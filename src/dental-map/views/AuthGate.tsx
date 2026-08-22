@@ -50,7 +50,9 @@ export type AuthGateProps = {
   onOtpTokenChange: (token: string | null) => void;
   onRequestPasswordReset: (phone: string) => Promise<OtpIssue>;
   onVerifyPasswordReset: (phone: string, code: string) => Promise<string>;
-  onConfirmPasswordReset: (phone: string, resetToken: string, password: string) => Promise<void>;
+  /** Resolves true when the reset also signed the user in, so the caller
+   *  knows whether to send them to the cabinet or to the login screen. */
+  onConfirmPasswordReset: (phone: string, resetToken: string, password: string) => Promise<boolean>;
   onUserSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDoctorSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
