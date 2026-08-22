@@ -242,6 +242,23 @@ export function OtpStep({
     verifyingRef.current = false;
   }, [issuedAt]);
 
+  // The confirmation beat belongs to the pane while it is on screen, and the
+  // pane can come back: password reset's Orqaga returns to a code step whose
+  // ticket the wizard has just dropped. A celebrating pane that returns renders
+  // only the static "Kod tasdiqlandi" card — no boxes, no Tasdiqlash, no Qayta
+  // yuborish — and verifyingRef is still raised from the code it spent, so even
+  // the button would be dead. Leaving the pane ends the beat and gives the six
+  // boxes back. Registration is unaffected: it leaves with a token in hand, and
+  // the `verified` branch above wins over everything reset here.
+  useEffect(() => {
+    if (active || !celebrating) {
+      return;
+    }
+    setCelebrating(false);
+    setCode("");
+    verifyingRef.current = false;
+  }, [active, celebrating]);
+
   useEffect(
     () => () => {
       if (holdRef.current) {

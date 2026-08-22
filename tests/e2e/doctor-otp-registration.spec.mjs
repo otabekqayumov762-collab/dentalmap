@@ -200,3 +200,67 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   expect(stored).not.toContain("StrongPass123!");
   expect(stored).not.toContain("signed-ticket");
 });
+
+test("checking the number on the code pane does not buy a second SMS", async ({ page }) => {
+  // Same trap as the patient wizard, same cost: "O'zgartirish" leaves the code
+  // alive, so returning must not re-POST /api/auth/otp/request/. Inside the
+  // backend's 60s resend cooldown that is a 429 raised on the identity pane,
+  // which offers no route back to the boxes.
+  await page.route("https://telegram.org/js/telegram-web-app.js", (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" })
+  );
+
+  let otpRequests = 0;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": APP_ORIGIN,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "authorization, content-type, x-csrftoken",
+          "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS"
+        }
+      });
+    }
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
+    if (path === "/api/auth/otp/request/") {
+      otpRequests += 1;
+      if (otpRequests > 1) {
+        return json(route, { detail: "Juda ko'p urinish. Keyinroq urinib ko'ring.", retry_after: 47 }, 429);
+      }
+      return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+    }
+    if (path === "/api/auth/otp/verify/") return json(route, { otp_token: "signed-ticket", expires_in: 900 });
+    if (path === "/api/users/me/") return json(route, null, 401);
+    if (path === "/api/specialties/") return json(route, { results: [{ id: "s1", name: "Ortodont" }] });
+    if (path === "/api/services/") return json(route, { results: [{ id: "v1", name: "Tish davolash" }] });
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+  await page.getByLabel("Kirish yoki ro'yxatdan o'tish").getByRole("button", { name: "Ro'yxatdan o'tish" }).click();
+  await page.getByLabel("Rol tanlash").getByRole("button", { name: "Shifokor" }).click();
+
+  const advance = page.getByRole("button", { name: "Davom etish" });
+  await page.getByRole("textbox", { name: "Shifokor F.I.O." }).fill("Doktor OTP");
+  await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("901234567");
+  await page.locator('input[name="sms_consent"]').check();
+  await advance.click();
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  expect(otpRequests).toBe(1);
+
+  await page.getByRole("button", { name: "O'zgartirish" }).click();
+  await expect(page.getByRole("heading", { name: "Shaxsiy ma'lumotlar", level: 2 })).toBeVisible();
+  await advance.click();
+
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  await expect(page.getByLabel("1-raqam")).toBeVisible();
+  await expect(page.getByText("Juda ko'p urinish", { exact: false })).toHaveCount(0);
+  expect(otpRequests).toBe(1);
+
+  await page.getByLabel(/-raqam$/).first().fill("123456");
+  await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
+});

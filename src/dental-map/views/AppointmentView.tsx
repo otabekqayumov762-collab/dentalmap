@@ -7,7 +7,11 @@ import { isSafeMapUrl, openExternal } from "../lib/url";
 import type { Doctor } from "../types";
 import { Button, Card, TextareaField, cn, useToast } from "../ui";
 
-const draftKey = "dentalmap_appointment_draft";
+/** One draft per doctor. A complaint is written FOR the doctor reading it, so a
+ *  single shared key carried an abandoned note into the next doctor's form and
+ *  submitted it on their appointment — a different doctor, and a description
+ *  that no longer matched why the patient was going. */
+const draftKeyFor = (doctorId: string) => `dentalmap_appointment_draft:${doctorId}`;
 const defaultNote = "";
 
 function readSaved<T>(key: string): Partial<T> {
@@ -44,7 +48,11 @@ export function AppointmentView({
   const { toast } = useToast();
   const [note, setNote] = useState(defaultNote);
   const [sharePhoneConsent, setSharePhoneConsent] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  // Which doctor's draft the note in state came from. A boolean was enough
+  // while there was one key; with a key per doctor it also has to stop the
+  // save effect from writing the previous doctor's note under the new key
+  // before the rehydrate lands.
+  const [hydratedKey, setHydratedKey] = useState("");
 
   // Backend: real bookable slots from the doctor's schedule. Offline: synthesized.
   // Online slots go through an explicit loading/ready/error machine so we never
@@ -89,14 +97,16 @@ export function AppointmentView({
   );
   const daySlots = useMemo(() => currentDay?.slots ?? [], [currentDay]);
 
+  const draftKey = draftKeyFor(doctor.id);
+
   useEffect(() => {
     const saved = readSaved<{ note: string }>(draftKey);
     setNote(saved.note || "");
-    setHydrated(true);
-  }, []);
+    setHydratedKey(draftKey);
+  }, [draftKey]);
 
   useEffect(() => {
-    if (!hydrated || sent) {
+    if (hydratedKey !== draftKey || sent) {
       return;
     }
     try {
@@ -104,7 +114,7 @@ export function AppointmentView({
     } catch {
       // Local draft is optional and can fail in private embedded browsers.
     }
-  }, [note, hydrated, sent]);
+  }, [draftKey, hydratedKey, note, sent]);
 
   // Keep a valid day selected, and drop a stale time when the day has no such slot.
   useEffect(() => {
@@ -144,7 +154,7 @@ export function AppointmentView({
     } catch {
       // storage may be unavailable
     }
-  }, [sent]);
+  }, [draftKey, sent]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -166,3 +166,72 @@ test("password reset walks phone → code → new password and lands on sign-in"
   expect(stored).not.toContain("signed-reset-ticket");
   expect(stored).not.toContain("StrongPass123!");
 });
+
+test("stepping back from the new password lands on a code pane that still works", async ({ page }) => {
+  // OtpStep is shared by three flows and keeps its "Kod tasdiqlandi"
+  // confirmation beat in state, while the reset wizard hides its panes instead
+  // of unmounting them. Coming back to step 2 therefore used to render that
+  // static card and nothing else — no boxes, no Tasdiqlash, no Qayta yuborish —
+  // with the ticket already dropped by the back button. The only exit was a
+  // second SMS, and inside the 60s cooldown that is a 429.
+  const stub = (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });
+  await page.route("https://telegram.org/js/telegram-web-app.js", stub);
+  await page.route("**/telegram-web-app.js", stub);
+
+  let requests = 0;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": APP_ORIGIN,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "authorization, content-type, x-csrftoken",
+          "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS"
+        }
+      });
+    }
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
+    if (path === "/api/auth/password/reset/request/") {
+      requests += 1;
+      // The real cooldown: one code per minute for a number.
+      if (requests > 1) {
+        return json(route, { detail: "Juda ko'p urinish. Keyinroq urinib ko'ring.", retry_after: 47 }, 429);
+      }
+      return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+    }
+    if (path === "/api/auth/password/reset/verify/") {
+      return json(route, { reset_token: "signed-reset-ticket", expires_in: 900 });
+    }
+    if (path === "/api/users/me/") return json(route, { detail: "unauthorised" }, 401);
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Parolni unutdingizmi?" }).click();
+  await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("901110001");
+  await page.getByRole("button", { name: "Kod yuborish" }).click();
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  await page.getByLabel(/-raqam$/).first().fill("123456");
+  await expect(page.getByRole("heading", { name: "Yangi parol", level: 2 })).toBeVisible();
+
+  await page.getByRole("button", { name: "Orqaga" }).click();
+
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  // The pane is a working pane again: empty boxes for the code, the button that
+  // submits them, and the resend that will free up when the cooldown ends.
+  await expect(page.getByLabel(/-raqam$/)).toHaveCount(6);
+  await expect(page.getByLabel("1-raqam")).toBeVisible();
+  await expect(page.getByLabel("1-raqam")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Tasdiqlash" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Qayta yuborish/ })).toBeVisible();
+  // No second SMS was bought to get here.
+  expect(requests).toBe(1);
+
+  // And the boxes are live: the code goes through and step 3 is reachable again.
+  await page.getByLabel(/-raqam$/).first().fill("123456");
+  await expect(page.getByRole("heading", { name: "Yangi parol", level: 2 })).toBeVisible();
+});

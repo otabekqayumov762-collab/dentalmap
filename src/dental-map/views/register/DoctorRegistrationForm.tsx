@@ -153,6 +153,9 @@ export function DoctorRegistrationForm({
   const [otpVerified, setOtpVerified] = useState(false);
   // The phone the live token belongs to; editing the number invalidates it.
   const verifiedPhoneRef = useRef("");
+  // The number the code in flight was sent to. Not the same question as the one
+  // above: a code can be unspent and still perfectly good.
+  const issuedPhoneRef = useRef("");
   // Handle for the gender pane's auto-advance, so a Back tap inside the 200ms
   // window cancels it instead of being overruled a moment later.
   const autoAdvanceRef = useRef<number | null>(null);
@@ -345,9 +348,22 @@ export function DoctorRegistrationForm({
       goToStep(OTP_STEP);
       return;
     }
+    // Nor when the code already sent to this number is still alive. Tapping
+    // "O'zgartirish" on the code pane is a look at the number, not a request for
+    // a new SMS, and buying one inside the backend's 60s resend cooldown is a
+    // 429 — which lands on THIS pane, the one with no way back to the boxes.
+    if (
+      otpIssue &&
+      issuedPhoneRef.current === phone &&
+      Date.now() < otpIssue.issuedAt + otpIssue.expiresIn * 1000
+    ) {
+      goToStep(OTP_STEP);
+      return;
+    }
     setRequestingOtp(true);
     try {
       const issue = await onRequestOtp(phone);
+      issuedPhoneRef.current = phone;
       setOtpIssue(issue);
       goToStep(OTP_STEP);
     } catch (error) {
@@ -503,7 +519,10 @@ export function DoctorRegistrationForm({
           formSubmitting={submitting}
           onRequestOtp={onRequestOtp}
           onVerifyOtp={onVerifyOtp}
-          onIssue={setOtpIssue}
+          onIssue={(issue) => {
+            issuedPhoneRef.current = phoneValue;
+            setOtpIssue(issue);
+          }}
           onVerified={storeToken}
           onEditPhone={() => goToStep(IDENTITY_STEP)}
         />

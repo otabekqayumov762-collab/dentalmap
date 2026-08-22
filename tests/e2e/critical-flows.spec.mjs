@@ -588,3 +588,84 @@ test("privacy notice is a directly accessible production route", async ({ page }
   await expect(page.getByText("Saqlash va o'chirish", { exact: true })).toBeVisible();
   await expect(page.getByText("Sharhlar", { exact: true })).toBeVisible();
 });
+
+test("an abandoned complaint stays with the doctor it was written for", async ({ page }) => {
+  // The note is a free-text medical complaint addressed to ONE doctor. It used
+  // to be drafted into a single global sessionStorage key, and only a
+  // successful submit cleared it, so abandoning a booking pre-filled the NEXT
+  // doctor's form with it and posted it on their appointment: the wrong reader,
+  // and a description that no longer matched why the patient was going.
+  await blockTelegramBridge(page);
+
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const second = { ...doctor, id: "doctor-2", full_name: "Doktor Ikkinchi" };
+  const appointmentBodies = [];
+
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    if (await handlePreflight(route)) return;
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "note-csrf" });
+    if (path === "/api/auth/token/") {
+      return json(route, { user: patient, tokens: { access: "note-access" } });
+    }
+    if (path === "/api/users/me/") return json(route, patient);
+    if (path === "/api/doctors/") return json(route, { results: [doctor, second] });
+    if (path === "/api/availability/slots/active/") {
+      return json(route, { pages: 1, results: [{ date: tomorrow, start_time: "09:30:00" }] });
+    }
+    if (path === "/api/appointments/" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      appointmentBodies.push(body);
+      return json(route, { id: `appointment-${appointmentBodies.length}`, ...body, status: "pending", created_at: new Date().toISOString() }, 201);
+    }
+    if (path === "/api/clinics/" || path === "/api/appointments/" || path === "/api/reviews/") {
+      return json(route, { results: [] });
+    }
+    if (path === "/api/specialties/" || path === "/api/services/") return json(route, { results: [] });
+    return json(route, { detail: `Unhandled note E2E route: ${request.method()} ${path}` }, 404);
+  });
+
+  await page.goto("/");
+  const loginForm = page.locator("form");
+  await loginForm.getByRole("textbox", { name: /Telefon raqam/ }).fill("901234567");
+  await loginForm.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
+  await loginForm.getByRole("button", { name: "Kirish", exact: true }).click();
+
+  const navigation = page.getByRole("navigation", { name: "Pastki navigatsiya" });
+  await expect(navigation).toBeVisible();
+  const openDoctors = () => navigation.getByRole("button", { name: "Shifokor", exact: true }).click();
+  const note = page.getByRole("textbox", { name: "Bemor holati" });
+  const complaint = "Chap tomonda tish og'rigi, qon bosimim yuqori.";
+
+  // Doctor one: write the complaint, then walk away without booking.
+  await openDoctors();
+  await page.getByRole("button", { name: "Qabul", exact: true }).first().click();
+  await note.fill(complaint);
+  await openDoctors();
+
+  // Doctor two's form is a blank sheet.
+  await page.getByRole("button", { name: "Qabul", exact: true }).nth(1).click();
+  await expect(page.getByText(second.full_name).first()).toBeVisible();
+  await expect(note).toHaveValue("");
+
+  // The draft is not lost either — it belongs to the doctor it was written for.
+  await openDoctors();
+  await page.getByRole("button", { name: "Qabul", exact: true }).first().click();
+  await expect(note).toHaveValue(complaint);
+
+  // And what reaches the second doctor is what was typed for the second doctor.
+  await openDoctors();
+  await page.getByRole("button", { name: "Qabul", exact: true }).nth(1).click();
+  await note.fill("Ikkinchi shifokor uchun boshqa savol.");
+  await page.getByRole("button", { name: "09:30", exact: true }).click();
+  await page.locator('input[name="sharePhoneConsent"]').check();
+  await page.getByRole("button", { name: "Qabulga yozilish", exact: true }).click();
+  await expect(page.getByText("So'rov yuborildi", { exact: true })).toBeVisible();
+
+  expect(appointmentBodies).toHaveLength(1);
+  expect(appointmentBodies[0]).toMatchObject({
+    doctor: "doctor-2",
+    note: "Ikkinchi shifokor uchun boshqa savol."
+  });
+});

@@ -348,3 +348,75 @@ test("a Telegram-identified patient is shown the pane, and the code goes to a re
   expect(otpPhones).toEqual(["+998 90 123 45 67", "+998 90 123 45 67"]);
   expect(otpPhones.join("|")).not.toContain("tg:");
 });
+
+test("checking the number on the code pane does not buy a second SMS", async ({ page }) => {
+  // "O'zgartirish" is how a patient re-reads the number a code went to. It
+  // leaves the code alive and unspent, so coming back must return to the boxes,
+  // not re-POST /api/auth/otp/request/ — inside the backend's 60s resend
+  // cooldown that is a 429, and it lands on the identity pane, which has no way
+  // back to the code. Signup was hard-blocked for a minute.
+  await page.route("https://telegram.org/js/telegram-web-app.js", (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" })
+  );
+
+  let otpRequests = 0;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": APP_ORIGIN,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "authorization, content-type, x-csrftoken",
+          "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS"
+        }
+      });
+    }
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
+    if (path === "/api/auth/otp/request/") {
+      otpRequests += 1;
+      if (otpRequests > 1) {
+        return json(route, { detail: "Juda ko'p urinish. Keyinroq urinib ko'ring.", retry_after: 47 }, 429);
+      }
+      return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+    }
+    if (path === "/api/auth/otp/verify/") return json(route, { otp_token: "patient-ticket", expires_in: 900 });
+    if (path === "/api/users/me/") return json(route, null, 401);
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+  await page.getByLabel("Kirish yoki ro'yxatdan o'tish").getByRole("button", { name: "Ro'yxatdan o'tish" }).click();
+
+  const advance = page.getByRole("button", { name: "Davom etish" });
+  const phone = page.getByRole("textbox", { name: /Telefon raqam/ });
+  await page.getByRole("textbox", { name: "F.I.O." }).fill("Bemor OTP");
+  await phone.fill("901234567");
+  await page.locator('input[name="sms_consent"]').check();
+  await advance.click();
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  expect(otpRequests).toBe(1);
+
+  // A second look at the number, then straight back.
+  await page.getByRole("button", { name: "O'zgartirish" }).click();
+  await expect(page.getByRole("heading", { name: "Shaxsiy ma'lumotlar", level: 2 })).toBeVisible();
+  await advance.click();
+
+  await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
+  await expect(page.getByLabel("1-raqam")).toBeVisible();
+  await expect(page.getByText("Juda ko'p urinish", { exact: false })).toHaveCount(0);
+  expect(otpRequests).toBe(1);
+
+  // The code that is still in flight is the one that works.
+  await page.getByLabel(/-raqam$/).first().fill("123456");
+  await expect(page.getByRole("heading", { name: "Parol yarating", level: 2 })).toBeVisible();
+
+  // A genuinely different number still buys its own code.
+  await page.getByRole("button", { name: "Orqaga" }).click();
+  await page.getByRole("button", { name: "Raqamni o'zgartirish" }).click();
+  await phone.fill("909999999");
+  await advance.click();
+  await expect.poll(() => otpRequests).toBe(2);
+});
