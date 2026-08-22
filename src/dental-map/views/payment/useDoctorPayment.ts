@@ -13,6 +13,7 @@ import {
   type BillingCard,
   type Receipt
 } from "../../api/paymentsApi";
+import { PAYMENT_RETURN_URL } from "../../lib/publicConfig";
 
 /** Open an exact allowlisted Payme URL, preferring Telegram's in-app browser. */
 export function openPaymeCheckout(url: string) {
@@ -36,13 +37,28 @@ export function openPaymeCheckout(url: string) {
   return true;
 }
 
-/** Never forward Telegram launch query/hash credentials to the payment host. */
+/** Where Payme sends the phone after checkout.
+ *
+ * A Telegram link, not our own origin. Payme opens in the system browser on
+ * iOS, so returning to our web URL loaded a second copy of the app in Safari
+ * and left the real Mini App sitting behind Telegram, unrefreshed. The marker
+ * rides along so whichever surface receives it can refresh the subscription.
+ *
+ * Empty when no Telegram link is configured, which the backend reads as "no
+ * return URL" -- Payme then ends on its own receipt page. Worse than landing
+ * back in the app, better than landing in a browser copy of it.
+ */
 function currentReturnUrl() {
-  if (typeof window === "undefined") {
+  if (!PAYMENT_RETURN_URL) {
     return "";
   }
-  const returnUrl = new URL(window.location.pathname, window.location.origin);
-  returnUrl.searchParams.set("payment_return", "payme");
+  const returnUrl = new URL(PAYMENT_RETURN_URL);
+  // startapp is the direct-link Mini App's payload; start is the bot's. Setting
+  // the one that matches the link shape keeps the marker readable either way.
+  returnUrl.searchParams.set(
+    returnUrl.pathname.replace(/^\/+|\/+$/g, "").includes("/") ? "startapp" : "start",
+    "payment_return"
+  );
   return returnUrl.href;
 }
 

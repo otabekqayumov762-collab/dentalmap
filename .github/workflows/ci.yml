@@ -167,6 +167,7 @@ jobs:
             NEXT_PUBLIC_API_V1_URL=${{ vars.NEXT_PUBLIC_API_V1_URL }}
             NEXT_PUBLIC_MEDIA_URL=${{ vars.NEXT_PUBLIC_MEDIA_URL }}
             NEXT_PUBLIC_BOT_URL=${{ vars.NEXT_PUBLIC_BOT_URL || 'https://t.me/ci_bot' }}
+            NEXT_PUBLIC_MINI_APP_DIRECT_LINK=${{ vars.NEXT_PUBLIC_MINI_APP_DIRECT_LINK }}
             NEXT_PUBLIC_SUPPORT_URL=${{ vars.NEXT_PUBLIC_SUPPORT_URL }}
             NEXT_PUBLIC_TELEGRAM_ONLY=${{ vars.NEXT_PUBLIC_TELEGRAM_ONLY || 'false' }}
             NEXT_PUBLIC_OTP_ENABLED=${{ vars.NEXT_PUBLIC_OTP_ENABLED }}
