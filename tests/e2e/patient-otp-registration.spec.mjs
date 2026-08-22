@@ -316,9 +316,16 @@ test("a Telegram-identified patient is shown the pane, and the code goes to a re
 
   await page.goto("/");
 
-  // Walled into the wizard: no sign-in escape, and no way to skip the panes.
-  await expect(page.getByText("Telegram profilingizni yakunlang", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kirish", exact: true })).toHaveCount(0);
+  // Walled out of the APP until the wizard is finished -- but not walled away
+  // from signing in. Somebody who registered weeks ago arrives as a placeholder
+  // too, and the escape they need is exactly that button.
+  // Lands on registration -- a Telegram shell has no password, so that is the
+  // useful default -- and is still walled out of the app until it is finished.
+  await expect(page.getByRole("group", { name: "Rol tanlash" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Pastki navigatsiya" })).toHaveCount(0);
+  await expect(
+    page.getByLabel("Kirish yoki ro'yxatdan o'tish").getByRole("button", { name: "Kirish" })
+  ).toBeVisible();
 
   // The placeholder is NOT prefilled into the field an SMS would be sent to.
   const phone = page.getByRole("textbox", { name: /Telefon raqam/ });

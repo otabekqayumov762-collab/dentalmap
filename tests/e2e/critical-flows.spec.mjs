@@ -342,8 +342,10 @@ test("Telegram placeholder onboarding requires privacy consent and creates one r
   });
 
   await page.goto("/");
-  await expect(page.getByText("Telegram profilingizni yakunlang", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kirish", exact: true })).toHaveCount(0);
+  // Lands on registration -- a Telegram shell has no password, so that is the
+  // useful default -- and is still walled out of the app until it is finished.
+  await expect(page.getByRole("group", { name: "Rol tanlash" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Pastki navigatsiya" })).toHaveCount(0);
 
   // The patient wizard is stepped, so walk it the way a patient does. Panes are
   // hidden rather than unmounted, which means a test that fills everything at
@@ -421,7 +423,10 @@ test("the patient wizard refuses to advance past an incomplete step", async ({ p
   });
 
   await page.goto("/");
-  await expect(page.getByText("Telegram profilingizni yakunlang", { exact: false })).toBeVisible();
+  // Lands on registration -- a Telegram shell has no password, so that is the
+  // useful default -- and is still walled out of the app until it is finished.
+  await expect(page.getByRole("group", { name: "Rol tanlash" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Pastki navigatsiya" })).toHaveCount(0);
   const nextStep = page.getByRole("button", { name: "Davom etish" });
 
   // Empty first pane: stays put.
@@ -668,4 +673,55 @@ test("an abandoned complaint stays with the doctor it was written for", async ({
     doctor: "doctor-2",
     note: "Ikkinchi shifokor uchun boshqa savol."
   });
+});
+
+test("a Telegram arrival with an account already made can still sign in", async ({ page }) => {
+  // Telegram provisions a tg: shell for everyone who opens the Mini App, and
+  // the app used to read that shell as "must register": it forced the mode to
+  // register on every render and hid sign-in and password reset outright. So
+  // somebody who had registered weeks ago, on any device, was shown one door
+  // marked "Ro'yxatdan o'tish" and no way to the one they needed.
+  await installTelegramHost(page);
+
+  let loginBody = null;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    if (await handlePreflight(route)) return;
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "e2e-csrf" });
+    if (path === "/api/auth/telegram/") {
+      return json(route, { user: placeholderPatient, tokens: { access: "placeholder-access" } });
+    }
+    if (path === "/api/auth/token/") {
+      loginBody = request.postDataJSON();
+      return json(route, { user: patient, tokens: { access: "login-access" } });
+    }
+    if (path === "/api/users/me/") return json(route, loginBody ? patient : placeholderPatient);
+    if (path === "/api/doctors/") return json(route, { results: [doctor] });
+    const otp = handleOtp(route, path);
+    if (otp) return otp;
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+
+  // Registration is still where they land -- a shell has no password, so it is
+  // the useful default.
+  await expect(page.getByRole("button", { name: "Ro'yxatdan o'tish" }).first()).toBeVisible();
+
+  // But the other door exists, and choosing it sticks rather than snapping back.
+  const toggle = page.getByLabel("Kirish yoki ro'yxatdan o'tish");
+  await expect(toggle).toBeVisible();
+  await toggle.getByRole("button", { name: "Kirish" }).click();
+  await expect(page.getByLabel("Parol", { exact: true })).toBeVisible();
+
+  // And so does the way out for somebody who has forgotten the password.
+  await expect(page.getByRole("button", { name: "Parolni unutdingizmi?" })).toBeVisible();
+
+  await page.getByRole("textbox", { name: /Telefon raqam/ }).fill("901234567");
+  await page.getByLabel("Parol", { exact: true }).fill("StrongPass123!");
+  await page.getByRole("button", { name: "Kirish", exact: true }).last().click();
+
+  await expect(page.getByRole("navigation", { name: "Pastki navigatsiya" })).toBeVisible();
+  expect(loginBody).toEqual({ phone: "+998 90 123 45 67", password: "StrongPass123!" });
 });

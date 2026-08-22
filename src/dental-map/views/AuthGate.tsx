@@ -26,7 +26,6 @@ const modeOptions: Array<SegmentedOption<AuthMode>> = [
 
 export type AuthGateProps = {
   mode: AuthMode;
-  registrationOnly?: boolean;
   onModeChange: (mode: AuthMode) => void;
   onLogin: (login: string, password: string) => Promise<string>;
   role: RegisterRole;
@@ -63,7 +62,6 @@ export type AuthGateProps = {
  */
 export function AuthGate({
   mode,
-  registrationOnly = false,
   onModeChange,
   onLogin,
   role,
@@ -150,9 +148,7 @@ export function AuthGate({
           <p className="text-sm font-medium leading-relaxed text-ink-500">
             {inReset
               ? "Raqamingizni tasdiqlang va yangi parol o'rnating"
-              : registrationOnly
-                ? "Telegram profilingizni yakunlang va foydalanish turini tanlang"
-                : "Telefon raqam orqali kiring yoki yangi profil yarating"}
+              : "Telefon raqam orqali kiring yoki yangi profil yarating"}
           </p>
         </header>
         )}
@@ -168,7 +164,7 @@ export function AuthGate({
           </button>
         )}
 
-        {!inWizard && !inReset && !registrationOnly && (
+        {!inWizard && !inReset && (
           <SegmentedToggle
             value={mode}
             options={modeOptions}
@@ -177,7 +173,7 @@ export function AuthGate({
           />
         )}
 
-        {!registrationOnly && inReset ? (
+        {inReset ? (
           <PasswordResetView
             onRequestCode={onRequestPasswordReset}
             onVerifyCode={onVerifyPasswordReset}
@@ -189,7 +185,7 @@ export function AuthGate({
               }
             }}
           />
-        ) : !registrationOnly && mode === "login" ? (
+        ) : mode === "login" ? (
           <LoginView
             onLogin={onLogin}
             onNavigate={() => onModeChange("register")}

@@ -666,6 +666,20 @@ function DentalMapAppInner() {
 
   const nestedDoctorProfile = currentUser?.doctor_profile ?? null;
   const needsTelegramOnboarding = isTelegramPlaceholderUser(currentUser);
+  // A Telegram shell has no password, so registration is the useful first
+  // screen -- but only as a default. Applied once per placeholder rather than
+  // on every render, so choosing "Kirish" sticks.
+  const onboardingDefaultedRef = useRef(false);
+  useEffect(() => {
+    if (!needsTelegramOnboarding) {
+      onboardingDefaultedRef.current = false;
+      return;
+    }
+    if (!onboardingDefaultedRef.current) {
+      onboardingDefaultedRef.current = true;
+      setAuthMode("register");
+    }
+  }, [needsTelegramOnboarding]);
   const isAuthenticated = Boolean(currentUser) && !needsTelegramOnboarding;
   const telegramButtonView: ViewId = !isAuthenticated
     ? needsTelegramOnboarding || authMode === "register"
@@ -833,8 +847,14 @@ function DentalMapAppInner() {
     }
     return (
       <AuthGate
-        mode={needsTelegramOnboarding ? "register" : authMode}
-        registrationOnly={needsTelegramOnboarding}
+        // Onboarding decides where the user LANDS, not what they are allowed to
+        // reach. This used to force the mode on every render, which snapped the
+        // toggle back, alongside a registrationOnly flag that hid sign-in and
+        // password reset outright -- so anyone arriving from Telegram with an
+        // account already made was shown one door marked "register" and no way
+        // to the one they needed. The flag is gone; the default lives in the
+        // effect above.
+        mode={authMode}
         registerStep={registerRole === "doctor" ? doctorStep : patientStep}
         onPatientStepChange={setPatientStep}
         onExitWizard={() => {
