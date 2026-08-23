@@ -4,6 +4,7 @@ import { ArrowLeft, Sun } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "../components/common";
 import type { OtpIssue } from "../hooks/useDentalData";
+import { SUPPORT_HANDLE, openSupportChat } from "../lib/publicConfig";
 import { isDarkActive, setPreference } from "../lib/theme";
 import type { RegisterRole, Service, Specialty } from "../types";
 import { SegmentedToggle, cn, useToast, type SegmentedOption } from "../ui";
@@ -212,6 +213,24 @@ export function AuthGate({
             onDoctorSubmit={onDoctorSubmit}
           />
         )}
+
+        {/* Support, at the bottom of the first screen a stranger ever sees.
+            Hidden inside the doctor wizard for the same reason the header is:
+            that flow is long and vertical space is the scarce thing. Rendered
+            only when a handle is actually configured, so a missing env var
+            cannot leave a dead "@" on the sign-in screen. */}
+        {!inWizard && SUPPORT_HANDLE ? (
+          <p className="mx-auto mt-auto w-full max-w-sm pt-2 text-center text-xs text-ink-500">
+            Savol yoki muammo bo&apos;lsa —{" "}
+            <button
+              type="button"
+              onClick={openSupportChat}
+              className="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2"
+            >
+              {SUPPORT_HANDLE}
+            </button>
+          </p>
+        ) : null}
       </section>
     </main>
   );

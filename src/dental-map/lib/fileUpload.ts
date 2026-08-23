@@ -1,7 +1,25 @@
 export const PHOTO_UPLOAD_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"] as const;
 export const RECEIPT_UPLOAD_TYPES = [...PHOTO_UPLOAD_TYPES, "application/pdf"] as const;
 
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+/**
+ * What the SERVER accepts, after the browser has shrunk the picture. The photo
+ * cap matches `DOCTOR_PHOTO_MAX_BYTES` in the API; the receipt cap matches
+ * `RECEIPT_MAX_BYTES`. Neither is what the picker allows -- see MAX_PICK_BYTES.
+ */
+export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+/**
+ * What the PICKER accepts, before the browser shrinks anything. Deliberately far
+ * above the server caps: a phone photo is 3-8 MB and a 48 MP one can be more, and
+ * refusing it here would be refusing an ordinary picture that is about to become
+ * a few hundred kilobytes. The ceiling exists to stop a video-sized file from
+ * being decoded on the device, not to police the upload.
+ *
+ * Declared here with the other limits rather than beside the compressor: this
+ * module is the one place that answers "what is allowed", and keeping it free of
+ * internal imports also keeps it loadable on its own in tests.
+ */
+export const MAX_PICK_BYTES = 50 * 1024 * 1024;
 export const MAX_RECEIPT_BYTES = 8 * 1024 * 1024;
 
 type UploadValidationOptions = {
@@ -36,13 +54,43 @@ export function validateUploadFile(file: File, options: UploadValidationOptions)
   return "";
 }
 
+/**
+ * The check that runs the moment a file is PICKED, before compression.
+ *
+ * A phone photo is routinely 3-8 MB, so rejecting on the server's limit here
+ * would refuse ordinary pictures that the browser is about to shrink to a few
+ * hundred kilobytes. Only the type is decided at this point; the size gate is
+ * the picker ceiling, which exists to stop a video-sized file from being decoded
+ * on the device, not to police the upload.
+ */
+export function validatePickedPhoto(file: File) {
+  return validateUploadFile(file, {
+    allowedTypes: PHOTO_UPLOAD_TYPES,
+    allowedExtensions: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+    maxBytes: MAX_PICK_BYTES,
+    typeMessage: "Faqat JPG, PNG, WebP yoki HEIC rasm yuklang.",
+    sizeMessage: `Rasm hajmi ${Math.round(MAX_PICK_BYTES / (1024 * 1024))} MB dan oshmasligi kerak.`
+  });
+}
+
+/** The check that runs on what will actually be sent, after compression. */
 export function validatePhotoFile(file: File) {
   return validateUploadFile(file, {
     allowedTypes: PHOTO_UPLOAD_TYPES,
     allowedExtensions: ["jpg", "jpeg", "png", "webp"],
     maxBytes: MAX_PHOTO_BYTES,
     typeMessage: "Faqat JPG, PNG yoki WebP rasm yuklang.",
-    sizeMessage: "Rasm hajmi 5 MB dan oshmasligi kerak."
+    sizeMessage: "Rasmni siqib bo'lmadi — kichikroq rasm tanlang."
+  });
+}
+
+export function validatePickedReceipt(file: File) {
+  return validateUploadFile(file, {
+    allowedTypes: RECEIPT_UPLOAD_TYPES,
+    allowedExtensions: ["jpg", "jpeg", "png", "webp", "heic", "heif", "pdf"],
+    maxBytes: MAX_PICK_BYTES,
+    typeMessage: "Faqat PNG, JPG, WebP, HEIC yoki PDF fayl yuklang.",
+    sizeMessage: `Fayl hajmi ${Math.round(MAX_PICK_BYTES / (1024 * 1024))} MB dan oshmasligi kerak.`
   });
 }
 

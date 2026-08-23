@@ -2,7 +2,8 @@
 
 import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { RECEIPT_UPLOAD_TYPES, validateReceiptFile } from "../../lib/fileUpload";
+import { validatePickedReceipt, validateReceiptFile } from "../../lib/fileUpload";
+import { compressImage } from "../../lib/imageCompression";
 import { cn } from "../../ui";
 
 function formatSize(bytes: number) {
@@ -44,19 +45,33 @@ export function ReceiptFileField({
         ref={inputRef}
         type="file"
         name="file"
-        accept={RECEIPT_UPLOAD_TYPES.join(",")}
+        // image/* plus PDF: a narrow type list greys out most of the camera roll
+        // on iOS, and a HEIC screenshot arrives with no type at all.
+        accept="image/*,application/pdf"
         disabled={disabled}
         className="hidden"
-        onChange={(event) => {
-          const nextFile = event.target.files?.[0] ?? null;
-          if (!nextFile) {
+        onChange={async (event) => {
+          const input = event.currentTarget;
+          const picked = input.files?.[0] ?? null;
+          if (!picked) {
             setValidationError("");
             onFileChange(null);
             return;
           }
+          const pickError = validatePickedReceipt(picked);
+          if (pickError) {
+            input.value = "";
+            setValidationError(pickError);
+            onFileChange(null);
+            return;
+          }
+          // A screenshot of a payment is a photo like any other, so it gets the
+          // same shrink. PDFs pass through untouched -- compressImage returns
+          // them unchanged.
+          const { file: nextFile } = await compressImage(picked);
           const error = validateReceiptFile(nextFile);
           if (error) {
-            event.currentTarget.value = "";
+            input.value = "";
             setValidationError(error);
             onFileChange(null);
             return;
@@ -81,7 +96,7 @@ export function ReceiptFileField({
             <Paperclip size={18} />
           </span>
           <span className="text-sm font-semibold text-ink-900">Chek faylini tanlang</span>
-          <span className="text-xs text-ink-500">PNG, JPG yoki PDF — 8 MB gacha</span>
+          <span className="text-xs text-ink-500">PNG, JPG yoki PDF — telefondagi rasm ham bo&apos;ladi, o&apos;zi kichraytiriladi</span>
         </button>
       ) : (
         <div className="flex items-center gap-3 rounded-card border border-surface-100 bg-surface-0 p-3 shadow-card">

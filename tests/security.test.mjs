@@ -4,7 +4,13 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
-import { MAX_PHOTO_BYTES, validatePhotoFile, validateReceiptFile } from "../src/dental-map/lib/fileUpload.ts";
+import {
+  MAX_PHOTO_BYTES,
+  MAX_PICK_BYTES,
+  validatePhotoFile,
+  validatePickedPhoto,
+  validateReceiptFile
+} from "../src/dental-map/lib/fileUpload.ts";
 import { toSafeTelHref } from "../src/dental-map/lib/phone.ts";
 import { clearSensitiveStorage, migrateSensitiveStorage } from "../src/dental-map/lib/sensitiveStorage.ts";
 import {
@@ -161,7 +167,17 @@ test("upload validation enforces extensions, specific MIME allowlists and limits
   assert.match(validatePhotoFile({ name: "doctor.svg", size: 1024, type: "image/svg+xml" }), /JPG/);
   assert.match(
     validatePhotoFile({ name: "doctor.jpg", size: MAX_PHOTO_BYTES + 1, type: "image/jpeg" }),
-    /5 MB/
+    /siqib bo'lmadi/
+  );
+
+  // The PICKED file plays by different rules, and the distinction is the whole
+  // point: a 6 MB phone photo must be accepted at the picker and shrunk, while
+  // the same 6 MB arriving at the upload gate means compression did not happen.
+  assert.equal(validatePickedPhoto({ name: "IMG_4821.HEIC", size: 6 * 1024 * 1024, type: "" }), "");
+  assert.match(validatePhotoFile({ name: "IMG_4821.heic", size: 6 * 1024 * 1024, type: "" }), /JPG/);
+  assert.match(
+    validatePickedPhoto({ name: "video.jpg", size: MAX_PICK_BYTES + 1, type: "image/jpeg" }),
+    /50 MB/
   );
   assert.equal(validateReceiptFile({ name: "receipt.pdf", size: 2048, type: "application/pdf" }), "");
   assert.equal(validateReceiptFile({ name: "receipt.pdf", size: 2048, type: "" }), "");

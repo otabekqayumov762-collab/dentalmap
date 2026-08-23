@@ -29,3 +29,40 @@ export const PAYMENT_RETURN_URL = isSafeTelegramUrl(configuredDirectLink)
   : isSafeTelegramUrl(configuredBotUrl)
     ? configuredBotUrl
     : "";
+
+
+/**
+ * The support handle as a person reads it: `@dentalmap_uz`.
+ *
+ * Derived from SUPPORT_URL rather than configured twice, so the link and the
+ * label can never drift apart -- a support username that is written down
+ * separately is a support username that eventually points at nobody.
+ */
+export const SUPPORT_HANDLE = SUPPORT_URL
+  ? `@${SUPPORT_URL.replace(/^https:\/\/t\.me\//i, "").replace(/\/+$/, "")}`
+  : "";
+
+/**
+ * Open the support chat.
+ *
+ * `openTelegramLink` first, because this is a t.me link and it belongs inside
+ * Telegram: `openLink` would hand it to the in-app browser, which then shows a
+ * web page telling the user to open Telegram. `window.open` is the last resort
+ * for the web build, where neither exists.
+ */
+export function openSupportChat() {
+  if (typeof window === "undefined" || !SUPPORT_URL) {
+    return false;
+  }
+  const telegram = window.Telegram?.WebApp;
+  if (telegram?.openTelegramLink) {
+    telegram.openTelegramLink(SUPPORT_URL);
+    return true;
+  }
+  if (telegram?.openLink) {
+    telegram.openLink(SUPPORT_URL);
+    return true;
+  }
+  window.open(SUPPORT_URL, "_blank", "noopener,noreferrer");
+  return true;
+}

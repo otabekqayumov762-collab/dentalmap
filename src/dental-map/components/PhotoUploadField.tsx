@@ -1,8 +1,9 @@
 "use client";
 
-import { Camera, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
+import { Camera, CheckCircle2, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { PHOTO_UPLOAD_TYPES, validatePhotoFile } from "../lib/fileUpload";
+import { MAX_PICK_BYTES, validatePhotoFile, validatePickedPhoto } from "../lib/fileUpload";
+import { compressImage, formatBytes } from "../lib/imageCompression";
 import { cn, useToast } from "../ui";
 import { labelClass } from "../ui/Field";
 
@@ -24,20 +25,47 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [savedNote, setSavedNote] = useState("");
 
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
+  async function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) {
       return;
     }
-    const validationError = validatePhotoFile(file);
-    if (validationError) {
-      toast.error(validationError);
-      event.currentTarget.value = "";
+    // Picked-file rules only: the size the SERVER cares about is decided after
+    // the shrink below, so judging it here would reject ordinary phone photos.
+    const pickError = validatePickedPhoto(file);
+    if (pickError) {
+      toast.error(pickError);
+      input.value = "";
       return;
     }
-    setPreview(URL.createObjectURL(file));
-    onFileNameChange(file.name);
+
+    setBusy(true);
+    setSavedNote("");
+    try {
+      const result = await compressImage(file);
+      const uploadError = validatePhotoFile(result.file);
+      if (uploadError) {
+        toast.error(uploadError);
+        input.value = "";
+        return;
+      }
+      // The form submits this input directly, so the shrunk file has to replace
+      // what the picker put there -- otherwise the original is what gets posted.
+      if (result.compressed) {
+        const transfer = new DataTransfer();
+        transfer.items.add(result.file);
+        input.files = transfer.files;
+        setSavedNote(`${formatBytes(result.originalBytes)} → ${formatBytes(result.file.size)}`);
+      }
+      setPreview(URL.createObjectURL(result.file));
+      onFileNameChange(result.file.name);
+    } finally {
+      setBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -53,10 +81,15 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
       inputRef.current.value = "";
     }
     setPreview(null);
+    setSavedNote("");
     onFileNameChange("");
   }
 
-  const openPicker = () => inputRef.current?.click();
+  const openPicker = () => {
+    if (!busy) {
+      inputRef.current?.click();
+    }
+  };
   const hasSelection = Boolean(fileName || existingPhotoUrl);
   const thumbnailSrc = preview || existingPhotoUrl;
   // A genuinely new pick gets the brand-tinted card; an existing-only photo
@@ -71,7 +104,10 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
         ref={inputRef}
         type="file"
         name={name}
-        accept={PHOTO_UPLOAD_TYPES.join(",")}
+        // image/* rather than a type list: on iOS a narrow list greys out most of
+        // the camera roll, and HEIC arrives with an empty type anyway. The
+        // allowlist is still enforced in validatePickedPhoto.
+        accept="image/*"
         className="sr-only"
         onChange={handleChange}
       />
@@ -94,9 +130,13 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
           </button>
           <span className="min-w-0 flex-1">
             <strong className="block truncate text-sm font-semibold text-ink-900">{fileName || "Joriy rasm"}</strong>
-            {fileName ? (
+            {busy ? (
+              <small className="mt-0.5 flex items-center gap-1 text-xs font-medium text-ink-500">
+                <Loader2 size={13} className="motion-safe:animate-spin" /> Siqilmoqda…
+              </small>
+            ) : fileName ? (
               <small className="mt-0.5 flex items-center gap-1 text-xs font-medium text-success">
-                <CheckCircle2 size={13} /> Rasm tanlandi
+                <CheckCircle2 size={13} /> {savedNote ? `Siqildi — ${savedNote}` : "Rasm tanlandi"}
               </small>
             ) : null}
           </span>
@@ -118,8 +158,11 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
           <span className="flex h-12 w-12 items-center justify-center rounded-card bg-brand-500/10 text-brand-500">
             <Camera size={22} />
           </span>
-          <span className="text-sm font-semibold text-ink-900">Rasm yuklash</span>
-          <small className="text-xs text-ink-500">JPG, PNG yoki WebP — 5 MB gacha</small>
+          <span className="text-sm font-semibold text-ink-900">{busy ? "Siqilmoqda…" : "Rasm yuklash"}</span>
+          <small className="text-xs text-ink-500">
+            Telefondagi rasm ham bo&apos;ladi — {Math.round(MAX_PICK_BYTES / (1024 * 1024))} MB gacha,
+            sifatini buzmasdan o&apos;zi kichraytiriladi
+          </small>
         </button>
       )}
     </div>

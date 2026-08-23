@@ -80,6 +80,9 @@ export type TelegramWebApp = {
   /** Telegram's own browser. Required for any outbound link: inside the iOS
    *  WebView `window.open` is frequently a silent no-op. */
   openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
+  /** For t.me links specifically. Keeps the user inside Telegram instead of
+   *  bouncing them into a browser tab that then has to be closed by hand. */
+  openTelegramLink?: (url: string) => void;
   disableVerticalSwipes?: () => void;
   onEvent?: (eventType: string, callback: () => void) => void;
   offEvent?: (eventType: string, callback: () => void) => void;
