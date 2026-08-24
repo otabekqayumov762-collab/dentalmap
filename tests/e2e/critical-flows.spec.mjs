@@ -5,7 +5,12 @@ const API_ORIGIN = "https://api.dental.example";
 const BILLING_ORIGIN = "https://billing.dental.example";
 
 const patient = {
-  id: "patient-1",
+  // A NUMBER, like production. Django's User has no custom primary key, so every
+  // auth response carries an integer id. These fixtures used to say "patient-1",
+  // which made the suite assert a contract the server does not implement -- and
+  // let a client-side check that demanded a string ship, rejecting every real
+  // login with HTTP 200 already in hand.
+  id: 47,
   full_name: "E2E Bemor",
   phone: "+998 90 123 45 67",
   role: "user",

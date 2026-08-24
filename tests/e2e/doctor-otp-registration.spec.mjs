@@ -19,7 +19,7 @@ const APP_ORIGIN = "http://127.0.0.1:4300";
 const API_ORIGIN = "https://api.dental.example";
 
 const doctorUser = {
-  id: "doc-1",
+  id: 48,
   full_name: "Doktor OTP",
   phone: "+998 90 123 45 67",
   role: "doctor",

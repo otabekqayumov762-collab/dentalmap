@@ -20,7 +20,7 @@ const APP_ORIGIN = "http://127.0.0.1:4300";
 const API_ORIGIN = "https://api.dental.example";
 
 const patientUser = {
-  id: "patient-1",
+  id: 47,
   full_name: "Bemor OTP",
   phone: "+998 90 123 45 67",
   role: "user",
@@ -266,7 +266,7 @@ test("a Telegram-identified patient is shown the pane, and the code goes to a re
   });
 
   const placeholderPatient = {
-    id: "patient-1",
+    id: 47,
     full_name: "Telegram User",
     phone: "tg:777001",
     role: "user",

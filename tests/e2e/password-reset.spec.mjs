@@ -220,13 +220,13 @@ test("a completed reset signs the user in and lands in the app", async ({ page }
       // returns, minted after every other session was revoked.
       return json(route, {
         changed: true,
-        user: { id: "patient-1", full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" },
+        user: { id: 47, full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" },
         tokens: { access: "reset-access" }
       });
     }
     if (path === "/api/users/me/") {
       return confirmBody
-        ? json(route, { id: "patient-1", full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" })
+        ? json(route, { id: 47, full_name: "E2E Bemor", phone: "+998 90 111 00 01", role: "user" })
         : json(route, { detail: "unauthorised" }, 401);
     }
     if (path === "/api/doctors/") return json(route, { results: [] });

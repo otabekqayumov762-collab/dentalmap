@@ -35,6 +35,7 @@ import { clearSensitiveStorage, migrateSensitiveStorage } from "../lib/sensitive
 import { buildLocalAccount, clearLocalAccount, getLocalAccount, saveLocalAccount } from "../lib/localAccount";
 import { validatePhotoFile } from "../lib/fileUpload";
 import { requireTelegramOnboardingInitData } from "../lib/onboarding";
+import { normalizeAuthPayload } from "../lib/authPayload";
 import {
   addLocalAppointment,
   addLocalReview,
@@ -435,14 +436,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
           throw new Error("Telegram orqali kirish vaqtincha ishlamadi.");
         }
 
-        const payload = (await response.json()) as AuthPayload;
-        if (
-          !payload.user ||
-          typeof payload.user !== "object" ||
-          typeof payload.user.id !== "string" ||
-          typeof payload.tokens?.access !== "string" ||
-          !payload.tokens.access
-        ) {
+        const payload = normalizeAuthPayload(await response.json());
+        if (!payload) {
           throw new Error("Telegram server javobi noto'g'ri.");
         }
         if (telegramUser && payload.user.telegram_id !== telegramUser.id) {
@@ -732,13 +727,8 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         if (!response.ok) {
           return "Telefon yoki parol noto'g'ri.";
         }
-        const payload = (await response.json()) as AuthPayload;
-        if (
-          !payload.user ||
-          typeof payload.user.id !== "string" ||
-          typeof payload.tokens?.access !== "string" ||
-          !payload.tokens.access
-        ) {
+        const payload = normalizeAuthPayload(await response.json());
+        if (!payload) {
           return "Kirish serveridan noto'g'ri javob olindi.";
         }
         // Atomic backend contract: the authenticated user and short-lived
@@ -1128,19 +1118,15 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
         "Parolni yangilab bo'lmadi. Qayta urinib ko'ring."
       )) as AuthPayload | undefined;
 
-      if (
-        !payload?.user ||
-        typeof payload.user.id !== "string" ||
-        typeof payload.tokens?.access !== "string" ||
-        !payload.tokens.access
-      ) {
+      const session = normalizeAuthPayload(payload);
+      if (!session) {
         return false;
       }
       sessionRef.current += 1;
-      storeAuthTokens(payload);
-      setCurrentUser(payload.user);
+      storeAuthTokens(session);
+      setCurrentUser(session.user);
       setAuthStatus("authenticated");
-      void refreshPrivateData(payload.tokens.access);
+      void refreshPrivateData(session.tokens.access);
       return true;
     },
     [refreshPrivateData]
