@@ -74,6 +74,34 @@ export function validatePickedPhoto(file: File) {
 }
 
 /** The check that runs on what will actually be sent, after compression. */
+/**
+ * A phone photo that arrived as HEIC and never became anything else.
+ *
+ * The picker accepts HEIC on purpose: it is what an iPhone writes by default, and
+ * on the browsers that can decode it the compressor turns it into WebP or JPEG
+ * before anything is uploaded. Android Chrome cannot decode it, so the compressor
+ * hands the original straight back -- and the upload gate then answered "Faqat
+ * JPG, PNG yoki WebP rasm yuklang", refusing the exact format the picker had just
+ * allowed. The person is told to do something they already did.
+ *
+ * So the unconverted case gets its own message, one that says what actually went
+ * wrong and what to change. Recognised by extension as well as MIME type because
+ * iOS and Android both hand over HEIC with an empty or generic type.
+ */
+export function isUnconvertedHeic(file: { name?: string; type?: string }) {
+  const type = (file.type || "").toLowerCase();
+  if (type === "image/heic" || type === "image/heif") {
+    return true;
+  }
+  const extension = (file.name || "").split(".").pop()?.toLowerCase() ?? "";
+  return extension === "heic" || extension === "heif";
+}
+
+/** What to say when the browser could not convert a HEIC. */
+export const HEIC_UNCONVERTED_MESSAGE =
+  "Brauzeringiz HEIC rasmni o'gira olmadi. Telefon kamerasi sozlamasidan " +
+  "\"Eng mos\" (JPEG) formatni tanlang yoki rasmni skrinshot qilib yuklang.";
+
 export function validatePhotoFile(file: File) {
   return validateUploadFile(file, {
     allowedTypes: PHOTO_UPLOAD_TYPES,

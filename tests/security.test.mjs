@@ -5,8 +5,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import {
+  HEIC_UNCONVERTED_MESSAGE,
   MAX_PHOTO_BYTES,
   MAX_PICK_BYTES,
+  isUnconvertedHeic,
   validatePhotoFile,
   validatePickedPhoto,
   validateReceiptFile
@@ -665,4 +667,98 @@ test("public bundle scanner rejects private deployment artifacts and server cred
   const secret = spawnSync(process.execPath, [script, root], { encoding: "utf8" });
   assert.notEqual(secret.status, 0);
   rmSync(root, { recursive: true, force: true });
+});
+
+test("an unconverted HEIC is named as such, not refused as a wrong format", () => {
+  // The picker accepts HEIC because that is what an iPhone writes. On a browser
+  // that can decode it the compressor turns it into WebP or JPEG and it never
+  // reaches this check. Android Chrome cannot, so the original comes back -- and
+  // the plain format error told the person to upload the very thing they just
+  // picked. Recognised by extension too: both phones hand HEIC over with an empty
+  // or generic MIME type.
+  assert.equal(isUnconvertedHeic({ name: "IMG_4821.HEIC", type: "" }), true);
+  assert.equal(isUnconvertedHeic({ name: "IMG_4821.heif", type: "" }), true);
+  assert.equal(isUnconvertedHeic({ name: "photo", type: "image/heic" }), true);
+
+  // What the compressor actually produces must never take this branch.
+  assert.equal(isUnconvertedHeic({ name: "IMG_4821.webp", type: "image/webp" }), false);
+  assert.equal(isUnconvertedHeic({ name: "IMG_4821.jpg", type: "image/jpeg" }), false);
+  assert.equal(isUnconvertedHeic({ name: "chek.pdf", type: "application/pdf" }), false);
+
+  // The message has to say what to change, or it is the old one with new words.
+  assert.match(HEIC_UNCONVERTED_MESSAGE, /HEIC/);
+  assert.match(HEIC_UNCONVERTED_MESSAGE, /JPEG/);
+  assert.doesNotMatch(HEIC_UNCONVERTED_MESSAGE, /Faqat JPG/);
+});
+
+test("every location that sets a header still sends the security headers", () => {
+  // nginx does not merge add_header down the tree: a location that declares even
+  // one of its own DISCARDS every add_header from the server block. `location /`
+  // declares Cache-Control -- added to stop browsers serving a cached index.html
+  // that names deleted chunks -- and in doing so silently dropped the entire CSP,
+  // HSTS, nosniff and Referrer-Policy set from the only response where a CSP does
+  // anything: the HTML document. Measured in production: zero CSP headers on the
+  // page, while nginx.conf plainly contained a per-build hashed policy.
+  //
+  // So the rule this pins is nginx's own: if a location sets any header, it must
+  // set all of them.
+  const root = mkdtempSync(join(tmpdir(), "dental-nginx-"));
+  const out = join(root, "out");
+  mkdirSync(out);
+  writeFileSync(join(out, "index.html"), "<!doctype html><script>window.__ok=true</script>");
+  const run = spawnSync(process.execPath, [resolve("scripts/finalize-static-export.mjs"), out], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NEXT_PUBLIC_API_URL: "https://api.example.test",
+      NEXT_PUBLIC_API_V1_URL: "",
+      NEXT_PUBLIC_MEDIA_URL: ""
+    }
+  });
+  try {
+    assert.equal(run.status, 0, run.stderr);
+    const nginx = readFileSync(join(root, "generated", "nginx.conf"), "utf8");
+
+    // Split into location blocks by brace depth so the check reads the file the
+    // way nginx does, rather than trusting the order things appear in.
+    const blocks = [];
+    for (let i = nginx.indexOf("location "); i !== -1; i = nginx.indexOf("location ", i + 1)) {
+      const open = nginx.indexOf("{", i);
+      if (open === -1) continue;
+      let depth = 0;
+      let end = open;
+      for (; end < nginx.length; end += 1) {
+        if (nginx[end] === "{") depth += 1;
+        else if (nginx[end] === "}" && (depth -= 1) === 0) break;
+      }
+      blocks.push({ head: nginx.slice(i, open).trim(), body: nginx.slice(open, end) });
+    }
+    assert.ok(blocks.length >= 3, "location blocks should have been found");
+
+    const required = [
+      "Content-Security-Policy",
+      "X-Content-Type-Options",
+      "Strict-Transport-Security",
+      "Referrer-Policy",
+      "Permissions-Policy"
+    ];
+    for (const block of blocks) {
+      if (!block.body.includes("add_header")) continue; // inherits, which is fine
+      for (const header of required) {
+        assert.ok(
+          block.body.includes(header),
+          `${block.head} sets a header but not ${header}, so nginx drops ${header} there`
+        );
+      }
+    }
+
+    // And the document location specifically, since that is the one that matters.
+    const slash = blocks.find((block) => block.head === "location /");
+    assert.ok(slash, "location / should exist");
+    assert.match(slash.body, /Content-Security-Policy/);
+    assert.match(slash.body, /Cache-Control "no-cache"/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

@@ -2,7 +2,13 @@
 
 import { Camera, CheckCircle2, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { MAX_PICK_BYTES, validatePhotoFile, validatePickedPhoto } from "../lib/fileUpload";
+import {
+  HEIC_UNCONVERTED_MESSAGE,
+  MAX_PICK_BYTES,
+  isUnconvertedHeic,
+  validatePhotoFile,
+  validatePickedPhoto
+} from "../lib/fileUpload";
 import { compressImage, formatBytes } from "../lib/imageCompression";
 import { cn, useToast } from "../ui";
 import { labelClass } from "../ui/Field";
@@ -47,7 +53,9 @@ export function PhotoUploadField({ name, label, fileName, existingPhotoUrl, onFi
     setSavedNote("");
     try {
       const result = await compressImage(file);
-      const uploadError = validatePhotoFile(result.file);
+      const uploadError = isUnconvertedHeic(result.file)
+        ? HEIC_UNCONVERTED_MESSAGE
+        : validatePhotoFile(result.file);
       if (uploadError) {
         toast.error(uploadError);
         input.value = "";

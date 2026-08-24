@@ -2,7 +2,12 @@
 
 import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { validatePickedReceipt, validateReceiptFile } from "../../lib/fileUpload";
+import {
+  HEIC_UNCONVERTED_MESSAGE,
+  isUnconvertedHeic,
+  validatePickedReceipt,
+  validateReceiptFile
+} from "../../lib/fileUpload";
 import { compressImage } from "../../lib/imageCompression";
 import { cn } from "../../ui";
 
@@ -69,7 +74,9 @@ export function ReceiptFileField({
           // same shrink. PDFs pass through untouched -- compressImage returns
           // them unchanged.
           const { file: nextFile } = await compressImage(picked);
-          const error = validateReceiptFile(nextFile);
+          const error = isUnconvertedHeic(nextFile)
+            ? HEIC_UNCONVERTED_MESSAGE
+            : validateReceiptFile(nextFile);
           if (error) {
             input.value = "";
             setValidationError(error);

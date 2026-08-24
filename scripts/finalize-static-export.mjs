@@ -121,19 +121,34 @@ function createContentSecurityPolicy() {
   ].join("; ");
 }
 
-function nginxSecurityHeaders(csp) {
+/**
+ * The security headers, at whatever indent the caller needs them.
+ *
+ * Emitted more than once on purpose. nginx does not merge add_header down the
+ * configuration tree: a location that declares even one header of its own
+ * discards every add_header inherited from the server block. So `location /`,
+ * which has to declare Cache-Control, must repeat the whole set or the HTML
+ * document -- the only response where a Content-Security-Policy does anything --
+ * goes out with no policy at all. That is exactly what happened here: the
+ * Cache-Control line was added to fix a stale-index.html outage and silently
+ * took the CSP down with it, in production, unnoticed.
+ */
+function nginxSecurityHeaders(csp, indent = "    ") {
   return [
-    '    add_header X-Content-Type-Options "nosniff" always;',
-    '    add_header Strict-Transport-Security "max-age=31536000" always;',
-    '    add_header X-Permitted-Cross-Domain-Policies "none" always;',
-    '    add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
-    '    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;',
-    `    add_header Content-Security-Policy "${csp}" always;`
+    `${indent}add_header X-Content-Type-Options "nosniff" always;`,
+    `${indent}add_header Strict-Transport-Security "max-age=31536000" always;`,
+    `${indent}add_header X-Permitted-Cross-Domain-Policies "none" always;`,
+    `${indent}add_header Referrer-Policy "strict-origin-when-cross-origin" always;`,
+    `${indent}add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;`,
+    `${indent}add_header Content-Security-Policy "${csp}" always;`
   ].join("\n");
 }
 
 function writeNginxConfig(csp) {
   const securityHeaders = nginxSecurityHeaders(csp);
+  // Repeated inside `location /` because nginx would otherwise drop all of them
+  // there -- see nginxSecurityHeaders. Twelve spaces to match that block.
+  const documentHeaders = nginxSecurityHeaders(csp, "            ");
   mkdirSync(generatedDir, { recursive: true });
   writeFileSync(
     join(generatedDir, "nginx.conf"),
@@ -196,6 +211,7 @@ ${securityHeaders}
         # ETag, so the cost is one conditional request, not a re-download.
         location / {
             add_header Cache-Control "no-cache" always;
+${documentHeaders}
             try_files $uri $uri/ /index.html;
         }
     }
