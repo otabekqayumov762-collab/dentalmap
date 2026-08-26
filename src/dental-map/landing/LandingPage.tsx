@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CalendarCheck, Check, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Search, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CountUp } from "./CountUp";
 import { LANGUAGES, LANGUAGE_LABELS, type Language } from "./content";
@@ -8,7 +8,7 @@ import { initialLanguage, rememberLanguage, useLanding } from "./useLanding";
 
 const ICONS: Record<string, typeof Search> = {
   search: Search,
-  calendar: CalendarCheck,
+  calendar: CalendarDays,
   check: Check,
   shield: ShieldCheck
 };

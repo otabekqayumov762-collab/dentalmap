@@ -1,10 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getApiUrl } from "../api/dentalMapApi";
 import { asLanguage, fallbackContent, type Language, type LandingContent } from "./content";
 
 const STORAGE_KEY = "dentalmap.landing.lang";
+
+/**
+ * The landing's own copy of the API base, deliberately not imported from
+ * dentalMapApi.
+ *
+ * That module is the Mini App's. Importing it here made the landing a second
+ * consumer of it, which changed how the bundler split the shared code and put
+ * half a kilobyte back into the Mini App's first paint -- for a page the Mini
+ * App never loads. The rule this page has to keep is that it costs the app
+ * nothing, so it reads the one environment variable it needs and stops there.
+ */
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").trim();
+
+function landingUrl(path: string) {
+  // "same-origin" is a token, not a URL: the API shares the page's host and the
+  // path is used as-is.
+  return API_BASE && API_BASE !== "same-origin" ? `${API_BASE.replace(/\/+$/, "")}${path}` : path;
+}
 
 /**
  * The language to open in.
@@ -58,7 +75,7 @@ export function useLanding(language: Language) {
       const timeout = window.setTimeout(() => controller.abort(), 8000);
       let response: Response;
       try {
-        response = await fetch(getApiUrl(`/api/landing/?lang=${lang}`), {
+        response = await fetch(landingUrl(`/api/landing/?lang=${lang}`), {
           signal: controller.signal,
           cache: "no-store"
         });
