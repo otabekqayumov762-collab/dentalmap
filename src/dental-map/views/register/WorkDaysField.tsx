@@ -3,32 +3,8 @@
 import { useState } from "react";
 import { cn } from "../../ui";
 import { errorTextClass, hintClass, labelClass } from "../../ui/Field";
+import { WORK_DAYS, WORK_DAY_PRESETS, serializeWorkDays } from "../../lib/workDays";
 
-/**
- * Which days of the week the doctor works.
- *
- * The numbers submitted are the API's, not JavaScript's. `WeeklyAvailability`
- * numbers Monday as 0 and Sunday as 6; `Date.getDay()` numbers Sunday as 0. A
- * form that quietly submitted the browser's numbering would book patients one
- * day off for six days out of seven, and Sunday would land on Monday -- the kind
- * of defect that is invisible in a screenshot and obvious to a patient standing
- * outside a closed clinic. So the mapping is written down here once.
- */
-const DAYS = [
-  { api: 0, short: "Du", full: "Dushanba" },
-  { api: 1, short: "Se", full: "Seshanba" },
-  { api: 2, short: "Ch", full: "Chorshanba" },
-  { api: 3, short: "Pa", full: "Payshanba" },
-  { api: 4, short: "Ju", full: "Juma" },
-  { api: 5, short: "Sh", full: "Shanba" },
-  { api: 6, short: "Ya", full: "Yakshanba" },
-] as const;
-
-/** The two patterns nearly every clinic here actually uses. */
-const PRESETS = [
-  { label: "Dush–Juma", days: [0, 1, 2, 3, 4] },
-  { label: "Dush–Shan", days: [0, 1, 2, 3, 4, 5] },
-] as const;
 
 export function WorkDaysField({
   name,
@@ -69,10 +45,10 @@ export function WorkDaysField({
     <fieldset className="m-0 border-0 p-0">
       <legend className={labelClass}>{label}</legend>
       {/* The value the form posts: the API's weekday numbers, comma separated. */}
-      <input type="hidden" name={name} value={chosen.join(",")} />
+      <input type="hidden" name={name} value={serializeWorkDays(chosen)} />
 
       <div className="mb-2 flex flex-wrap gap-2">
-        {PRESETS.map((preset) => (
+        {WORK_DAY_PRESETS.map((preset) => (
           <button
             key={preset.label}
             type="button"
@@ -91,9 +67,17 @@ export function WorkDaysField({
       </div>
 
       {/* Seven equal columns rather than a wrapping row: at 360px a wrap put one
-          lonely day on a second line, which reads as a separate control. */}
-      <div className="grid grid-cols-7 gap-1.5">
-        {DAYS.map((day) => {
+          lonely day on a second line, which reads as a separate control.
+          The danger state sits on the GROUP, not on each day: outlining all
+          seven read as "these seven are wrong" when the fault is that none was
+          picked -- rendered once and it was the first thing that looked wrong. */}
+      <div
+        className={cn(
+          "grid grid-cols-7 gap-1.5 rounded-control",
+          invalid && "ring-1 ring-danger ring-offset-2 ring-offset-surface-100"
+        )}
+      >
+        {WORK_DAYS.map((day) => {
           const on = chosen.includes(day.api);
           return (
             <button
@@ -109,9 +93,7 @@ export function WorkDaysField({
                 "flex h-11 items-center justify-center rounded-control border text-sm font-bold transition-colors motion-safe:active:scale-95",
                 on
                   ? "border-brand-500 bg-brand-500 text-on-brand"
-                  : invalid
-                    ? "border-danger bg-control text-ink-700"
-                    : "border-control-border/60 bg-control text-ink-700 hover:bg-surface-0"
+                  : "border-control-border/60 bg-control text-ink-700 hover:bg-surface-0"
               )}
             >
               {day.short}

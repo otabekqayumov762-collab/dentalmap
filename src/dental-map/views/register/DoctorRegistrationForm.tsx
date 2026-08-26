@@ -722,8 +722,11 @@ export function DoctorRegistrationForm({
         <Field
           label="Klinika manzili"
           name="clinic_address"
-          placeholder="Chilonzor tumani, Bunyodkor ko'chasi, 12-uy, 2-qavat"
-          hint="Bemor taksi haydovchisiga aytadigan manzil — ko'cha, uy, qavat yoki mo'ljal."
+          // Short enough to be READ inside a 390px field. The full template moved
+          // into the hint, which wraps: the long version was truncated at "12-u"
+          // and the example it existed to give was the part cut off.
+          placeholder="Bunyodkor ko'chasi, 12-uy"
+          hint="Masalan: Chilonzor tumani, Bunyodkor ko'chasi, 12-uy, 2-qavat. Bemor taksi haydovchisiga aytadigan manzil."
           required
           {...errorFor("clinic_address")}
           onChange={() => clear("clinic_address")}
