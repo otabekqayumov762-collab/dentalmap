@@ -53,6 +53,38 @@ const RECEIPT_DOCUMENT_PATH_PREFIX = "/api/v1/billing/receipt-document/";
  *
  * Read at CALL time for the same reason as the Payme host list above.
  */
+/**
+ * Every origin OUR api is served from, as a set.
+ *
+ * One host was enough while there was one host. Moving the mini app onto a real
+ * domain broke that: the receipt URL is built server-side from PUBLIC_BASE_URL
+ * and must be absolute -- `Telegram.WebApp.openLink` cannot resolve a relative
+ * path -- so a doctor who arrived on the old hostname was handed a receipt on the
+ * new one, and a single-origin check refused it. The receipt simply did not open,
+ * with nothing on screen to say why.
+ *
+ * Comparing against a LIST rather than the current origin removes the coupling
+ * between "which host the app was opened on" and "which host the receipt names",
+ * so those two can move independently instead of having to move in the same
+ * minute. Still an allowlist, and still only our own hosts.
+ */
+function extraReceiptOrigins(): string[] {
+  return (process.env.NEXT_PUBLIC_RECEIPT_ORIGINS ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      try {
+        // Normalised through URL so a trailing slash or a path cannot smuggle in
+        // a value that string-compares differently to what the browser reports.
+        return new URL(entry).origin;
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean);
+}
+
 function configuredApiOrigin() {
   const base =
     process.env.NEXT_PUBLIC_API_V1_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || "";
@@ -85,10 +117,11 @@ export function isAllowedReceiptDocumentUrl(value: unknown) {
   }
   try {
     const allowedOrigin = configuredApiOrigin();
+    const allowed = new Set([allowedOrigin, ...extraReceiptOrigins()].filter(Boolean));
     const url = new URL(value);
     return (
-      Boolean(allowedOrigin) &&
-      url.origin === allowedOrigin &&
+      allowed.size > 0 &&
+      allowed.has(url.origin) &&
       !url.username &&
       !url.password &&
       url.pathname.startsWith(RECEIPT_DOCUMENT_PATH_PREFIX)

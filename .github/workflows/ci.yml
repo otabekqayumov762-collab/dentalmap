@@ -182,6 +182,7 @@ jobs:
             NEXT_PUBLIC_SUBSCRIPTION_PRICE=${{ vars.NEXT_PUBLIC_SUBSCRIPTION_PRICE }}
             NEXT_PUBLIC_ADMIN_URL=${{ vars.NEXT_PUBLIC_ADMIN_URL }}
             NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${{ vars.NEXT_PUBLIC_YANDEX_MAPS_API_KEY }}
+            NEXT_PUBLIC_RECEIPT_ORIGINS=${{ vars.NEXT_PUBLIC_RECEIPT_ORIGINS }}
             NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS=${{ vars.NEXT_PUBLIC_PAYME_CHECKOUT_HOSTS }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/dental-map:sha-${{ github.sha }}
