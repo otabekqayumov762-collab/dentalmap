@@ -174,6 +174,12 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   // The hidden input is what the form actually submits.
   await expect(page.locator('input[name="specialty"]')).toHaveValue("Ortodont");
   await page.getByRole("textbox", { name: "Ish staji" }).fill("8");
+  // Working days are required and nothing is pre-selected, so the wizard will
+  // not advance until they are picked. The preset is one tap and is what a real
+  // clinic uses; the assertion pins the API's numbering (Monday 0) rather than
+  // just "something was chosen".
+  await page.getByRole("button", { name: "Dush–Shan", exact: true }).click();
+  await expect(page.locator('input[name="work_days"]')).toHaveValue("0,1,2,3,4,5");
   await advance.click();
 
   // Pane 7 — clinic, the only pane that submits.
@@ -182,8 +188,11 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   await page.getByRole("button", { name: "Tumanni tanlang" }).click();
   await page.getByRole("button", { name: "Toshkent shahri", exact: true }).click();
   await page.getByRole("button", { name: "Yakkasaroy", exact: true }).click();
+  // Two words and a house number: the API checks the shape, so a place name
+  // alone is refused here too.
+  await page.getByRole("textbox", { name: "Klinika manzili" }).fill("Bunyodkor ko'chasi, 12-uy");
   await page
-    .getByRole("textbox", { name: "Klinika lokatsiyasi linki" })
+    .getByRole("textbox", { name: "Xaritadagi nuqta" })
     .fill("https://maps.google.com/?q=41.311081,69.240562");
   await page.locator('input[name="privacy_acknowledged"]').check();
   await page.locator("#doctor-register-advance").click();
