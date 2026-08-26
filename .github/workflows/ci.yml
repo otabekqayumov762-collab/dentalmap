@@ -186,5 +186,12 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/dental-map:sha-${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/dental-map:latest
+          # The commit the image was built from, readable back off the pulled
+          # image. The auto-deployer needs it to pin an immutable, HUMAN-readable
+          # tag: without it the only immutable reference available is a digest,
+          # and an .env pinned to sha256:... cannot answer "which commit is live".
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
