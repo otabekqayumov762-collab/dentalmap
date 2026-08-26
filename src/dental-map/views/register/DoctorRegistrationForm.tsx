@@ -29,6 +29,7 @@ import {
 import { LocationPickerField, mapLinkValidationError } from "./LocationPickerField";
 import { OtpStep } from "./OtpStep";
 import { StepHeader } from "./StepHeader";
+import { WorkDaysField } from "./WorkDaysField";
 import { WorkTimeField } from "./WorkTimeField";
 
 /**
@@ -65,8 +66,10 @@ type DoctorField =
   | "doctor_gender"
   | "specialty"
   | "experience_years"
+  | "work_days"
   | "clinic_name"
   | "clinic_district"
+  | "clinic_address"
   | "clinic_location_url"
   | "privacy_acknowledged";
 
@@ -276,6 +279,12 @@ export function DoctorRegistrationForm({
       if (!value("experience_years") || !Number.isFinite(experience) || experience < 0 || experience > 80) {
         return { field: "experience_years", message: "Ish stajini 0 dan 80 gacha raqamda kiriting." };
       }
+      // Nothing is pre-selected, so this is the check that stops a doctor
+      // registering a week they never looked at -- and the API needs at least
+      // one working day before the profile can be published at all.
+      if (!value("work_days")) {
+        return { field: "work_days", message: "Kamida bitta ish kunini tanlang." };
+      }
       return null;
     }
 
@@ -285,6 +294,17 @@ export function DoctorRegistrationForm({
       }
       if (!value("clinic_district")) {
         return { field: "clinic_district", message: "Klinika tumanini tanlang." };
+      }
+      // Shape, not length. A character minimum rejected "Bobur 18" -- a real
+      // street and house number in eight characters -- while letting
+      // "Tashkentcity" through. Two words and a digit is the same rule the API
+      // applies, so the form cannot accept what the API will refuse.
+      const address = value("clinic_address").trim().replace(/\s+/g, " ");
+      if (address.split(" ").length < 2 || !/\d/.test(address)) {
+        return {
+          field: "clinic_address",
+          message: "Manzilni to'liqroq yozing: ko'cha nomi va uy raqami bilan.",
+        };
       }
       const locationError = mapLinkValidationError(value("clinic_location_url"));
       if (locationError) {
@@ -663,6 +683,7 @@ export function DoctorRegistrationForm({
           onInput={() => clear("experience_years")}
         />
         <WorkTimeField name="work_time" />
+        <WorkDaysField name="work_days" error={invalidField === "work_days"} />
         <TextareaField
           label={
             <>
@@ -698,8 +719,18 @@ export function DoctorRegistrationForm({
           placeholder="Tumanni tanlang"
           {...errorFor("clinic_district")}
         />
+        <Field
+          label="Klinika manzili"
+          name="clinic_address"
+          placeholder="Chilonzor tumani, Bunyodkor ko'chasi, 12-uy, 2-qavat"
+          hint="Bemor taksi haydovchisiga aytadigan manzil — ko'cha, uy, qavat yoki mo'ljal."
+          required
+          {...errorFor("clinic_address")}
+          onChange={() => clear("clinic_address")}
+        />
         <LocationPickerField
           name="clinic_location_url"
+          label="Xaritadagi nuqta"
           required
           error={invalidField === "clinic_location_url"}
           errorText={invalidField === "clinic_location_url" ? invalidMessage : undefined}

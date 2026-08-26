@@ -221,7 +221,7 @@ export function AuthGate({
             cannot leave a dead "@" on the sign-in screen. */}
         {!inWizard && SUPPORT_HANDLE ? (
           <p className="mx-auto mt-auto w-full max-w-sm pt-2 text-center text-xs text-ink-500">
-            Savol yoki muammo bo&apos;lsa —{" "}
+            Taklif va savollar uchun —{" "}
             <button
               type="button"
               onClick={openSupportChat}
