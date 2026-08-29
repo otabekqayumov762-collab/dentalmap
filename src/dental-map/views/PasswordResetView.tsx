@@ -33,6 +33,9 @@ const TOTAL_RESET_STEPS = RESET_STEPS.length;
 type ResetField = "phone" | "password" | "password_confirm";
 
 export type PasswordResetViewProps = {
+  variant?: "reset" | "activation";
+  initialPhone?: string;
+  initialIssue?: OtpIssue;
   onRequestCode: (phone: string) => Promise<OtpIssue>;
   onVerifyCode: (phone: string, code: string) => Promise<string>;
   /** Resolves true when the reset signed the user in. */
@@ -53,16 +56,20 @@ function Pane({ hidden, intro, children }: { hidden: boolean; intro?: string; ch
 }
 
 export function PasswordResetView({
+  variant = "reset",
+  initialPhone = "",
+  initialIssue,
   onRequestCode,
   onVerifyCode,
   onConfirm,
   onDone
 }: PasswordResetViewProps) {
-  const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState("");
+  const activation = variant === "activation";
+  const [step, setStep] = useState(initialIssue ? 2 : 1);
+  const [phone, setPhone] = useState(initialPhone);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [issue, setIssue] = useState<OtpIssue | null>(null);
+  const [issue, setIssue] = useState<OtpIssue | null>(initialIssue ?? null);
   const [invalidField, setInvalidField] = useState<ResetField | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -137,6 +144,11 @@ export function PasswordResetView({
   }
 
   function goBack() {
+    if (activation && step === 2) {
+      setIssue(null);
+      onDone("");
+      return;
+    }
     if (step === 1) {
       onDone("");
       return;
@@ -155,7 +167,17 @@ export function PasswordResetView({
 
   return (
     <form noValidate className="flex flex-col gap-4" onSubmit={submitPassword}>
-      <StepHeader step={step} total={TOTAL_RESET_STEPS} title={RESET_STEPS[step - 1].title} />
+      <StepHeader
+        step={activation ? step - 1 : step}
+        total={activation ? 2 : TOTAL_RESET_STEPS}
+        title={
+          activation
+            ? step === 2
+              ? "Raqamni tasdiqlang"
+              : "Shaxsiy parol yarating"
+            : RESET_STEPS[step - 1].title
+        }
+      />
 
       <Pane
         hidden={step !== 1}
@@ -181,7 +203,11 @@ export function PasswordResetView({
           active={step === 2}
           phone={phone}
           issue={issue}
-          sentText="Agar bu raqamda hisob bo'lsa, unga 6 xonali kod yuborildi."
+          sentText={
+            activation
+              ? "Vaqtinchalik kirishni tasdiqlash uchun ushbu raqamga 6 xonali kod yuborildi."
+              : "Agar bu raqamda hisob bo'lsa, unga 6 xonali kod yuborildi."
+          }
           verified={false}
           formSubmitting={busy}
           onRequestOtp={onRequestCode}
@@ -193,14 +219,22 @@ export function PasswordResetView({
           }}
           onEditPhone={() => {
             setIssue(null);
-            setStep(1);
+            if (activation) {
+              onDone("");
+            } else {
+              setStep(1);
+            }
           }}
         />
       </Pane>
 
       <Pane
         hidden={step !== 3}
-        intro="Yangi parol o'ylab toping. Uni saqlaganimizdan keyin boshqa barcha qurilmalardagi seanslar tugatiladi."
+        intro={
+          activation
+            ? "Endi faqat o'zingiz biladigan yangi parol yarating. Vaqtinchalik parol shu zahoti bekor qilinadi."
+            : "Yangi parol o'ylab toping. Uni saqlaganimizdan keyin boshqa barcha qurilmalardagi seanslar tugatiladi."
+        }
       >
         <Field
           label="Yangi parol"
@@ -246,7 +280,7 @@ export function PasswordResetView({
           onClick={goBack}
         >
           <ArrowLeft size={18} aria-hidden="true" />
-          {step === 1 ? "Kirish" : "Orqaga"}
+          {step === 1 || (activation && step === 2) ? "Kirish" : "Orqaga"}
         </Button>
 
         {/* Step 2 has no button here on purpose: its CTA is OtpStep's own

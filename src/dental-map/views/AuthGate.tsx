@@ -16,7 +16,7 @@ import { RegisterView } from "./RegisterView";
 
 /** "reset" is a third screen, not a third tab: it is reached from the login
  *  form and leaves back to it, so it never appears in the toggle. */
-export type AuthMode = "login" | "register" | "reset";
+export type AuthMode = "login" | "register" | "reset" | "activate";
 
 // No icons here on purpose: "Ro'yxatdan o'tish" already fills half the pill at
 // 375px, and an icon in front of it forces the label to truncate.
@@ -28,6 +28,8 @@ const modeOptions: Array<SegmentedOption<AuthMode>> = [
 export type AuthGateProps = {
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
+  activation: { phone: string; issue: OtpIssue } | null;
+  onActivationClear: () => void;
   onLogin: (login: string, password: string) => Promise<string>;
   role: RegisterRole;
   specialties: Specialty[];
@@ -64,6 +66,8 @@ export type AuthGateProps = {
 export function AuthGate({
   mode,
   onModeChange,
+  activation,
+  onActivationClear,
   onLogin,
   role,
   specialties,
@@ -99,7 +103,7 @@ export function AuthGate({
   // other context of its own — and because the theme button is anchored to the
   // top of this section, so a StepHeader promoted into that band would have its
   // progress segments running under a 44px button.
-  const inReset = mode === "reset";
+  const inReset = mode === "reset" || mode === "activate";
   const { toast } = useToast();
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -147,8 +151,10 @@ export function AuthGate({
             </h1>
           </div>
           <p className="text-sm font-medium leading-relaxed text-ink-500">
-            {inReset
-              ? "Raqamingizni tasdiqlang va yangi parol o'rnating"
+            {mode === "activate"
+              ? "Vaqtinchalik kirishni SMS orqali himoyalang"
+              : inReset
+                ? "Raqamingizni tasdiqlang va yangi parol o'rnating"
               : "Telefon raqam orqali kiring yoki yangi profil yarating"}
           </p>
         </header>
@@ -176,10 +182,16 @@ export function AuthGate({
 
         {inReset ? (
           <PasswordResetView
+            variant={mode === "activate" ? "activation" : "reset"}
+            initialPhone={activation?.phone}
+            initialIssue={activation?.issue}
             onRequestCode={onRequestPasswordReset}
             onVerifyCode={onVerifyPasswordReset}
             onConfirm={onConfirmPasswordReset}
             onDone={(message) => {
+              if (mode === "activate") {
+                onActivationClear();
+              }
               onModeChange("login");
               if (message) {
                 toast.success(message);

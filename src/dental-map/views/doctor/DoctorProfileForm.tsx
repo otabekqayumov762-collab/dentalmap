@@ -117,14 +117,6 @@ export function DoctorProfileForm({ user, profile, specialties, loading, onProfi
             placeholder="Ko'cha, uy yoki mo'ljal"
             defaultValue={profile?.clinic_address || ""}
           />
-          <Field
-            name="clinic_location_url"
-            type="url"
-            label="Xarita havolasi"
-            placeholder="https://maps..."
-            hint="Yandex yoki Google Maps havolasi — bemorlarga klinika lokatsiyasini yuborish uchun kerak."
-            defaultValue={profile?.clinic_location_url || ""}
-          />
           <TextareaField
             name="directions"
             label="Yo'l ko'rsatmalari"

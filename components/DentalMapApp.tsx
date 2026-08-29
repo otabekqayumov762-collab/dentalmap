@@ -10,7 +10,11 @@ import { isDarkActive, setPreference } from "@/src/dental-map/lib/theme";
 import { normalizeGender } from "@/src/dental-map/lib/gender";
 import { isTelegramPlaceholderUser } from "@/src/dental-map/lib/onboarding";
 import { cn, RegionDistrictField, SingleSelectSheet, ToastProvider, useToast } from "@/src/dental-map/ui";
-import { useDentalData } from "@/src/dental-map/hooks/useDentalData";
+import {
+  ACTIVATION_REQUIRED,
+  useDentalData,
+  type OtpIssue
+} from "@/src/dental-map/hooks/useDentalData";
 import { useSavedDoctors } from "@/src/dental-map/hooks/useSavedDoctors";
 import { useTelegram } from "@/src/dental-map/hooks/useTelegram";
 import { useTelegramButtons } from "@/src/dental-map/hooks/useTelegramButtons";
@@ -43,7 +47,6 @@ import {
   RatingPromptSheet,
   ReceiptView
 } from "@/src/dental-map/views/lazyViews";
-import { mapLinkValidationError } from "@/src/dental-map/views/register/LocationPickerField";
 import type { ApiAppointment, Doctor, RegisterRole, ViewId } from "@/src/dental-map/types";
 
 function DentalMapAppInner() {
@@ -132,6 +135,7 @@ function DentalMapAppInner() {
   const submittingRef = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [activation, setActivation] = useState<{ phone: string; issue: OtpIssue } | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [ratingPromptOpen, setRatingPromptOpen] = useState(false);
   const landedRef = useRef(false);
@@ -405,7 +409,20 @@ function DentalMapAppInner() {
   }
 
   async function handleLogin(login: string, password: string) {
-    return loginWithPassword(login, password);
+    const result = await loginWithPassword(login, password);
+    if (result !== ACTIVATION_REQUIRED) {
+      return result;
+    }
+    try {
+      const issue = await requestPasswordReset(login);
+      setActivation({ phone: login, issue });
+      setAuthMode("activate");
+      return "";
+    } catch (cause) {
+      return cause instanceof Error
+        ? cause.message
+        : "Tasdiqlash kodi yuborilmadi. Qayta urinib ko'ring.";
+    }
   }
 
   function handleLogout() {
@@ -420,6 +437,7 @@ function DentalMapAppInner() {
     setRegisterRole("user");
     setDoctorStep(1);
     otpTokenRef.current = null;
+    setActivation(null);
     setAuthMode("login");
     landedRef.current = false;
     ratingPromptShownRef.current = false;
@@ -595,7 +613,6 @@ function DentalMapAppInner() {
     const specialty = String(formData.get("specialty") || "").trim();
     const clinicName = String(formData.get("clinic_name") || "").trim();
     const clinicDistrict = String(formData.get("clinic_district") || "").trim();
-    const clinicLocationUrl = String(formData.get("clinic_location_url") || "").trim();
     const rawExperience = String(formData.get("experience_years") || "").trim();
     const experienceYears = rawExperience.match(/\d+/)?.[0] ?? "0";
     const password = String(formData.get("password") || "");
@@ -607,11 +624,6 @@ function DentalMapAppInner() {
     }
     if (!specialty || !clinicName || !clinicDistrict) {
       toast.error("Mutaxassislik, klinika nomi va tumanni to'ldiring.");
-      return;
-    }
-    const locationError = mapLinkValidationError(clinicLocationUrl);
-    if (locationError) {
-      toast.error(locationError);
       return;
     }
     if (password.length < 8) {
@@ -630,7 +642,6 @@ function DentalMapAppInner() {
     formData.set("specialty", specialty);
     formData.set("clinic_name", clinicName);
     formData.set("clinic_district", clinicDistrict);
-    formData.set("clinic_location_url", clinicLocationUrl);
     formData.set("experience_years", experienceYears);
     // Normalize the collected gender (Erkak/Ayol → male/female) to mirror the
     // user path; step-1 validation is the required gate.
@@ -855,6 +866,8 @@ function DentalMapAppInner() {
         // to the one they needed. The flag is gone; the default lives in the
         // effect above.
         mode={authMode}
+        activation={activation}
+        onActivationClear={() => setActivation(null)}
         registerStep={registerRole === "doctor" ? doctorStep : patientStep}
         onPatientStepChange={setPatientStep}
         onExitWizard={() => {

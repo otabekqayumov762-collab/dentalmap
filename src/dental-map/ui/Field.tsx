@@ -12,7 +12,7 @@ import { cn } from "./cn";
 
 /* ── Control tokens: the SINGLE source of truth ────────────────────────────
    Every other primitive (Select, PhoneField, OptionGrid, MultiSelectSheet,
-   RegionDistrictField, WorkTimeField, LocationPickerField) imports from here
+   RegionDistrictField and WorkTimeField) imports from here
    instead of declaring its own strings. Four heights (py-3 / h-12 / h-14 /
    min-h-12) and three radii had drifted apart across the registration surface,
    which is exactly why the flow read as unstyled defaults.

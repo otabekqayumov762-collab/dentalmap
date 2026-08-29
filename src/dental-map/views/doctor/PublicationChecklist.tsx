@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, CheckCircle2, MapPin, ShieldAlert } from "lucide-react";
+import { CalendarClock, CheckCircle2, ShieldAlert } from "lucide-react";
 import type { PublicationBlocker } from "../../types";
 import { Card } from "../../ui";
 
@@ -18,12 +18,6 @@ const ENTRIES: Record<PublicationBlocker, ChecklistEntry> = {
     title: "Qabul vaqtlarini kiriting",
     hint: "Ishlaydigan kunlaringiz uchun vaqt oralig'ini qo'ying — kamida bitta kun yetarli.",
     section: "schedule"
-  },
-  location_missing: {
-    icon: MapPin,
-    title: "Klinika lokatsiyasini qo'shing",
-    hint: "Yandex yoki Google Maps linki kerak, shunda bemorga joylashuv yuboriladi.",
-    section: "profile"
   },
   rejected: {
     icon: ShieldAlert,

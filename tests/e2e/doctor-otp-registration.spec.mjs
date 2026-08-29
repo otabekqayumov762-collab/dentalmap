@@ -191,9 +191,7 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   // Two words and a house number: the API checks the shape, so a place name
   // alone is refused here too.
   await page.getByRole("textbox", { name: "Klinika manzili" }).fill("Bunyodkor ko'chasi, 12-uy");
-  await page
-    .getByRole("textbox", { name: "Xaritadagi nuqta" })
-    .fill("https://maps.google.com/?q=41.311081,69.240562");
+  await expect(page.getByRole("textbox", { name: "Xaritadagi nuqta" })).toHaveCount(0);
   await page.locator('input[name="privacy_acknowledged"]').check();
   await page.locator("#doctor-register-advance").click();
 
@@ -202,6 +200,7 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
   expect(registerBody).toContain("signed-ticket");
   expect(registerBody).not.toContain('name="sms_consent"');
   expect(registerBody).not.toContain('name="password_confirm"');
+  expect(registerBody).not.toContain('name="clinic_location_url"');
   expect(registerBody).toContain("StrongPass123!");
 
   // The password and the ticket never reach any browser storage.

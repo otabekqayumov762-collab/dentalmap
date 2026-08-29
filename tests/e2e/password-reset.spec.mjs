@@ -35,6 +35,71 @@ function json(route, payload, status = 200) {
   });
 }
 
+test("a correct temporary password starts the mandatory OTP activation flow", async ({ page }) => {
+  const stub = (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });
+  await page.route("https://telegram.org/js/telegram-web-app.js", stub);
+  await page.route("**/telegram-web-app.js", stub);
+
+  let loginBody = null;
+  let requestBody = null;
+  let verifyBody = null;
+  await page.route(`${API_ORIGIN}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": APP_ORIGIN,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "authorization, content-type, x-csrftoken",
+          "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS"
+        }
+      });
+    }
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
+    if (path === "/api/auth/token/") {
+      loginBody = request.postDataJSON();
+      return json(route, {
+        code: "activation_required",
+        detail: "Vaqtinchalik parolni SMS orqali tasdiqlang."
+      }, 409);
+    }
+    if (path === "/api/auth/password/reset/request/") {
+      requestBody = request.postDataJSON();
+      return json(route, { sent: true, expires_in: 120, resend_after: 60, code_length: 6 });
+    }
+    if (path === "/api/auth/password/reset/verify/") {
+      verifyBody = request.postDataJSON();
+      return json(route, { reset_token: "activation-ticket", expires_in: 900 });
+    }
+    if (path === "/api/users/me/") return json(route, { detail: "unauthorised" }, 401);
+    if (path === "/api/doctors/") return json(route, { results: [] });
+    return json(route, { results: [] });
+  });
+
+  await page.goto("/");
+  const loginForm = page.locator("form");
+  await loginForm.getByRole("textbox", { name: /Telefon raqam/ }).fill("901110001");
+  await loginForm.getByLabel("Parol", { exact: true }).fill("Temp-Doctor-42");
+  await loginForm.getByRole("button", { name: "Kirish", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Raqamni tasdiqlang", level: 2 })).toBeVisible();
+  await expect(page.getByText(/Vaqtinchalik kirishni tasdiqlash uchun/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kod yuborish" })).toHaveCount(0);
+  expect(loginBody).toEqual({ phone: "+998 90 111 00 01", password: "Temp-Doctor-42" });
+  expect(requestBody).toEqual({ phone: "+998 90 111 00 01" });
+
+  await page.getByLabel(/-raqam$/).first().fill("123456");
+  await expect(page.getByRole("heading", { name: "Shaxsiy parol yarating", level: 2 })).toBeVisible();
+  expect(verifyBody).toEqual({ phone: "+998 90 111 00 01", code: "123456" });
+
+  const stored = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
+  expect(stored).not.toContain("Temp-Doctor-42");
+  expect(stored).not.toContain("activation-ticket");
+});
+
 test("a backend that mints no session still lands the user on sign-in", async ({ page }) => {
   const stub = (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });

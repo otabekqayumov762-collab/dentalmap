@@ -107,7 +107,7 @@ export const DoctorPaymentView = dynamic(
   { ssr: false, loading: ViewFallback }
 );
 
-// The 7-pane doctor signup wizard (map link picker, region sheet, photo
+// The 7-pane doctor signup wizard (region sheet, photo
 // uploader; the OTP boxes are their own chunk now that patients verify too).
 // The DEFAULT path is patient registration, which never needs any of it — and the chunk is prefetched on the role toggle's pointer-down, so
 // by the time "Shifokor" is released it is already in cache and no fetch ever

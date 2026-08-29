@@ -99,6 +99,11 @@ type ResetVerifyPayload = { reset_token?: string; expires_in?: number };
  *  password changed. */
 const OFFLINE_RESET_MESSAGE = "Bu rejimda parolni tiklab bo'lmaydi.";
 
+/** Internal signal used by the auth wall when a correct operator-issued
+ * temporary password was entered. It is never shown as an error and never
+ * stored: the shell immediately starts phone verification instead. */
+export const ACTIVATION_REQUIRED = "__dental_map_activation_required__";
+
 /**
  * Turn a 429 body into a sentence that answers "when?".
  *
@@ -725,6 +730,15 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
           }
         })();
         if (!response.ok) {
+          const failure = await response.json().catch(() => null);
+          if (
+            response.status === 409 &&
+            failure &&
+            typeof failure === "object" &&
+            (failure as { code?: unknown }).code === "activation_required"
+          ) {
+            return ACTIVATION_REQUIRED;
+          }
           return "Telefon yoki parol noto'g'ri.";
         }
         const payload = normalizeAuthPayload(await response.json());

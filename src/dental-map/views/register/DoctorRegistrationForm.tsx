@@ -26,7 +26,6 @@ import {
   useSettledEmpty,
   useToast
 } from "../../ui";
-import { LocationPickerField, mapLinkValidationError } from "./LocationPickerField";
 import { OtpStep } from "./OtpStep";
 import { StepHeader } from "./StepHeader";
 import { WorkDaysField } from "./WorkDaysField";
@@ -70,7 +69,6 @@ type DoctorField =
   | "clinic_name"
   | "clinic_district"
   | "clinic_address"
-  | "clinic_location_url"
   | "privacy_acknowledged";
 
 /** Pane shell. Same card chrome as the AuthGate cards on purpose — a second
@@ -305,10 +303,6 @@ export function DoctorRegistrationForm({
           field: "clinic_address",
           message: "Manzilni to'liqroq yozing: ko'cha nomi va uy raqami bilan.",
         };
-      }
-      const locationError = mapLinkValidationError(value("clinic_location_url"));
-      if (locationError) {
-        return { field: "clinic_location_url", message: locationError };
       }
       if (value("privacy_acknowledged") !== "yes") {
         return { field: "privacy_acknowledged", message: "Maxfiylik qoidalarini o'qib tasdiqlang." };
@@ -687,7 +681,7 @@ export function DoctorRegistrationForm({
         <TextareaField
           label={
             <>
-              Izoh
+              O‘zingiz haqida to‘liq ma’lumot
               <OptionalMark />
             </>
           }
@@ -696,7 +690,7 @@ export function DoctorRegistrationForm({
         />
       </Pane>
 
-      <Pane hidden={step !== 7} intro="Oxirgi qadam: klinika manzili bemorlarga xaritada ko'rinadi.">
+      <Pane hidden={step !== 7} intro="Oxirgi qadam: klinika ma'lumotlarini to'liq kiriting.">
         <Field
           label="Ishlaydigan klinika nomi"
           name="clinic_name"
@@ -730,13 +724,6 @@ export function DoctorRegistrationForm({
           required
           {...errorFor("clinic_address")}
           onChange={() => clear("clinic_address")}
-        />
-        <LocationPickerField
-          name="clinic_location_url"
-          label="Xaritadagi nuqta"
-          required
-          error={invalidField === "clinic_location_url"}
-          errorText={invalidField === "clinic_location_url" ? invalidMessage : undefined}
         />
         <PrivacyAcknowledgement error={invalidField === "privacy_acknowledged"} />
         {invalidField === "privacy_acknowledged" && (

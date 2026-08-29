@@ -212,7 +212,7 @@ export type ApiUser = {
 };
 
 /** Why a doctor profile is not publicly listed yet. Server-defined keys. */
-export type PublicationBlocker = "schedule_incomplete" | "location_missing" | "rejected" | "blocked";
+export type PublicationBlocker = "schedule_incomplete" | "rejected" | "blocked";
 
 export type ApiDoctor = {
   id: string;
