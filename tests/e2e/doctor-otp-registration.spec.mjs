@@ -211,9 +211,8 @@ test("doctor OTP wizard walks 7 panes and posts the ticket", async ({ page }) =>
 
 test("checking the number on the code pane does not buy a second SMS", async ({ page }) => {
   // Same trap as the patient wizard, same cost: "O'zgartirish" leaves the code
-  // alive, so returning must not re-POST /api/auth/otp/request/. Inside the
-  // backend's 60s resend cooldown that is a 429 raised on the identity pane,
-  // which offers no route back to the boxes.
+  // alive, so returning must not re-POST /api/auth/otp/request/, buy another SMS
+  // or consume another slot in the hourly budget.
   await page.route("https://telegram.org/js/telegram-web-app.js", (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" })
   );

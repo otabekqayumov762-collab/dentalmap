@@ -364,8 +364,7 @@ export function DoctorRegistrationForm({
     }
     // Nor when the code already sent to this number is still alive. Tapping
     // "O'zgartirish" on the code pane is a look at the number, not a request for
-    // a new SMS, and buying one inside the backend's 60s resend cooldown is a
-    // 429 — which lands on THIS pane, the one with no way back to the boxes.
+    // another billable SMS.
     if (
       otpIssue &&
       issuedPhoneRef.current === phone &&

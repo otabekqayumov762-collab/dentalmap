@@ -72,9 +72,10 @@ type UseDentalDataArgs = {
  *  one would let a signup ticket change somebody's password. */
 const OTP_PURPOSE = "register-doctor";
 
-/** What one issued code is worth to the UI: the two clocks it has to run.
- *  `issuedAt` is client-side, so a clock skew shows as a slightly early or late
- *  countdown, never as a wrongly-accepted code — the server owns expiry. */
+/** What one issued code is worth to the UI. `resendAfter` is kept in the wire
+ *  model for compatibility, but production sends zero: replacement SMS has no
+ *  countdown. `issuedAt` only drives the code lifetime display; the server owns
+ *  the actual expiry. */
 export type OtpIssue = {
   expiresIn: number;
   resendAfter: number;
@@ -107,8 +108,8 @@ export const ACTIVATION_REQUIRED = "__dental_map_activation_required__";
 /**
  * Turn a 429 body into a sentence that answers "when?".
  *
- * Every ceiling (per-IP window, hourly phone bucket, resend cooldown) comes
- * back with the same deliberately vague "Juda ko'p urinish. Keyinroq urinib
+ * Every remaining ceiling (per-IP window and hourly phone bucket) comes back
+ * with the same deliberately vague "Juda ko'p urinish. Keyinroq urinib
  * ko'ring." — and "keyinroq" is not an answer: the user taps again straight
  * away, is refused again, and concludes the app is broken. The body carries
  * retry_after in seconds, so say it.
@@ -1030,15 +1031,15 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
    * Ask the backend to SMS a one-time code to `phone`.
    *
    * The spaced "+998 90 123 45 67" string is sent verbatim — normalisation is
-   * the server's job (it keys the cache, the cooldown and the per-phone throttle
-   * off the normalized form). Normalising here would only create a second,
+   * the server's job (it keys the cache and per-phone throttle off the normalized
+   * form). Normalising here would only create a second,
    * divergent normalizer and split the rate-limit buckets by spacing variant.
    */
   const requestOtp = useCallback(async (phone: string): Promise<OtpIssue> => {
     if (isOfflineMode()) {
       // The static preview and local mode have no backend to call; dead-ending
       // the wizard here would make the GitHub Pages demo unusable.
-      return { expiresIn: 120, resendAfter: 60, issuedAt: Date.now(), devCode: "000000" };
+      return { expiresIn: 120, resendAfter: 0, issuedAt: Date.now(), devCode: "000000" };
     }
     const payload = (await postAuthJson("/api/auth/otp/request/", {
       phone,
@@ -1046,7 +1047,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     })) as OtpRequestPayload | null;
     return {
       expiresIn: typeof payload?.expires_in === "number" ? payload.expires_in : 120,
-      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 60,
+      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 0,
       issuedAt: Date.now(),
       devCode: typeof payload?.dev_code === "string" ? payload.dev_code : undefined
     };
@@ -1086,7 +1087,7 @@ export function useDentalData({ webApp, telegramUser, telegramInitialized }: Use
     })) as OtpRequestPayload | null;
     return {
       expiresIn: typeof payload?.expires_in === "number" ? payload.expires_in : 120,
-      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 60,
+      resendAfter: typeof payload?.resend_after === "number" ? payload.resend_after : 0,
       issuedAt: Date.now(),
       devCode: typeof payload?.dev_code === "string" ? payload.dev_code : undefined
     };

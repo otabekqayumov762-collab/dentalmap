@@ -160,8 +160,8 @@ export type OtpStepProps = {
 };
 
 /**
- * The phone-confirmation pane. It owns the two clocks (code TTL and resend
- * cooldown) and its own in-flight flag, because they are pane-local concerns:
+ * The phone-confirmation pane. It owns the code-lifetime clock, the optional
+ * server-provided resend delay and its own in-flight flag, because they are pane-local concerns:
  * hoisting them into DoctorRegistrationForm would re-render all seven panes
  * once per second for the whole two minutes.
  *

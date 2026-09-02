@@ -384,7 +384,7 @@ test("stepping back from the new password lands on a code pane that still works"
   // of unmounting them. Coming back to step 2 therefore used to render that
   // static card and nothing else — no boxes, no Tasdiqlash, no Qayta yuborish —
   // with the ticket already dropped by the back button. The only exit was a
-  // second SMS, and inside the 60s cooldown that is a 429.
+  // second SMS and consume another slot in the hourly budget.
   const stub = (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" });
   await page.route("https://telegram.org/js/telegram-web-app.js", stub);
@@ -408,7 +408,7 @@ test("stepping back from the new password lands on a code pane that still works"
     if (path === "/api/auth/csrf/") return json(route, { csrf_token: "csrf" });
     if (path === "/api/auth/password/reset/request/") {
       requests += 1;
-      // The real cooldown: one code per minute for a number.
+      // Simulate an upstream rate-limit response; the pane must still recover.
       if (requests > 1) {
         return json(route, { detail: "Juda ko'p urinish. Keyinroq urinib ko'ring.", retry_after: 47 }, 429);
       }
@@ -433,7 +433,7 @@ test("stepping back from the new password lands on a code pane that still works"
 
   await expect(page.getByRole("heading", { name: "Kodni tasdiqlang", level: 2 })).toBeVisible();
   // The pane is a working pane again: empty boxes for the code, the button that
-  // submits them, and the resend that will free up when the cooldown ends.
+  // submits them, and the resend action.
   await expect(page.getByLabel(/-raqam$/)).toHaveCount(6);
   await expect(page.getByLabel("1-raqam")).toBeVisible();
   await expect(page.getByLabel("1-raqam")).toHaveValue("");

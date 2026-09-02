@@ -359,9 +359,7 @@ test("a Telegram-identified patient is shown the pane, and the code goes to a re
 test("checking the number on the code pane does not buy a second SMS", async ({ page }) => {
   // "O'zgartirish" is how a patient re-reads the number a code went to. It
   // leaves the code alive and unspent, so coming back must return to the boxes,
-  // not re-POST /api/auth/otp/request/ — inside the backend's 60s resend
-  // cooldown that is a 429, and it lands on the identity pane, which has no way
-  // back to the code. Signup was hard-blocked for a minute.
+  // not buy another SMS or consume another slot in the hourly budget.
   await page.route("https://telegram.org/js/telegram-web-app.js", (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "/* stub */" })
   );

@@ -185,7 +185,7 @@ Egasi topgan yoki men yo'lda topganlar. Har biri testga bog'langan.
 | «Share link yuboring» — lekin u hech qachon o'tmasdi | Qisqa havolada koordinata yo'q, validator esa talab qilardi |
 | Admin har shifokorning chekiga havola olardi | `payment_payload` shartsiz `receipt_url` yasardi |
 | Chekda inglizcha `manual` | Usul yorlig'i xom DB kalitiga tushardi |
-| Qayta yuborish kutish vaqti yo'q edi | `cache.set` har doim muvaffaqiyat qaytaradi — hech qachon rad etmasdi |
+| SMS qayta yuborish 120 soniya kutdirardi | Kutish olib tashlandi; xarajat va abuse himoyasi soatlik/IP limitlarda qoldi |
 | Xalqaro raqamlarga SMS | Global telefon shabloni, mamlakat cheklovi yo'q |
 | Staging'da jimgina tupik | Kod yuborilmasa ham «yuborildi» derdi |
 | Ikkita bir xil tugma | Telegram MainButton ilovaning tugmasini takrorlardi |

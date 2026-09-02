@@ -12,7 +12,7 @@ import { StepHeader } from "./register/StepHeader";
  * Parolni tiklash — the same three moves as the doctor wizard's phone check
  * (request a code, verify it, spend the ticket) shown with the same segmented
  * header and the same card chrome, because it IS the same mechanism. The code
- * pane is literally OtpStep: its two clocks, its resend cooldown, its masked
+ * pane is literally OtpStep: its code lifetime, resend action and masked
  * number and its five-attempt handling are all behaviour the reset needs
  * identically, and a second copy would drift.
  *
