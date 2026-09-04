@@ -165,7 +165,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          # workflow_dispatch has to publish too. The trigger was added so that
+          # changing a NEXT_PUBLIC_* repository variable could produce a new
+          # image without an empty commit -- but this condition only allowed a
+          # push event through, so a dispatched run built the image, said
+          # "success", and threw it away. Turning TELEGRAM_ONLY on looked done
+          # and changed nothing.
+          push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://ci.invalid' }}
             NEXT_PUBLIC_API_V1_URL=${{ vars.NEXT_PUBLIC_API_V1_URL }}
